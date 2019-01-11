@@ -172,7 +172,7 @@ function bucketSpreadAndCalcStats(spread, base, gen) {
   }
 
   let stats = calcStats(gen, base, nature, revs);    
-  return [nature + ': ' + evs.join('/'), stats, mixed];
+  return [nature + ' ' + evs.join('/'), stats, mixed];
 }
 
 function calcStats(gen, base, nature, evs) {
