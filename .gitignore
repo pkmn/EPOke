@@ -1,8 +1,9 @@
-node_modules
-/dist
-/data
-/*_
-/coverage
-package-lock.json
+node_modules/
+build/
+.DS_Store
+Thumbs.db
+*package-lock.json
+.eslintcache
 .tsbuildinfo
 .vscode
+*-debug.log
