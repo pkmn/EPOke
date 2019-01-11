@@ -3,6 +3,7 @@ const data = require('./data');
 const json = require('./gen3ou-1760');
 
 const STATS = { 'hp': 0, 'atk': 1, 'def': 2, 'spa': 3, 'spd': 4, 'spe': 5 };
+const ORDERED_STATS = [ 'hp', 'atk', 'def', 'spa', 'spd', 'spe' ];
 const CUTOFF = 3.40;
 
 function binarySearch(array, pred) {
@@ -171,7 +172,7 @@ function bucketSpreadAndCalcStats(spread, base, gen) {
     }
   }
 
-  let stats = calcStats(gen, base, nature, revs);    
+  let stats = calcStats(gen, base, nature, revs);
   return [nature + ' ' + evs.join('/'), stats, mixed];
 }
 
@@ -192,28 +193,78 @@ function display(result, cutoff = 0) {
 }
 
 function percent(p) {
-  return p.toFixed(3) + '%';
+  //return p.toFixed(3) + '%';
+  return (Math.round(p * 10) / 10).toString() + '%';
 }
 
 function firstSet(gen, name) {
   let sets = dmg.SETS[gen][name];
   let set = sets[Object.keys(sets)[0]];
   let base = dmg.POKEDEX[gen][name].baseStats;
-  set.stats = calcStats(gen, base, set.nature, set.evs);
   set.name = name;
   return set;
+}
+
+function displaySet(poke, def, field, gen) {
+  let evs = [];
+  let stats = [];
+  for (let stat of ORDERED_STATS) {
+    let ev = poke.evs[stat];
+    if (poke.evs[stat]) {
+      evs.push(ev.toString() + ' ' + data.displayStat(stat));
+    }
+    stats.push(poke.stats[stat]);
+  }
+
+  let set = stats.join(' / ') + '  \n\n';
+
+  set += poke.name + ' @ ' + poke.item + '  \n';
+  set += 'Ability: ' + poke.ability + '  \n';
+  set += 'EVs: ' + evs.join(' / ') + '  \n';
+  set += 'Nature: ' + poke.nature + '  \n';
+  for (let move of poke.moves) {
+    set += '- ' + displayMove(move);
+    move = dmg.MOVES[gen][move];
+    let result = calcMove(gen, poke, def, move, field);
+    if (result) {
+      set += ' (' + result.moveDesc() + ')';
+    }
+
+    set += '  \n';
+  }
+
+  return set;
+}
+
+function displayMove(move) {
+  if (move.substr(0, 13) === 'Hidden Power ') {
+		move = move.substr(0, 13) + '[' + move.substr(13) + ']';
+	}
+  return move;
 }
 
 let mon = json['data'][process.argv[2]];
 mon.name = process.argv[2];
 
-let gen = parseInt(process.argv[3], 10) || 3; // TODO 
+let gen = parseInt(process.argv[3], 10) || 3; // TODO
 let p1 = firstSet(gen, 'Zapdos'); // TODO
+let p2 = firstSet(gen, mon.name);
+let p2_moves = p2.moves;
+let field = new dmg.Field(); // TODO
+
+p1 = new dmg.Pokemon(
+  gen, p1.name, p1.level, undefined /* gender */, p1.ability, p1.item,
+  p1.nature, undefined /* ivs */, p1.evs);
+
+p2 = new dmg.Pokemon(
+  gen, p2.name, p2.level, undefined /* gender */, p2.ability, p2.item,
+  p2.nature, undefined /* ivs */, p2.evs);
+p2.moves = p2_moves;
 
 console.log('Set\n=====');
-console.log(firstSet(gen, mon.name)); // TODO (turn into set)
+console.log(displaySet(p2, p1, field, gen));
 
-console.log('\nAbilities\n=====');
+console.log('Abilities\n=====');
 display(abilities(mon));
 
 console.log('\nItems\n=====');
@@ -234,4 +285,25 @@ let tie = fromIndex(spe, hi) - beat;
 console.log('Speed: ' + percent(beat) + ' (' + percent(tie) + ')');
 
 console.log('\nMoves\n=====');
-display(moves(mon), CUTOFF);
+for (let pair of moves(mon)) {
+  if (pair[1] < CUTOFF) break;
+
+  let desc = displayMove(pair[0]) + ': ' + percent(pair[1]);
+  let move = dmg.MOVES[gen][pair[0]];
+  let result = calcMove(gen, p2, p1, move, field);
+  if (result) {
+    desc += ' (' + result.moveDesc() + ')';
+  }
+
+  console.log(desc);
+}
+
+function calcMove(gen, attacker, defender, move, field) {
+  if (move) {
+    move = new dmg.Move(gen, move, attacker.ability, attacker.item);
+    let result = dmg.calc(gen, attacker, defender, move, field);
+    if (!(result.damage.length === 1 && result.damage[0] === 0)) {
+      return result;
+    }
+  }
+}
