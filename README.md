@@ -1,4 +1,4 @@
-# EPOke-lite
+# EPOké
 
     Set
     =====
