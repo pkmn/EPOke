@@ -1,7 +1,7 @@
 const https = require('https');
 const fs = require('fs');
 
-const statistics = require('../build/statistics');
+const Statistics = require('../build/statistics').Statistics;
 
 const pokemon = process.argv[2] || 'Tyranitar';
 const format = process.argv[3] || 'gen4ou';
@@ -31,6 +31,6 @@ if (fs.existsSync(cached) && (data = fs.readFileSync(cached))) {
 
 function display(data) {
   const raw = JSON.parse(data);
-  const s = statistics.stats(raw, [pokemon])[pokemon];
-  console.log(statistics.display(pokemon, s));
+  const s = Statistics.process(raw, [pokemon])[pokemon];
+  console.log(Statistics.display(pokemon, s));
 }
