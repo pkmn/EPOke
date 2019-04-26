@@ -27,7 +27,7 @@ export interface ProcessedStatistics {
 }
 
 export interface WeightedPair<T> {
-  key: T;  // TODO key;
+  key: T;
   weight: number;
 }
 
@@ -35,11 +35,11 @@ export interface SpreadWeights {
   // bucketed spread to percent weight
   spreads: Array<WeightedPair<string>>;  // TODO
   // nature to percent weight
-  natures: Array<WeightedPair<string>>;  // TODO
+  natures: Array<WeightedPair<pkmn.Nature>>;
   // percent of spreads which are mixed
   mixed: {atk: number, def: number};
   // string stat value to cumulative total percent for each stat
-  percents: StatsTable<Array<WeightedPair<string>>>;  // TODO
+  percents: StatsTable<Array<WeightedPair<number>>>;
   // percentiles of stat values for each stat
   percentiles: StatsTable<number[]>;
 }
@@ -61,10 +61,9 @@ export class Statistics {
 
     const plus = {atk: 0, def: 0, spa: 0, spd: 0, spe: 0, hp: 0};
     const minus = {atk: 0, def: 0, spa: 0, spd: 0, spe: 0, hp: 0};
-    for (const n of stats.spreads.natures) {
-      const nature = pkmn.Natures.get(n.key)!;
-      plus[nature.plus || 'hp'] += n.weight;
-      minus[nature.minus || 'hp'] += n.weight;
+    for (const {key, weight} of stats.spreads.natures) {
+      plus[key.plus || 'hp'] += weight;
+      minus[key.minus || 'hp'] += weight;
     }
     s += `Nature (+): (${plus.hp.toFixed(1)})/${
         Object.values(plus).slice(0, 5).map(p => p.toFixed(1)).join('/')}%\n`;
@@ -185,7 +184,7 @@ function spreads(
   const totalMixed = {atk: 0, def: 0};
 
   const natureWeights: {[nature: string]: number} = {};
-  const statWeights: {[stat in pkmn.Stat]?: {[val: string]: number}} = {};
+  const statWeights: {[stat in pkmn.Stat]?: {[val: number]: number}} = {};
   const grouped: {[spread: string]: number} = {};
   for (const [spread, weight] of Object.entries(pokemon['Spreads'])) {
     totalWeight += weight;
@@ -200,7 +199,7 @@ function spreads(
 
     let stat: pkmn.Stat;
     for (stat in STATS) {
-      const val = stats[stat].toString();
+      const val = stats[stat];
       statWeights[stat] = statWeights[stat] || {};
       if (typeof statWeights[stat]![val] === 'undefined') {
         statWeights[stat]![val] = 0;
@@ -219,7 +218,7 @@ function spreads(
   const natures = [];
   for (const [key, value] of Object.entries(natureWeights)) {
     const weight = (value / totalWeight) * 100;
-    natures.push({key, weight});
+    natures.push({key: pkmn.Natures.get(key)!, weight});
   }
   natures.sort((a, b) => b.weight - a.weight);
 
@@ -228,18 +227,18 @@ function spreads(
     def: (totalMixed.def / totalWeight) * 100,
   };
 
-  const orderedStatWeights: StatsTable<Array<WeightedPair<string>>> =
+  const orderedStatWeights: StatsTable<Array<WeightedPair<number>>> =
       {hp: [], atk: [], def: [], spa: [], spd: [], spe: []};
   let stat: pkmn.Stat;
   for (stat in STATS) {
     for (const [val, weight] of Object.entries(statWeights[stat]!)) {
       orderedStatWeights[stat].push(
-          {key: val, weight: weight / totalWeight * 100});
+          {key: Number(val), weight: weight / totalWeight * 100});
     }
-    orderedStatWeights[stat].sort((a, b) => Number(a.key) - Number(b.key));
+    orderedStatWeights[stat].sort((a, b) => a.key - b.key);
   }
 
-  const percents: StatsTable<Array<WeightedPair<string>>> =
+  const percents: StatsTable<Array<WeightedPair<number>>> =
       {hp: [], atk: [], def: [], spa: [], spd: [], spe: []};
   const percentiles: StatsTable<number[]> =
       {hp: [], atk: [], def: [], spa: [], spd: [], spe: []};
@@ -302,12 +301,12 @@ function bucketSpreadAndCalcStats(
   return {bucketed, nature: n, stats, mixed};
 }
 
-function displayWeightedPairs(
-    pairs: Array<WeightedPair<string>>, cutoff = 3.41) {
+function displayWeightedPairs<T>(
+    pairs: Array<WeightedPair<T>>, cutoff = 3.41, display = (k: T) => `${k}`) {
   let s = '';
   for (const {key, weight} of pairs) {
     if (weight < cutoff) break;
-    s += `${key}: ${percent(weight)}\n`;
+    s += `${display(key)}: ${percent(weight)}\n`;
   }
   return s;
 }

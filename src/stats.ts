@@ -14,7 +14,6 @@ export interface Range<T> {
   max: T;
 }
 
-
 export class Stats {
   protected constructor() {}
 
