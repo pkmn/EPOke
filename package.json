@@ -1,0 +1,43 @@
+{
+  "name": "epoke",
+  "version": "0.0.1",
+  "description": "Augmentation tooling for competitive Pokémon battling",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pkmn-cc/EPOke.git"
+  },
+  "keywords": [
+    "competitive",
+    "Pokémon",
+    "tools",
+    "statistics"
+  ],
+  "author": "Kirk Scheibelhut",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/pkmn-cc/EPOke/issues"
+  },
+  "dependencies": {
+    "@types/node": "^11.13.4",
+    "@pkmn.cc/data": "file:../pkmn/data"
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.11",
+    "gts": "^0.9.0",
+    "jest": "^24.7.1",
+    "ts-jest": "^24.0.2",
+    "typescript": "^3.4.3"
+  },
+  "scripts": {
+    "check": "gts check",
+    "clean": "gts clean",
+    "compile": "tsc -p .",
+    "fix": "gts fix",
+    "test": "jest",
+    "prepare": "npm run compile",
+    "pretest": "npm run compile",
+    "posttest": "npm run check"
+  }
+}
