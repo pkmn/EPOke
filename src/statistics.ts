@@ -1,11 +1,15 @@
 import * as pkmn from '@pkmn.cc/data';
 
+import {STATS, StatsTable} from './stats';
+
 interface RawStatistics {
   'data': {[name: string]: RawPokemonStatistics};
 }
+
 interface RawWeights {
   [id: string]: number;
 }
+
 interface RawPokemonStatistics {
   'Moves': RawWeights;
   'Abilities': RawWeights;
@@ -17,15 +21,6 @@ interface RawPokemonStatistics {
 export interface WeightedPair {
   name: string;
   weight: number;
-}
-
-export interface StatsTable<T> {
-  hp: T;
-  atk: T;
-  def: T;
-  spa: T;
-  spd: T;
-  spe: T;
 }
 
 export interface SpreadWeights {
@@ -48,15 +43,6 @@ export interface PokemonStatistics {
   spreads: SpreadWeights;
   usage: number;
 }
-
-export const STATS = {
-  hp: 0,
-  atk: 1,
-  def: 2,
-  spa: 3,
-  spd: 4,
-  spe: 5
-};
 
 export function url(date: string, fmt: string|pkmn.Format, weighted = true) {
   const format = typeof fmt === 'string' ? pkmn.Format.fromString(fmt) : fmt;

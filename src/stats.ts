@@ -1,14 +1,36 @@
 import * as pkmn from '@pkmn.cc/data';
 
-import {STATS, StatsTable} from './statistics';
+export interface StatsTable<T> {
+  hp: T;
+  atk: T;
+  def: T;
+  spa: T;
+  spd: T;
+  spe: T;
+}
 
 export interface Range<T> {
   min: T;
   max: T;
 }
 
-export type Stats = StatsTable<number>;
+
+export class Stats {
+  protected constructor() {}
+
+  static display(stats: StatsTable<number>, compact?: boolean) {
+    return displayStats(stats, v => `${v}`, compact);
+  }
+}
+
 export type StatsRange = StatsTable<Range<number>>;
+export class StatsRanges {
+  protected constructor() {}
+
+  static display(stats: StatsRange, compact?: boolean) {
+    return displayStats(stats, v => displayRange(v), compact);
+  }
+}
 
 export interface SpreadTable<T> {
   nature: pkmn.Nature;
@@ -17,7 +39,44 @@ export interface SpreadTable<T> {
 }
 
 export type Spread = SpreadTable<number>;
+export class Spreads {
+  protected constructor() {}
+
+  static display(spread: Spread, compact?: boolean) {
+    return displaySpread(spread, (v, t) => {
+      if (t === 'iv') {
+        return !compact && v === 31 ? '' : `${v}`;
+      } else {
+        return !compact && v === 0 ? '' : `${v}`;
+      }
+    }, compact);
+  }
+
+  static fromSparse(spread: SparseSpread) {
+    return fromSparse(spread, t => zero(t));
+  }
+}
+
 export type SpreadRange = SpreadTable<Range<number>>;
+export class SpreadRanges {
+  protected constructor() {}
+
+  static display(spread: SpreadRange, compact?: boolean) {
+    return displaySpread(spread, (v, t) => {
+      if (t === 'iv') {
+        const s = displayRange(v, 31);
+        return !compact && s === '31' ? '' : s;
+      } else {
+        const s = displayRange(v, 252);
+        return !compact && s === '0' ? '' : s;
+      }
+    }, compact);
+  }
+
+  static fromSparse(spread: SparseSpreadRange) {
+    return fromSparse(spread, t => ({min: zero(t), max: zero(t)}));
+  }
+}
 
 export interface SparseSpreadTable<T> {
   nature: pkmn.Nature;
@@ -26,23 +85,35 @@ export interface SparseSpreadTable<T> {
 }
 
 export type SparseSpread = SparseSpreadTable<number>;
-export type SparseSpreadRange = SparseSpreadTable<Range<number>>;
+export class SparseSpreads {
+  protected constructor() {}
 
-function statsDisplay<T>(
-    stats: StatsTable<T>, display: (val: T) => string, compact?: boolean) {
-  const s = [];
-  let stat: pkmn.Stat;
-  for (stat in STATS) {
-    const d = display(stats[stat]);
-    s.push(compact ? d : `${d} ${pkmn.Stats.display(stat)}`);
+  static display(spread: SparseSpread, compact?: boolean) {
+    return Spreads.display(Spreads.fromSparse(spread), compact);
   }
-  return s.join(compact ? '/' : ' / ');
 }
 
-export const displayStats = (s: Stats, c?: boolean) =>
-    statsDisplay(s, v => `${v}`, c);
-export const displayStatsRange = (s: StatsRange, c?: boolean) =>
-    statsDisplay(s, v => rangeDisplay(v, Infinity), c);
+export type SparseSpreadRange = SparseSpreadTable<Range<number>>;
+export class SparseSpreadRanges {
+  protected constructor() {}
+
+  static display(spread: SparseSpreadRange, compact?: boolean) {
+    return SpreadRanges.display(SpreadRanges.fromSparse(spread), compact);
+  }
+}
+
+export const STATS = {
+  hp: 0,
+  atk: 1,
+  def: 2,
+  spa: 3,
+  spd: 4,
+  spe: 5
+};
+
+function zero(type: 'iv'|'ev') {
+  return type === 'iv' ? 31 : 0;
+}
 
 function fromSparse<T>(
     sparse: SparseSpreadTable<T>, z: (t: 'iv'|'ev') => T): SpreadTable<T> {
@@ -64,13 +135,19 @@ function fromSparse<T>(
 
   return spread;
 }
-const zero = (t: 'iv'|'ev') => t === 'iv' ? 31 : 0;
-export const fromSparseSpread = (s: SparseSpread) =>
-    fromSparse(s, t => zero(t));
-export const fromSparseSpreadRange = (s: SparseSpreadRange) =>
-    fromSparse(s, t => ({min: zero(t), max: zero(t)}));
 
-function spreadDisplay<T>(
+function displayStats<T>(
+    stats: StatsTable<T>, display: (val: T) => string, compact?: boolean) {
+  const s = [];
+  let stat: pkmn.Stat;
+  for (stat in STATS) {
+    const d = display(stats[stat]);
+    s.push(compact ? d : `${d} ${pkmn.Stats.display(stat)}`);
+  }
+  return s.join(compact ? '/' : ' / ');
+}
+
+function displaySpread<T>(
     spread: SpreadTable<T>, display: (val: T, type: 'iv'|'ev') => string,
     compact?: boolean) {
   let stat: pkmn.Stat;
@@ -111,36 +188,12 @@ function spreadDisplay<T>(
   return s;
 }
 
-function rangeDisplay(range: Range<number>, max: number) {
+function displayRange(range: Range<number>, max = Infinity) {
   if (range.min === range.max || range.min === max) return `${range.min}`;
   if (range.max >= max) return `>${range.min}`;
   if (range.min === 0) return `<${range.max}`;
   return `${range.min}-${range.max}`;
 }
-
-export const displaySpread = (s: Spread, c?: boolean) =>
-    spreadDisplay(s, (v, t) => {
-      if (t === 'iv') {
-        return !c && v === 31 ? '' : `${v}`;
-      } else {
-        return !c && v === 0 ? '' : `${v}`;
-      }
-    }, c);
-export const displaySpreadRange = (s: SpreadRange, c?: boolean) =>
-    spreadDisplay(s, (v, t) => {
-      if (t === 'iv') {
-        const s = rangeDisplay(v, 31);
-        return !c && s === '31' ? '' : s;
-      } else {
-        const s = rangeDisplay(v, 252);
-        return !c && s === '0' ? '' : s;
-      }
-    }, c);
-export const displaySparseSpread = (s: SparseSpread, c?: boolean) =>
-    displaySpread(fromSparseSpread(s), c);
-export const displaySparseSpreadRange = (s: SparseSpreadRange, c?: boolean) =>
-    displaySpreadRange(fromSparseSpreadRange(s), c);
-
 
 // TODO (Sparse)Spread -> Stats
 // TODO (Sparse)SpreadRange -> StatsRange
