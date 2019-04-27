@@ -45,12 +45,25 @@ export interface SpreadWeights {
 }
 
 export const Statistics = new class {
+  readonly URL = 'https://www.smogon.com/stats/';
+
+  latest(page: string): string {
+    const lines = page.split('\n');
+    let i = lines.length;
+    while (i--) {
+      const line = lines[i];
+      if (line.startsWith('<a href=')) {
+        return line.slice(9, 16);
+      }
+    }
+    throw new Error('Unexpected format for index');
+  }
+
   url(date: string, fmt: string|pkmn.Format, weighted = true) {
     const format = typeof fmt === 'string' ? pkmn.Format.fromString(fmt) : fmt;
     if (!format) return undefined;
     const rating = weighted ? (format.id === 'gen7ou' ? 1825 : 1760) : 0;
-    return `https://www.smogon.com/stats/${date}/chaos/` +
-        `${format}-${rating}.json`;
+    return `${Statistics.URL}${date}/chaos/${format}-${rating}.json`;
   }
 
   display(name: string, stats: ProcessedStatistics, cutoff = 3.41) {
