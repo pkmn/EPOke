@@ -44,10 +44,8 @@ export interface SpreadWeights {
   percentiles: StatsTable<number[]>;
 }
 
-export class Statistics {
-  protected constructor() {}
-
-  static url(date: string, fmt: string|pkmn.Format, weighted = true) {
+export const Statistics = new class {
+  url(date: string, fmt: string|pkmn.Format, weighted = true) {
     const format = typeof fmt === 'string' ? pkmn.Format.fromString(fmt) : fmt;
     if (!format) return undefined;
     const rating = weighted ? (format.id === 'gen7ou' ? 1825 : 1760) : 0;
@@ -55,7 +53,7 @@ export class Statistics {
         rating}.json`;
   }
 
-  static display(name: string, stats: ProcessedStatistics, cutoff = 3.41) {
+  display(name: string, stats: ProcessedStatistics, cutoff = 3.41) {
     let s = `${name} (${percent(stats.usage)})\n`;
     s += '===\n';
 
@@ -104,7 +102,7 @@ export class Statistics {
     return s;
   }
 
-  static process(raw: RawStatistics, names?: string[], gen?: pkmn.Generation) {
+  process(raw: RawStatistics, names?: string[], gen?: pkmn.Generation) {
     const result: {[name: string]: ProcessedStatistics} = {};
     for (const name of (names || Object.keys(raw.data))) {
       const pokemon: RawProcessedStatistics = raw.data[name];
@@ -118,7 +116,7 @@ export class Statistics {
     }
     return result;
   }
-}
+};
 
 function binarySearch<T>(array: T[], pred: (t: T) => boolean) {
   let lo = -1, hi = array.length;

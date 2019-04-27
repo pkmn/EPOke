@@ -14,22 +14,19 @@ export interface Range<T> {
   max: T;
 }
 
-export class Stats {
-  protected constructor() {}
-
-  static display(stats: StatsTable<number>, compact?: boolean) {
+export const Stats = new class {
+  display(stats: StatsTable<number>, compact?: boolean) {
     return displayStats(stats, v => `${v}`, compact);
   }
-}
+};
 
 export type StatsRange = StatsTable<Range<number>>;
-export class StatsRanges {
-  protected constructor() {}
 
-  static display(stats: StatsRange, compact?: boolean) {
+export const StatsRanges = new class {
+  display(stats: StatsRange, compact?: boolean) {
     return displayStats(stats, v => displayRange(v), compact);
   }
-}
+};
 
 export interface SpreadTable<T> {
   nature: pkmn.Nature;
@@ -38,10 +35,9 @@ export interface SpreadTable<T> {
 }
 
 export type Spread = SpreadTable<number>;
-export class Spreads {
-  protected constructor() {}
 
-  static display(spread: Spread, compact?: boolean) {
+export const Spreads = new class {
+  display(spread: Spread, compact?: boolean) {
     return displaySpread(spread, (v, t) => {
       if (t === 'iv') {
         return !compact && v === 31 ? '' : `${v}`;
@@ -51,16 +47,15 @@ export class Spreads {
     }, compact);
   }
 
-  static fromSparse(spread: SparseSpread) {
+  fromSparse(spread: SparseSpread) {
     return fromSparse(spread, t => zero(t));
   }
-}
+};
 
 export type SpreadRange = SpreadTable<Range<number>>;
-export class SpreadRanges {
-  protected constructor() {}
 
-  static display(spread: SpreadRange, compact?: boolean) {
+export const SpreadRanges = new class {
+  display(spread: SpreadRange, compact?: boolean) {
     return displaySpread(spread, (v, t) => {
       if (t === 'iv') {
         const s = displayRange(v, 31);
@@ -72,10 +67,10 @@ export class SpreadRanges {
     }, compact);
   }
 
-  static fromSparse(spread: SparseSpreadRange) {
+  fromSparse(spread: SparseSpreadRange) {
     return fromSparse(spread, t => ({min: zero(t), max: zero(t)}));
   }
-}
+};
 
 export interface SparseSpreadTable<T> {
   nature: pkmn.Nature;
@@ -84,22 +79,20 @@ export interface SparseSpreadTable<T> {
 }
 
 export type SparseSpread = SparseSpreadTable<number>;
-export class SparseSpreads {
-  protected constructor() {}
 
-  static display(spread: SparseSpread, compact?: boolean) {
+export const SparseSpreads = new class {
+  display(spread: SparseSpread, compact?: boolean) {
     return Spreads.display(Spreads.fromSparse(spread), compact);
   }
-}
+};
 
 export type SparseSpreadRange = SparseSpreadTable<Range<number>>;
-export class SparseSpreadRanges {
-  protected constructor() {}
 
-  static display(spread: SparseSpreadRange, compact?: boolean) {
+export const SparseSpreadRanges = new class {
+  display(spread: SparseSpreadRange, compact?: boolean) {
     return SpreadRanges.display(SpreadRanges.fromSparse(spread), compact);
   }
-}
+};
 
 export const STATS = {
   hp: 0,
