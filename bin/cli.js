@@ -16,7 +16,7 @@ let data = '';
 if (fs.existsSync(cached) && (data = fs.readFileSync(cached))) {
   display(data);
 } else {
-  https.get(statistics.url(date, format), resp => {
+  https.get(Statistics.url(date, format), resp => {
     resp.on('data', chunk => {
       data += chunk
     });

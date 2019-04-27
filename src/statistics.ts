@@ -1,6 +1,6 @@
 import * as pkmn from '@pkmn.cc/data';
 
-import {STATS, StatsTable} from './stats';
+import {SparseSpreads, Spread, Spreads, STATS, StatsTable} from './stats';
 
 export interface RawStatistics {
   'data': {[name: string]: RawProcessedStatistics};
@@ -33,7 +33,7 @@ export interface WeightedPair<T> {
 
 export interface SpreadWeights {
   // bucketed spread to percent weight
-  spreads: Array<WeightedPair<string>>;  // TODO
+  spreads: Array<WeightedPair<Spread>>;
   // nature to percent weight
   natures: Array<WeightedPair<pkmn.Nature>>;
   // percent of spreads which are mixed
@@ -49,8 +49,8 @@ export const Statistics = new class {
     const format = typeof fmt === 'string' ? pkmn.Format.fromString(fmt) : fmt;
     if (!format) return undefined;
     const rating = weighted ? (format.id === 'gen7ou' ? 1825 : 1760) : 0;
-    return `https://www.smogon.com/stats/${date}/chaos/${format}-${
-        rating}.json`;
+    return `https://www.smogon.com/stats/${date}/chaos/` +
+        `${format}-${rating}.json`;
   }
 
   display(name: string, stats: ProcessedStatistics, cutoff = 3.41) {
@@ -91,7 +91,8 @@ export const Statistics = new class {
     s += `Min%: ${mins.map(p => p.weight.toFixed(1)).join('/')}%\n`;
     s += '\n';
 
-    s += displayWeightedPairs(stats.spreads.spreads, cutoff);
+    s += displayWeightedPairs(
+        stats.spreads.spreads, cutoff, k => Spreads.display(k, true));
     s += '---\n';
     s += displayWeightedPairs(stats.abilities, cutoff);
     s += '---\n';
@@ -193,7 +194,8 @@ function spreads(
     if (mixed.def) totalMixed.def += weight;
 
     natureWeights[nature] = (natureWeights[nature] || 0) + weight;
-    grouped[bucketed] = (grouped[bucketed] || 0) + weight;
+    const s = SparseSpreads.display(bucketed, true);
+    grouped[s] = (grouped[s] || 0) + weight;
 
     let stat: pkmn.Stat;
     for (stat in STATS) {
@@ -209,7 +211,7 @@ function spreads(
   const spreads = [];
   for (const [key, value] of Object.entries(grouped)) {
     const weight = (value / totalWeight) * 100;
-    spreads.push({key, weight});
+    spreads.push({key: Spreads.fromString(key)!, weight});
   }
   spreads.sort((a, b) => b.weight - a.weight);
 
@@ -267,35 +269,27 @@ function bucketSpreadAndCalcStats(
   const nature = pkmn.Natures.get(n)!;
   const rawEVs = revs.split('/');
 
-  const evs = [];
-  for (const rawEV of rawEVs) {
-    const bucket = Math.floor(Number(rawEV) / 16) * 16;
-    evs.push((bucket === 240 ? 252 : bucket).toString());
-  }
-
-  if (nature.plus && nature.minus) {
-    const plus = STATS[nature.plus];
-    const minus = STATS[nature.minus];
-    evs[plus] = `${evs[plus]}+`;
-    evs[minus] = `${evs[minus]}-`;
-  }
-
   const invested =
       {hp: false, atk: false, def: false, spa: false, spd: false, spe: false};
+  const evs = {hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0};
   const stats = {hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0};
+
   let stat: pkmn.Stat;
   for (stat in stats) {
     const ev = Number(rawEVs[STATS[stat]]) || 0;
+    const bucket = Math.floor(ev / 16) * 16;
+    evs[stat] = bucket === 240 ? 252 : bucket;
     invested[stat] = nature.plus === stat || ev > 0;
     stats[stat] = pkmn.Stats.calc(stat, base[stat], 31, ev, 100, nature, gen);
   }
+
+  const bucketed = {nature, evs, ivs: {}};
 
   const mixed = {
     atk: invested.atk && invested.spa,
     def: invested.def && invested.spd,
   };
 
-  const bucketed = nature + ' ' + evs.join('/');
   return {bucketed, nature: n, stats, mixed};
 }
 

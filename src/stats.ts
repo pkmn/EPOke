@@ -18,6 +18,10 @@ export const Stats = new class {
   display(stats: StatsTable<number>, compact?: boolean) {
     return displayStats(stats, v => `${v}`, compact);
   }
+
+  fromString(s: string): StatsTable<number> {
+    return collapseRange(StatsRanges.fromString(s)) as StatsTable<number>;
+  }
 };
 
 export type StatsRange = StatsTable<Range<number>>;
@@ -25,6 +29,10 @@ export type StatsRange = StatsTable<Range<number>>;
 export const StatsRanges = new class {
   display(stats: StatsRange, compact?: boolean) {
     return displayStats(stats, v => displayRange(v), compact);
+  }
+
+  fromString(s: string): StatsRange {
+    return parseStats(s);
   }
 };
 
@@ -50,6 +58,15 @@ export const Spreads = new class {
   fromSparse(spread: SparseSpread) {
     return fromSparse(spread, t => zero(t));
   }
+
+  fromString(s: string): Spread {
+    const range = SpreadRanges.fromString(s);
+    return {
+      nature: range.nature,
+      evs: collapseRange(range.evs) as StatsTable<number>,
+      ivs: collapseRange(range.ivs) as StatsTable<number>,
+    };
+  }
 };
 
 export type SpreadRange = SpreadTable<Range<number>>;
@@ -70,6 +87,10 @@ export const SpreadRanges = new class {
   fromSparse(spread: SparseSpreadRange) {
     return fromSparse(spread, t => ({min: zero(t), max: zero(t)}));
   }
+
+  fromString(s: string): SpreadRange {
+    return SpreadRanges.fromSparse(SparseSpreadRanges.fromString(s));
+  }
 };
 
 export interface SparseSpreadTable<T> {
@@ -84,6 +105,15 @@ export const SparseSpreads = new class {
   display(spread: SparseSpread, compact?: boolean) {
     return Spreads.display(Spreads.fromSparse(spread), compact);
   }
+
+  fromString(s: string): SparseSpread {
+    const range = SparseSpreadRanges.fromString(s);
+    return {
+      nature: range.nature,
+      evs: collapseRange(range.evs),
+      ivs: collapseRange(range.ivs),
+    };
+  }
 };
 
 export type SparseSpreadRange = SparseSpreadTable<Range<number>>;
@@ -91,6 +121,10 @@ export type SparseSpreadRange = SparseSpreadTable<Range<number>>;
 export const SparseSpreadRanges = new class {
   display(spread: SparseSpreadRange, compact?: boolean) {
     return SpreadRanges.display(SpreadRanges.fromSparse(spread), compact);
+  }
+
+  fromString(s: string): SparseSpreadRange {
+    return parseSpread(s);
   }
 };
 
@@ -139,6 +173,21 @@ function displayStats<T>(
   return s.join(compact ? '/' : ' / ');
 }
 
+function parseStats(s: string): StatsRange {
+  const parsed: Partial<StatsRange> = {};
+  const stats = Object.keys(STATS) as pkmn.Stat[];
+  if (s.endsWith('e')) {
+    for (const [i, pair] of s.split(' / ').entries()) {
+      parsed[stats[i]] = parseRange(pair.split(' ')[0]);
+    }
+  } else {
+    for (const [i, range] of s.split('/').entries()) {
+      parsed[stats[i]] = parseRange(range);
+    }
+  }
+  return parsed as StatsRange;
+}
+
 function displaySpread<T>(
     spread: SpreadTable<T>, display: (val: T, type: 'iv'|'ev') => string,
     compact?: boolean) {
@@ -180,11 +229,70 @@ function displaySpread<T>(
   return s;
 }
 
+function parseSpread(s: string): SparseSpreadRange {
+  if (s.startsWith('E')) {
+    const [e, n, i] = s.split('\n');
+
+    const nature = pkmn.Natures.get(n.slice(0, n.indexOf(' ')))!;
+    const evs = parseSpreadValues(e.substr(5), 'ev');
+    const ivs = i ? parseSpreadValues(i.substr(5), 'iv') : {};
+
+    return {nature, evs, ivs};
+  } else {
+    const [ne, i] = s.split('\n');
+    const [n, e] = ne.split(' ');
+
+    const nature = pkmn.Natures.get(n)!;
+    const evs = parseSpreadValues(e, 'ev', true);
+    const ivs = i ? parseSpreadValues(i.substr(5), 'iv', true) : {};
+
+    return {nature, evs, ivs};
+  }
+}
+
+function parseSpreadValues(s: string, type: 'iv'|'ev', compact?: boolean) {
+  const spread: Partial<StatsTable<Range<number>>> = {};
+  const max = type === 'iv' ? 31 : 252;
+
+  if (compact) {
+    const stats = Object.keys(STATS) as pkmn.Stat[];
+    for (let [i, range] of s.split('/').entries()) {
+      if (range.endsWith('+') || range.endsWith('-')) {
+        range = range.slice(0, -1);
+      }
+      spread[stats[i]] = parseRange(range, max);
+    }
+  } else {
+    for (const pair of s.split(' / ')) {
+      const [range, name] = pair.split(' ');
+      spread[pkmn.Stats.get(name)!] = parseRange(range, max);
+    }
+  }
+
+  return spread;
+}
+
 function displayRange(range: Range<number>, max = Infinity) {
   if (range.min === range.max || range.min === max) return `${range.min}`;
   if (range.max >= max) return `>${range.min}`;
   if (range.min === 0) return `<${range.max}`;
   return `${range.min}-${range.max}`;
+}
+
+function parseRange(s: string, max = Infinity): Range<number> {
+  if (s.startsWith('>')) return {min: Number(s.slice(1)), max};
+  if (s.startsWith('<')) return {min: 0, max: Number(s.slice(1))};
+  const [lo, hi] = s.split('-');
+  const min = Number(lo);
+  return hi === undefined ? {min, max: min} : {min, max: Number(hi)};
+}
+
+function collapseRange<T>(ranges: Partial<StatsTable<Range<T>>>) {
+  const stats: Partial<StatsTable<T>> = {};
+  for (const [stat, range] of Object.entries(ranges)) {
+    stats[stat as keyof StatsTable<T>] = range!.min;
+  }
+  return stats;
 }
 
 // TODO (Sparse)Spread -> Stats
