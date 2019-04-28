@@ -1,6 +1,6 @@
 import * as pkmn from '@pkmn.cc/data';
 
-import {SparseSpreads, Spread, Spreads, STATS, StatsTable} from './stats';
+import {SparseSpread, Spread, STATS, StatsTable} from './stats';
 
 export interface RawStatistics {
   'data': {[name: string]: RawProcessedStatistics};
@@ -105,7 +105,7 @@ export const Statistics = new class {
     s += '\n';
 
     s += displayWeightedPairs(
-        stats.spreads.spreads, cutoff, k => Spreads.display(k, true));
+        stats.spreads.spreads, cutoff, k => Spread.display(k, true));
     s += '---\n';
     s += displayWeightedPairs(stats.abilities, cutoff);
     s += '---\n';
@@ -207,7 +207,7 @@ function spreads(
     if (mixed.def) totalMixed.def += weight;
 
     natureWeights[nature] = (natureWeights[nature] || 0) + weight;
-    const s = SparseSpreads.display(bucketed, true);
+    const s = SparseSpread.display(bucketed, true);
     grouped[s] = (grouped[s] || 0) + weight;
 
     let stat: pkmn.Stat;
@@ -224,7 +224,7 @@ function spreads(
   const spreads = [];
   for (const [key, value] of Object.entries(grouped)) {
     const weight = (value / totalWeight) * 100;
-    spreads.push({key: Spreads.fromString(key)!, weight});
+    spreads.push({key: Spread.fromString(key)!, weight});
   }
   spreads.sort((a, b) => b.weight - a.weight);
 

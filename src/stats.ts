@@ -14,27 +14,65 @@ export interface Range<T> {
   max: T;
 }
 
-export const Stats = new class {
-  display(stats: StatsTable<number>, compact?: boolean) {
+export class Stats implements StatsTable<number> {
+  hp: number;
+  atk: number;
+  def: number;
+  spa: number;
+  spd: number;
+  spe: number;
+
+  constructor(stats: StatsTable<number>) {
+    this.hp = stats.hp;
+    this.atk = stats.atk;
+    this.def = stats.def;
+    this.spa = stats.spa;
+    this.spd = stats.spd;
+    this.spe = stats.spe;
+  }
+
+  toString() {
+    return Stats.display(this);
+  }
+
+  static display(stats: StatsTable<number>, compact?: boolean) {
     return displayStats(stats, v => `${v}`, compact);
   }
 
-  fromString(s: string): StatsTable<number> {
-    return collapseRange(StatsRanges.fromString(s)) as StatsTable<number>;
+  static fromString(s: string): StatsTable<number> {
+    return collapseRange(StatsRange.fromString(s)) as StatsTable<number>;
   }
-};
+}
 
-export type StatsRange = StatsTable<Range<number>>;
+export class StatsRange implements StatsTable<Range<number>> {
+  hp: Range<number>;
+  atk: Range<number>;
+  def: Range<number>;
+  spa: Range<number>;
+  spd: Range<number>;
+  spe: Range<number>;
 
-export const StatsRanges = new class {
-  display(stats: StatsRange, compact?: boolean) {
+  constructor(stats: StatsTable<Range<number>>) {
+    this.hp = stats.hp;
+    this.atk = stats.atk;
+    this.def = stats.def;
+    this.spa = stats.spa;
+    this.spd = stats.spd;
+    this.spe = stats.spe;
+  }
+
+  toString() {
+    return StatsRange.display(this);
+  }
+
+  static display(stats: StatsTable<Range<number>>, compact?: boolean) {
     return displayStats(stats, v => displayRange(v), compact);
   }
 
-  fromString(s: string): StatsRange {
+  static fromString(s: string): StatsTable<Range<number>> {
     return parseStats(s);
   }
-};
+}
 
 export interface SpreadTable<T> {
   nature: pkmn.Nature;
@@ -42,10 +80,33 @@ export interface SpreadTable<T> {
   evs: StatsTable<T>;
 }
 
-export type Spread = SpreadTable<number>;
+export class Spread implements SpreadTable<number> {
+  nature: pkmn.Nature;
+  ivs: StatsTable<number>;
+  evs: StatsTable<number>;
 
-export const Spreads = new class {
-  display(spread: Spread, compact?: boolean) {
+  constructor(spread: SpreadTable<number>);
+  constructor(
+      nature: pkmn.Nature, ivs: StatsTable<number>, evs: StatsTable<number>);
+  constructor(
+      spread: pkmn.Nature|SpreadTable<number>, ivs?: StatsTable<number>,
+      evs?: StatsTable<number>) {
+    if ('id' in spread) {
+      this.nature = spread;
+      this.ivs = ivs!;
+      this.evs = evs!;
+    } else {
+      this.nature = spread.nature;
+      this.ivs = spread.ivs;
+      this.evs = spread.evs;
+    }
+  }
+
+  toString() {
+    return Spread.display(this);
+  }
+
+  static display(spread: SpreadTable<number>, compact?: boolean) {
     return displaySpread(spread, (v, t) => {
       if (t === 'iv') {
         return !compact && v === 31 ? '' : `${v}`;
@@ -55,24 +116,48 @@ export const Spreads = new class {
     }, compact);
   }
 
-  fromSparse(spread: SparseSpread) {
+  static fromSparse(spread: SparseSpreadTable<number>) {
     return fromSparse(spread, t => zero(t));
   }
 
-  fromString(s: string): Spread {
-    const range = SpreadRanges.fromString(s);
+  static fromString(s: string): SpreadTable<number> {
+    const range = SpreadRange.fromString(s);
     return {
       nature: range.nature,
       evs: collapseRange(range.evs) as StatsTable<number>,
       ivs: collapseRange(range.ivs) as StatsTable<number>,
     };
   }
-};
+}
 
-export type SpreadRange = SpreadTable<Range<number>>;
+export class SpreadRange implements SpreadTable<Range<number>> {
+  nature: pkmn.Nature;
+  ivs: StatsTable<Range<number>>;
+  evs: StatsTable<Range<number>>;
 
-export const SpreadRanges = new class {
-  display(spread: SpreadRange, compact?: boolean) {
+  constructor(spread: SpreadTable<Range<number>>);
+  constructor(
+      nature: pkmn.Nature, ivs: StatsTable<Range<number>>,
+      evs: StatsTable<Range<number>>);
+  constructor(
+      spread: pkmn.Nature|SpreadTable<Range<number>>,
+      ivs?: StatsTable<Range<number>>, evs?: StatsTable<Range<number>>) {
+    if ('id' in spread) {
+      this.nature = spread;
+      this.ivs = ivs!;
+      this.evs = evs!;
+    } else {
+      this.nature = spread.nature;
+      this.ivs = spread.ivs;
+      this.evs = spread.evs;
+    }
+  }
+
+  toString() {
+    return SpreadRange.display(this);
+  }
+
+  static display(spread: SpreadTable<Range<number>>, compact?: boolean) {
     return displaySpread(spread, (v, t) => {
       if (t === 'iv') {
         const s = displayRange(v, 31);
@@ -84,14 +169,14 @@ export const SpreadRanges = new class {
     }, compact);
   }
 
-  fromSparse(spread: SparseSpreadRange) {
+  static fromSparse(spread: SparseSpreadTable<Range<number>>) {
     return fromSparse(spread, t => ({min: zero(t), max: zero(t)}));
   }
 
-  fromString(s: string): SpreadRange {
-    return SpreadRanges.fromSparse(SparseSpreadRanges.fromString(s));
+  static fromString(s: string): SpreadTable<Range<number>> {
+    return SpreadRange.fromSparse(SparseSpreadRange.fromString(s));
   }
-};
+}
 
 export interface SparseSpreadTable<T> {
   nature: pkmn.Nature;
@@ -99,34 +184,82 @@ export interface SparseSpreadTable<T> {
   evs: Partial<StatsTable<T>>;
 }
 
-export type SparseSpread = SparseSpreadTable<number>;
+export class SparseSpread implements SparseSpreadTable<number> {
+  nature: pkmn.Nature;
+  ivs: Partial<StatsTable<number>>;
+  evs: Partial<StatsTable<number>>;
 
-export const SparseSpreads = new class {
-  display(spread: SparseSpread, compact?: boolean) {
-    return Spreads.display(Spreads.fromSparse(spread), compact);
+  constructor(spread: SparseSpreadTable<number>);
+  constructor(
+      nature: pkmn.Nature, ivs: Partial<StatsTable<number>>,
+      evs: Partial<StatsTable<number>>);
+  constructor(
+      spread: pkmn.Nature|SparseSpreadTable<number>,
+      ivs?: Partial<StatsTable<number>>, evs?: Partial<StatsTable<number>>) {
+    if ('id' in spread) {
+      this.nature = spread;
+      this.ivs = ivs!;
+      this.evs = evs!;
+    } else {
+      this.nature = spread.nature;
+      this.ivs = spread.ivs;
+      this.evs = spread.evs;
+    }
   }
 
-  fromString(s: string): SparseSpread {
-    const range = SparseSpreadRanges.fromString(s);
+  toString() {
+    return SparseSpread.display(this);
+  }
+
+  static display(spread: SparseSpreadTable<number>, compact?: boolean) {
+    return Spread.display(Spread.fromSparse(spread), compact);
+  }
+
+  static fromString(s: string): SparseSpreadTable<number> {
+    const range = SparseSpreadRange.fromString(s);
     return {
       nature: range.nature,
       evs: collapseRange(range.evs),
       ivs: collapseRange(range.ivs),
     };
   }
-};
+}
 
-export type SparseSpreadRange = SparseSpreadTable<Range<number>>;
+export class SparseSpreadRange implements SparseSpreadTable<Range<number>> {
+  nature: pkmn.Nature;
+  ivs: Partial<StatsTable<Range<number>>>;
+  evs: Partial<StatsTable<Range<number>>>;
 
-export const SparseSpreadRanges = new class {
-  display(spread: SparseSpreadRange, compact?: boolean) {
-    return SpreadRanges.display(SpreadRanges.fromSparse(spread), compact);
+  constructor(spread: SparseSpreadTable<Range<number>>);
+  constructor(
+      nature: pkmn.Nature, ivs: Partial<StatsTable<Range<number>>>,
+      evs: Partial<StatsTable<Range<number>>>);
+  constructor(
+      spread: pkmn.Nature|SparseSpreadTable<Range<number>>,
+      ivs?: Partial<StatsTable<Range<number>>>,
+      evs?: Partial<StatsTable<Range<number>>>) {
+    if ('id' in spread) {
+      this.nature = spread;
+      this.ivs = ivs!;
+      this.evs = evs!;
+    } else {
+      this.nature = spread.nature;
+      this.ivs = spread.ivs;
+      this.evs = spread.evs;
+    }
   }
 
-  fromString(s: string): SparseSpreadRange {
+  toString() {
+    return SparseSpreadRange.display(this);
+  }
+  static display(spread: SparseSpreadTable<Range<number>>, compact?: boolean) {
+    return SpreadRange.display(SpreadRange.fromSparse(spread), compact);
+  }
+
+  static fromString(s: string): SparseSpreadTable<Range<number>> {
     return parseSpread(s);
   }
-};
+}
 
 export const STATS = {
   hp: 0,
