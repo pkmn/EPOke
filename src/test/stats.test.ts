@@ -8,7 +8,7 @@ describe('Stat', () => {
   test('display', () => {
     const s = new stats.Stats(
         {hp: 373, atk: 367, def: 256, spa: 203, spd: 237, spe: 187});
-    const sd = stats.Stats.fromString(s.toString());
+    const sd = stats.Stats.fromString(s.toString())!;
     expect(stats.Stats.display(sd))
         .toEqual('373 HP / 367 Atk / 256 Def / 203 SpA / 237 SpD / 187 Spe');
     expect(stats.Stats.display(sd, true)).toEqual('373/367/256/203/237/187');
@@ -25,7 +25,7 @@ describe('StatsRange', () => {
       spd: range(235, 239),
       spe: range(180, 187)
     });
-    const sd = stats.StatsRange.fromString(s.toString());
+    const sd = stats.StatsRange.fromString(s.toString())!;
     expect(stats.StatsRange.display(sd))
         .toEqual(
             '360-375 HP / 367 Atk / 250-260 Def / ' +
@@ -42,7 +42,7 @@ describe('Spread', () => {
       evs: {spa: 252, hp: 56, spe: 200},
       ivs: {spd: 30, atk: 0},
     });
-    const sd = stats.SparseSpread.fromString(s.toString());
+    const sd = stats.SparseSpread.fromString(s.toString())!;
     expect(stats.SparseSpread.display(sd))
         .toEqual(
             `EVs: 56 HP / 252 SpA / 200 Spe\n` +
@@ -63,7 +63,7 @@ describe('SpreadRange', () => {
       ivs: {spd: range(20, 31), spa: range(31, 31), atk: range(0, 10)},
     });
     const sd =
-        stats.SparseSpreadRange.fromString(stats.SparseSpreadRange.display(s));
+        stats.SparseSpreadRange.fromString(stats.SparseSpreadRange.display(s))!;
     expect(stats.SparseSpreadRange.display(sd))
         .toEqual(
             `EVs: 20-80 HP / 252 SpA / >200 Spe\n` +
