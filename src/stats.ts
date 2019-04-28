@@ -35,6 +35,11 @@ export class Stats implements StatsTable<number> {
     return Stats.display(this);
   }
 
+  // TODO toSpread
+  // TODO static toSpread
+  // TODO toRange
+  // TODO static toRange
+
   static display(stats: StatsTable<number>, compact?: boolean) {
     return displayStats(stats, v => `${v}`, compact);
   }
@@ -68,6 +73,11 @@ export class StatsRange implements StatsTable<Range<number>> {
   toString() {
     return StatsRange.display(this);
   }
+
+  // TODO toSpreadRange
+  // TODO static toSpreadRange
+  // TODO toStats
+  // TODO static toStats
 
   static display(stats: StatsTable<Range<number>>, compact?: boolean) {
     return displayStats(stats, v => displayRange(v), compact);
@@ -109,6 +119,11 @@ export class Spread implements SpreadTable<number> {
   toString() {
     return Spread.display(this);
   }
+
+  // TODO toStats
+  // TODO static toStats
+  // TODO toRange
+  // TODO static toRange
 
   static display(spread: SpreadTable<number>, compact?: boolean) {
     return displaySpread(spread, (v, t) => {
@@ -164,6 +179,11 @@ export class SpreadRange implements SpreadTable<Range<number>> {
   toString() {
     return SpreadRange.display(this);
   }
+
+  // TODO toStatsRange
+  // TODO static toStatsRange
+  // TODO toSpread
+  // TODO static toSpread
 
   static display(spread: SpreadTable<Range<number>>, compact?: boolean) {
     return displaySpread(spread, (v, t) => {
@@ -459,6 +479,3 @@ function collapseRange<T>(ranges: Partial<StatsTable<Range<T>>>) {
   }
   return stats;
 }
-
-// TODO (Sparse)Spread -> Stats
-// TODO (Sparse)SpreadRange -> StatsRange
