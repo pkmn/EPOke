@@ -35,25 +35,29 @@ export class Stats implements StatsTable<number> {
     return Stats.display(this);
   }
 
+  toRanges() {
+    return Stats.toRanges(this);
+  }
+
   // TODO toSpread
   // TODO static toSpread
-  // TODO toRange
-  // TODO static toRange
 
   static display(stats: StatsTable<number>, compact?: boolean) {
     return displayStats(stats, v => `${v}`, compact);
   }
 
   static fromString(s: string) {
-    const range = StatsRange.fromString(s);
-    if (!range) return undefined;
-    const stats = collapseRange(range);
-    if (!stats) return undefined;
-    return stats as StatsTable<number>;
+    const ranges = StatRanges.fromString(s);
+    if (!ranges) return undefined;
+    return ranges.toStats();
+  }
+
+  static toRanges(stats: StatsTable<number>) {
+    return new StatRanges(toStatRanges(stats) as StatsTable<Range<number>>);
   }
 }
 
-export class StatsRange implements StatsTable<Range<number>> {
+export class StatRanges implements StatsTable<Range<number>> {
   hp: Range<number>;
   atk: Range<number>;
   def: Range<number>;
@@ -71,20 +75,29 @@ export class StatsRange implements StatsTable<Range<number>> {
   }
 
   toString() {
-    return StatsRange.display(this);
+    return StatRanges.display(this);
   }
 
-  // TODO toSpreadRange
-  // TODO static toSpreadRange
-  // TODO toStats
-  // TODO static toStats
+  toStats() {
+    return StatRanges.toStats(this);
+  }
 
-  static display(stats: StatsTable<Range<number>>, compact?: boolean) {
-    return displayStats(stats, v => displayRange(v), compact);
+  // TODO toSpreadRanges
+  // TODO static toSpreadRanges
+
+  static display(ranges: StatsTable<Range<number>>, compact?: boolean) {
+    return displayStats(ranges, v => displayRange(v), compact);
   }
 
   static fromString(s: string) {
-    return parseStats(s);
+    const ranges = parseStats(s);
+    return ranges ? new StatRanges(ranges) : undefined;
+  }
+
+  static toStats(range: StatsTable<Range<number>>) {
+    const stats = collapseStatRanges(range);
+    if (!stats || Object.keys(stats).length !== 6) return undefined;
+    return new Stats(stats as StatsTable<number>);
   }
 }
 
@@ -120,10 +133,13 @@ export class Spread implements SpreadTable<number> {
     return Spread.display(this);
   }
 
-  // TODO toStats
-  // TODO static toStats
-  // TODO toRange
-  // TODO static toRange
+  toRanges() {
+    return Spread.toRanges(this);
+  }
+
+  toStats(base: StatsTable<number>) {
+    return Spread.toStats(this, base);
+  }
 
   static display(spread: SpreadTable<number>, compact?: boolean) {
     return displaySpread(spread, (v, t) => {
@@ -136,24 +152,44 @@ export class Spread implements SpreadTable<number> {
   }
 
   static fromSparse(spread: SparseSpreadTable<number>) {
-    return fromSparse(spread, t => zero(t));
+    return new Spread(fromSparse(spread, t => zero(t)));
   }
 
   static fromString(s: string) {
-    const range = SpreadRange.fromString(s);
+    const range = SpreadRanges.fromString(s);
     if (!range) return undefined;
-    const ivs = collapseRange(range.ivs);
-    const evs = collapseRange(range.evs);
-    if (!ivs || !evs) return undefined;
-    return {
+    const ivs = collapseStatRanges(range.ivs);
+    if (!ivs || Object.keys(ivs).length !== 6) return undefined;
+    const evs = collapseStatRanges(range.evs);
+    if (!evs || Object.keys(evs).length !== 6) return undefined;
+    return new Spread({
       nature: range.nature,
       evs: evs as StatsTable<number>,
       ivs: ivs as StatsTable<number>,
-    };
+    });
+  }
+
+  static toRanges(spread: SpreadTable<number>) {
+    const ivs = toStatRanges(spread.ivs) as StatsTable<Range<number>>;
+    const evs = toStatRanges(spread.evs) as StatsTable<Range<number>>;
+    return new SpreadRanges(spread.nature, ivs, evs);
+  }
+
+  static toStats(
+      spread: SpreadTable<number>, base: StatsTable<number>,
+      gen?: pkmn.Generation, level = 100) {
+    const stats: Partial<StatsTable<number>> = {};
+    let stat: pkmn.Stat;
+    for (stat in STATS) {
+      stats[stat as keyof StatsTable<number>] = pkmn.Stats.calc(
+          stat, base[stat], spread.ivs[stat], spread.evs[stat], level,
+          spread.nature, gen);
+    }
+    return new Stats(stats as StatsTable<number>);
   }
 }
 
-export class SpreadRange implements SpreadTable<Range<number>> {
+export class SpreadRanges implements SpreadTable<Range<number>> {
   nature: pkmn.Nature;
   ivs: StatsTable<Range<number>>;
   evs: StatsTable<Range<number>>;
@@ -177,13 +213,15 @@ export class SpreadRange implements SpreadTable<Range<number>> {
   }
 
   toString() {
-    return SpreadRange.display(this);
+    return SpreadRanges.display(this);
   }
 
-  // TODO toStatsRange
-  // TODO static toStatsRange
-  // TODO toSpread
-  // TODO static toSpread
+  toSpread() {
+    return SpreadRanges.toSpread(this);
+  }
+
+  // TODO toStatRanges
+  // TODO static toStatRanges
 
   static display(spread: SpreadTable<Range<number>>, compact?: boolean) {
     return displaySpread(spread, (v, t) => {
@@ -198,13 +236,39 @@ export class SpreadRange implements SpreadTable<Range<number>> {
   }
 
   static fromSparse(spread: SparseSpreadTable<Range<number>>) {
-    return fromSparse(spread, t => ({min: zero(t), max: zero(t)}));
+    return new SpreadRanges(
+        fromSparse(spread, t => ({min: zero(t), max: zero(t)})));
   }
 
   static fromString(s: string) {
-    const sparse = SparseSpreadRange.fromString(s);
+    const sparse = SparseSpreadRanges.fromString(s);
     if (!sparse) return undefined;
-    return SpreadRange.fromSparse(sparse);
+    return SpreadRanges.fromSparse(sparse);
+  }
+
+  static toSpread(ranges: SpreadTable<Range<number>>) {
+    const ivs = collapseStatRanges(ranges.ivs) as StatsTable<number>;
+    if (!ivs || Object.keys(ivs).length !== 6) return undefined;
+    const evs = collapseStatRanges(ranges.ivs) as StatsTable<number>;
+    if (!evs || Object.keys(evs).length !== 6) return undefined;
+    return new Spread(ranges.nature, ivs, evs);
+  }
+
+  static toStatRanges(
+      spread: SpreadTable<Range<number>>, base: StatsTable<number>,
+      gen?: pkmn.Generation, level = 100) {
+    const stats: Partial<StatsTable<Range<number>>> = {};
+    let stat: pkmn.Stat;
+    for (stat in STATS) {
+      const min = pkmn.Stats.calc(
+          stat, base[stat], spread.ivs[stat].min, spread.evs[stat].min, level,
+          spread.nature, gen);
+      const max = pkmn.Stats.calc(
+          stat, base[stat], spread.ivs[stat].max, spread.evs[stat].max, level,
+          spread.nature, gen);
+      stats[stat as keyof StatsTable<Range<number>>] = {min, max};
+    }
+    return new StatRanges(stats as StatsTable<Range<number>>);
   }
 }
 
@@ -246,16 +310,16 @@ export class SparseSpread implements SparseSpreadTable<number> {
   }
 
   static fromString(s: string) {
-    const range = SparseSpreadRange.fromString(s);
-    if (!range) return undefined;
-    const ivs = collapseRange(range.ivs);
-    const evs = collapseRange(range.evs);
+    const ranges = SparseSpreadRanges.fromString(s);
+    if (!ranges) return undefined;
+    const ivs = collapseStatRanges(ranges.ivs);
+    const evs = collapseStatRanges(ranges.evs);
     if (!ivs || !evs) return undefined;
-    return {nature: range.nature, ivs, evs};
+    return new SparseSpread({nature: ranges.nature, ivs, evs});
   }
 }
 
-export class SparseSpreadRange implements SparseSpreadTable<Range<number>> {
+export class SparseSpreadRanges implements SparseSpreadTable<Range<number>> {
   nature: pkmn.Nature;
   ivs: Partial<StatsTable<Range<number>>>;
   evs: Partial<StatsTable<Range<number>>>;
@@ -280,14 +344,15 @@ export class SparseSpreadRange implements SparseSpreadTable<Range<number>> {
   }
 
   toString() {
-    return SparseSpreadRange.display(this);
+    return SparseSpreadRanges.display(this);
   }
   static display(spread: SparseSpreadTable<Range<number>>, compact?: boolean) {
-    return SpreadRange.display(SpreadRange.fromSparse(spread), compact);
+    return SpreadRanges.display(SpreadRanges.fromSparse(spread), compact);
   }
 
   static fromString(s: string) {
-    return parseSpread(s);
+    const spread = parseSpread(s);
+    return spread ? new SparseSpreadRanges(spread) : undefined;
   }
 }
 
@@ -337,12 +402,12 @@ function displayStats<T>(
 }
 
 function parseStats(s: string) {
-  const parsed: Partial<StatsRange> = {};
+  const parsed: Partial<StatRanges> = {};
   const stats = Object.keys(STATS) as pkmn.Stat[];
   const compact = !s.endsWith('e');
 
   const split = s.split(compact ? '/' : ' / ');
-  if (split.length < 6) return undefined;
+  if (split.length !== 6) return undefined;
   for (const [i, range] of split.entries()) {
     const val = parseRange(compact ? range : range.split(' ')[0]);
     if (!val) return undefined;
@@ -471,7 +536,15 @@ function parseRange(s: string, max = Infinity) {
   return isNaN(max) ? undefined : {min, max};
 }
 
-function collapseRange<T>(ranges: Partial<StatsTable<Range<T>>>) {
+function toStatRanges<T>(stats: Partial<StatsTable<T>>) {
+  const ranges: Partial<StatsTable<Range<T>>> = {};
+  for (const [stat, val] of Object.entries(stats)) {
+    ranges[stat as keyof StatsTable<T>] = {min: val!, max: val!};
+  }
+  return ranges;
+}
+
+function collapseStatRanges<T>(ranges: Partial<StatsTable<Range<T>>>) {
   const stats: Partial<StatsTable<T>> = {};
   for (const [stat, range] of Object.entries(ranges)) {
     if (!range || range.min !== range.max) return undefined;

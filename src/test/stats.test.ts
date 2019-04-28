@@ -17,7 +17,7 @@ describe('Stat', () => {
 
 describe('StatsRange', () => {
   test('display', () => {
-    const s = new stats.StatsRange({
+    const s = new stats.StatRanges({
       hp: range(360, 375),
       atk: range(367, 367),
       def: range(250, 260),
@@ -25,12 +25,12 @@ describe('StatsRange', () => {
       spd: range(235, 239),
       spe: range(180, 187)
     });
-    const sd = stats.StatsRange.fromString(s.toString())!;
-    expect(stats.StatsRange.display(sd))
+    const sd = stats.StatRanges.fromString(s.toString())!;
+    expect(stats.StatRanges.display(sd))
         .toEqual(
             '360-375 HP / 367 Atk / 250-260 Def / ' +
             '203-205 SpA / 235-239 SpD / 180-187 Spe');
-    expect(stats.StatsRange.display(sd, true))
+    expect(stats.StatRanges.display(sd, true))
         .toEqual('360-375/367/250-260/203-205/235-239/180-187');
   });
 });
@@ -57,19 +57,19 @@ describe('Spread', () => {
 
 describe('SpreadRange', () => {
   test('display', () => {
-    const s = new stats.SparseSpreadRange({
+    const s = new stats.SparseSpreadRanges({
       nature: pkmn.Natures.get('Modest')!,
       evs: {spa: range(252, 255), hp: range(20, 80), spe: range(200, 255)},
       ivs: {spd: range(20, 31), spa: range(31, 31), atk: range(0, 10)},
     });
-    const sd =
-        stats.SparseSpreadRange.fromString(stats.SparseSpreadRange.display(s))!;
-    expect(stats.SparseSpreadRange.display(sd))
+    const sd = stats.SparseSpreadRanges.fromString(
+        stats.SparseSpreadRanges.display(s))!;
+    expect(stats.SparseSpreadRanges.display(sd))
         .toEqual(
             `EVs: 20-80 HP / 252 SpA / >200 Spe\n` +
             `Modest Nature\n` +
             `IVs: <10 Atk / >20 SpD`);
-    expect(stats.SparseSpreadRange.display(sd, true))
+    expect(stats.SparseSpreadRanges.display(sd, true))
         .toEqual(
             `Modest 20-80/0-/0/252+/0/>200\n` +
             `IVs: 31/<10/31/31/>20/31`);
