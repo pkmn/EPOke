@@ -39,8 +39,9 @@ export class Stats implements StatsTable<number> {
     return Stats.toRanges(this);
   }
 
-  // TODO toSpread
-  // TODO static toSpread
+  toSpread(base: StatsTable<number>, gen?: pkmn.Generation, level = 100) {
+    return Stats.toSpread(this, base, gen, level);
+  }
 
   static display(stats: StatsTable<number>, compact?: boolean) {
     return displayStats(stats, v => `${v}`, compact);
@@ -54,6 +55,10 @@ export class Stats implements StatsTable<number> {
 
   static toRanges(stats: StatsTable<number>) {
     return new StatRanges(toStatRanges(stats) as StatsTable<Range<number>>);
+  }
+
+  static toSpread(stats: StatsTable<number>, base: StatsTable<number>, gen?: pkmn.Generation, level = 100): SpreadTable<number>|undefined { // TODO
+    return undefined;
   }
 }
 
@@ -82,8 +87,9 @@ export class StatRanges implements StatsTable<Range<number>> {
     return StatRanges.toStats(this);
   }
 
-  // TODO toSpreadRanges
-  // TODO static toSpreadRanges
+  toSpreadRanges(base: StatsTable<number>, gen?: pkmn.Generation, level = 100) {
+    return StatRanges.toSpreadRanges(this, base, gen, level);
+  }
 
   static display(ranges: StatsTable<Range<number>>, compact?: boolean) {
     return displayStats(ranges, v => displayRange(v), compact);
@@ -98,6 +104,24 @@ export class StatRanges implements StatsTable<Range<number>> {
     const stats = collapseStatRanges(range);
     if (!stats || Object.keys(stats).length !== 6) return undefined;
     return new Stats(stats as StatsTable<number>);
+  }
+
+  static toSpreadRanges(stats: StatsTable<Range<number>>, base: StatsTable<number>, gen?: pkmn.Generation, level = 100) {
+    const mins: Partial<StatsTable<number>> = {};
+    const maxes: Partial<StatsTable<number>> = {};
+    let stat: pkmn.Stat;
+    for (stat in stats) {
+      const range = stats[stat];
+      if (!range) return undefined;
+      mins[stat] = range.min;
+      maxes[stat] = range.max;
+    }
+    const min = Stats.toSpread(mins as StatsTable<number>, base, gen, level);
+    const max = Stats.toSpread(maxes as StatsTable<number>, base, gen, level);
+    if (!min || !max) return undefined;
+
+    const ranges: Partial<SpreadTable<Range<number>>> = {};
+    return undefined; // TODO
   }
 }
 
@@ -551,4 +575,18 @@ function collapseStatRanges<T>(ranges: Partial<StatsTable<Range<T>>>) {
     stats[stat as keyof StatsTable<T>] = range.min;
   }
   return stats;
+}
+
+const nat = (s: string) => pkmn.Natures.get(s)!;
+const NATURES = [
+  nat('Hardy'),  nat('Lonely'), nat('Adamant'), nat('Naughty'), nat('Brave'),
+  nat('Bold'),   nat('Docile'), nat('Impish'),  nat('Lax'),     nat('Relaxed'),
+  nat('Modest'), nat('Mild'),   nat('Bashful'), nat('Rash'),    nat('Quiet'),
+  nat('Calm'),   nat('Gentle'), nat('Careful'), nat('Quirky'),  nat('Sassy'),
+  nat('Timid'),  nat('Hasty'),  nat('Jolly'),   nat('Naive'),   nat('Serious'),
+];
+
+function getNature(plus: pkmn.Stat, minus: pkmn.Stat) {
+  if (plus === 'hp' || minus === 'hp') return undefined;
+  return NATURES[(1 - STATS[plus]) * 5 + STATS[minus]];
 }
