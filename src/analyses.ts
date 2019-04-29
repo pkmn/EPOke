@@ -9,21 +9,21 @@ export interface DexSettings {
     [ // 'dump-pokemon'
       string, // key
       {
-        strategies: Strategy[],
+        strategies: DexStrategy[],
         [key: string]: any;
       }
     ]];
 }
 // tslint:enable:no-any
 
-export interface Strategy {
+export interface DexStrategy {
   format: string;
   overview: string;
   comments: string;
-  movesets: MoveSet[];
+  movesets: DexMoveSet[];
 }
 
-export interface MoveSet {
+export interface DexMoveSet {
   name: string;
   suffix: string;
   description: string;
@@ -35,7 +35,22 @@ export interface MoveSet {
   natures: string[];
 }
 
-export interface Analysis {}
+export interface Analysis {
+  overview: string;
+  comments: string;
+  sets: MoveSet[];
+}
+
+export interface MoveSet {
+  name: string;
+  description: string;
+  abilities: pkmn.Ability[];
+  items: pkmn.Item[];
+  natures: pkmn.Nature[];
+  ivs: Array<StatsTable<number>>;
+  evs: Array<StatsTable<number>>;
+  moves: pkmn.Move[][];
+}
 
 const GENS = ['rb', 'gs', 'rs', 'dp', 'bw', 'xy', 'sm'];
 
@@ -60,17 +75,43 @@ export const Analyses = new class {
   }
 
   process(ds: DexSettings) {
-    const analyses: Map<pkmn.Tier, Strategy[]> = new Map();  // TODO Analysis[]
+    const analyses: Map<pkmn.Tier, Analysis[]> = new Map();
     for (const strategy of ds['injectRpcs'][2][1]['strategies']) {
       const tier = pkmn.Tiers.fromString(strategy.format);
       if (!tier) continue;
-      let strategies = analyses.get(tier);
-      if (!strategies) {
-        strategies = [];
-        analyses.set(tier, strategies);
+      let a = analyses.get(tier);
+      if (!a) {
+        a = [];
+        analyses.set(tier, a);
       }
-      strategies.push(strategy);
+      a.push(toAnalysis(strategy));
     }
     return analyses;
   }
 };
+
+function toAnalysis(strategy: DexStrategy) {
+  const sets = [];
+  for (const set of strategy.movesets) {
+    const abilities = set.abilities.map(a => pkmn.Abilities.get(a)!);
+    const items = set.items.map(i => pkmn.Items.get(i)!);
+    const natures = set.natures.map(n => pkmn.Natures.get(n)!);
+    const moves = set.moveslots.map(ms => ms.map(m => pkmn.Moves.get(m)!));
+
+    sets.push({
+      name: set.name,
+      description: set.description,
+      abilities,
+      items,
+      natures,
+      ivs: set.evconfigs,
+      evs: set.ivconfigs,
+      moves,
+    });
+  }
+  return {
+    overview: strategy.overview,
+    comments: strategy.comments,
+    sets,
+  };
+}
