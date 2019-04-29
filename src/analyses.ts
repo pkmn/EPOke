@@ -1,8 +1,41 @@
 import * as pkmn from '@pkmn.cc/data';
+import {StatsTable} from './stats';
 
-export interface Analysis {
-
+// tslint:disable:no-any
+export interface DexSettings {
+  injectRpcs: [
+    any, // 'dump-gens'
+    any, // 'dump-basics'
+    [ // 'dump-pokemon'
+      string, // key
+      {
+        strategies: Strategy[],
+        [key: string]: any;
+      }
+    ]];
 }
+// tslint:enable:no-any
+
+export interface Strategy {
+  format: string;
+  overview: string;
+  comments: string;
+  movesets: MoveSet[];
+}
+
+export interface MoveSet {
+  name: string;
+  suffix: string;
+  description: string;
+  abilities: string[];
+  items: string[];
+  moveslots: string[][];
+  evconfigs: Array<StatsTable<number>>;
+  ivconfigs: Array<StatsTable<number>>;
+  natures: string[];
+}
+
+export interface Analysis {}
 
 const GENS = ['rb', 'gs', 'rs', 'dp', 'bw', 'xy', 'sm'];
 
@@ -14,9 +47,8 @@ export const Analyses = new class {
   }
 
   url(species: string|pkmn.Species, gen: pkmn.Generation) {
-    const pokemon = typeof species === 'string' ?
-        pkmn.Species.get(species, gen) :
-        species;
+    const pokemon =
+        typeof species === 'string' ? pkmn.Species.get(species, gen) : species;
     if (!pokemon) return undefined;
     return `${Analyses.URL}/${Analyses.gen(gen)}/pokemon/${pokemon.id}/`;
   }
@@ -24,10 +56,21 @@ export const Analyses = new class {
   parse(raw: string) {
     const match = raw.match(/dexSettings = ({.*})/);
     if (!match) return undefined;
-    return match[1];
+    return JSON.parse(match[1]) as DexSettings;
   }
 
-  forTier(analysis: any, tier: pkmn.Tier) {
-    return analysis;
+  process(ds: DexSettings) {
+    const analyses: Map<pkmn.Tier, Strategy[]> = new Map();  // TODO Analysis[]
+    for (const strategy of ds['injectRpcs'][2][1]['strategies']) {
+      const tier = pkmn.Tiers.fromString(strategy.format);
+      if (!tier) continue;
+      let strategies = analyses.get(tier);
+      if (!strategies) {
+        strategies = [];
+        analyses.set(tier, strategies);
+      }
+      strategies.push(strategy);
+    }
+    return analyses;
   }
 };

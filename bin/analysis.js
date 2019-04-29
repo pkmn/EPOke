@@ -12,16 +12,16 @@ const cached = `data/analyses/${Analyses.gen(format.gen)}/${pokemon.id}.json`;
 
 let data = '';
 if (fs.existsSync(cached) && (data = fs.readFileSync(cached))) {
-  display(data);
+  display(JSON.parse(data));
 } else {
   https.get(Analyses.url(pokemon, format.gen), resp => {
     resp.on('data', chunk => {
       data += chunk
     });
     resp.on('end', () => {
-      const parsed = Analyses.parse(data);
+      const parsed = Analyses.parse(data.toString());
       fs.mkdirSync(path.dirname(cached), {recursive: true});
-      fs.writeFileSync(cached, parsed);
+      fs.writeFileSync(cached, JSON.stringify(parsed));
       display(parsed);
     });
   }).on('error', err => {
@@ -30,7 +30,6 @@ if (fs.existsSync(cached) && (data = fs.readFileSync(cached))) {
 }
 
 function display(json) {
-  const data = JSON.parse(json, format.tier);
-  const analysis = Analyses.forTier(data, format.tier);
-  console.log(JSON.stringify(analysis, null, 2));
+  const analyses = Analyses.process(json);
+  console.log(analyses);
 }
