@@ -200,33 +200,7 @@ export class Spread implements SpreadTable<number> {
   }
 
   static display(spread: SpreadTable<number>, compact?: boolean) {
-    const {evs, ivs} = displayIVsEVs((s, t) => {
-      if (t === 'iv') {
-        const v = spread.ivs[s];
-        return !compact && v === 31 ? '' : `${v}`;
-      } else {
-        const v = spread.evs[s];
-        return !compact && v === 0 ? '' : `${v}`;
-      }
-    }, compact);
-
-    if (compact) {
-      if (spread.nature.plus && spread.nature.minus) {
-        const plus = STATS[spread.nature.plus];
-        const minus = STATS[spread.nature.minus];
-        evs[plus] = `${evs[plus]}+`;
-        evs[minus] = `${evs[minus]}-`;
-      }
-      const s = `${spread.nature} ${evs.join('/')}`;
-      const i = ivs.join('/');
-      return i === '31/31/31/31/31/31' ? s : `${s}\nIVs: ${i}`;
-    }
-
-    let s = '';
-    if (evs.length) s += 'EVs: ' + evs.join(' / ') + '\n';
-    s += `${spread.nature} Nature`;
-    if (ivs.length) s += '\nIVs: ' + ivs.join(' / ');
-    return s;
+    return SparseSpread.display(spread, compact);
   }
 
   static fromSparse(sparse: SparseSpreadTable<number>) {
@@ -305,31 +279,7 @@ export class SpreadRange implements Range<SpreadTable<number>> {
   }
 
   static display(range: Range<SpreadTable<number>>, compact?: boolean) {
-    const nature =
-        displayNature({min: range.min.nature, max: range.max.nature});
-    const {evs, ivs} = displayIVsEVs((s, t) => {
-      if (t === 'iv') {
-        const r = {min: range.min.ivs[s], max: range.max.ivs[s]};
-        const v = displayRange(r, 31);
-        return !compact && v === '31' ? '' : v;
-      } else {
-        const r = {min: range.min.evs[s], max: range.max.evs[s]};
-        const v = displayRange(r, 252);
-        return !compact && v === '0' ? '' : v;
-      }
-    }, compact);
-
-    if (compact) {
-      const s = `${nature} ${evs.join('/')}`;
-      const i = ivs.join('/');
-      return i === '31/31/31/31/31/31' ? s : `${s}\nIVs: ${i}`;
-    }
-
-    let s = '';
-    if (evs.length) s += 'EVs: ' + evs.join(' / ') + '\n';
-    s += `${nature} Nature`;
-    if (ivs.length) s += '\nIVs: ' + ivs.join(' / ');
-    return s;
+    return SparseSpreadRange.display(range, compact);
   }
 
   static fromSparse(sparse: Range<SparseSpreadTable<number>>) {
@@ -403,7 +353,35 @@ export class SparseSpread implements SparseSpreadTable<number> {
   }
 
   static display(spread: SparseSpreadTable<number>, compact?: boolean) {
-    return Spread.display(Spread.fromSparse(spread), compact);
+    const {evs, ivs} = displayIVsEVs((s, t) => {
+      if (t === 'iv') {
+        const iv = spread.ivs[s];
+        const v = iv === undefined ? 31 : iv;
+        return !compact && v === 31 ? '' : `${v}`;
+      } else {
+        const ev = spread.evs[s];
+        const v = ev === undefined ? 0 : ev;
+        return !compact && v === 0 ? '' : `${v}`;
+      }
+    }, compact);
+
+    if (compact) {
+      if (spread.nature.plus && spread.nature.minus) {
+        const plus = STATS[spread.nature.plus];
+        const minus = STATS[spread.nature.minus];
+        evs[plus] = `${evs[plus]}+`;
+        evs[minus] = `${evs[minus]}-`;
+      }
+      const s = `${spread.nature} ${evs.join('/')}`;
+      const i = ivs.join('/');
+      return i === '31/31/31/31/31/31' ? s : `${s}\nIVs: ${i}`;
+    }
+
+    let s = '';
+    if (evs.length) s += 'EVs: ' + evs.join(' / ') + '\n';
+    s += `${spread.nature} Nature`;
+    if (ivs.length) s += '\nIVs: ' + ivs.join(' / ');
+    return s;
   }
 
   static fromString(s: string) {
@@ -437,8 +415,38 @@ export class SparseSpreadRange implements Range<SparseSpreadTable<number>> {
     return SparseSpreadRange.display(this);
   }
 
-  static display(spread: Range<SparseSpreadTable<number>>, compact?: boolean) {
-    return SpreadRange.display(SpreadRange.fromSparse(spread), compact);
+  static display(range: Range<SparseSpreadTable<number>>, compact?: boolean) {
+    const nature =
+        displayNature({min: range.min.nature, max: range.max.nature});
+    const {evs, ivs} = displayIVsEVs((s, t) => {
+      if (t === 'iv') {
+        let min = range.min.ivs[s];
+        let max = range.max.ivs[s];
+        if (min === undefined) min = 31;
+        if (max === undefined) max = 31;
+        const v = displayRange({min, max}, 31);
+        return !compact && v === '31' ? '' : v;
+      } else {
+        let min = range.min.evs[s];
+        let max = range.max.evs[s];
+        if (min === undefined) min = 0;
+        if (max === undefined) max = 0;
+        const v = displayRange({min, max}, 252);
+        return !compact && v === '0' ? '' : v;
+      }
+    }, compact);
+
+    if (compact) {
+      const s = `${nature} ${evs.join('/')}`;
+      const i = ivs.join('/');
+      return i === '31/31/31/31/31/31' ? s : `${s}\nIVs: ${i}`;
+    }
+
+    let s = '';
+    if (evs.length) s += 'EVs: ' + evs.join(' / ') + '\n';
+    s += `${nature} Nature`;
+    if (ivs.length) s += '\nIVs: ' + ivs.join(' / ');
+    return s;
   }
 
   static fromString(s: string) {

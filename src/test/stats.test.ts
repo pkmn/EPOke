@@ -29,10 +29,11 @@ describe('StatsRange', () => {
   });
 
   test('fromBase', () => {
-    expect(stats.StatsRange.fromBase(pkmn.Species.get('Gengar')!.baseStats)).toEqual({
-      min: {hp: 230, atk: 121, def: 112, spa: 238, spd: 139, spe: 202},
-      max: {hp: 324, atk: 251, def: 240, spa: 394 , spd: 273, spe: 350},
-    });
+    expect(stats.StatsRange.fromBase(pkmn.Species.get('Gengar')!.baseStats))
+        .toEqual({
+          min: {hp: 230, atk: 121, def: 112, spa: 238, spd: 139, spe: 202},
+          max: {hp: 324, atk: 251, def: 240, spa: 394, spd: 273, spe: 350},
+        });
   });
 });
 
