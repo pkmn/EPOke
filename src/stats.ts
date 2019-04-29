@@ -108,6 +108,23 @@ export class StatsRange implements Range<StatsTable<number>> {
         s => displayRange({min: range.min[s], max: range.max[s]}), compact);
   }
 
+  static fromBase(
+      base: StatsTable<number>, gen?: pkmn.Generation, level = 100) {
+    const min = Object.assign({}, base);
+    const max = Object.assign({}, base);
+
+    let stat: pkmn.Stat;
+    for (stat in STATS) {
+      const other = stat === 'spe' ? 'atk' : 'spe';
+      const minus = getNature(other, stat);
+      const plus = getNature(stat, other);
+      min[stat] = pkmn.Stats.calc(stat, base[stat], 0, 0, level, minus, gen);
+      max[stat] = pkmn.Stats.calc(stat, base[stat], 31, 252, level, plus, gen);
+    }
+
+    return new StatsRange(min, max);
+  }
+
   static fromString(s: string) {
     const min: Partial<StatsTable<number>> = {};
     const max: Partial<StatsTable<number>> = {};
@@ -249,7 +266,7 @@ export class Spread implements SpreadTable<number> {
     const stats: Partial<StatsTable<number>> = {};
     let stat: pkmn.Stat;
     for (stat in STATS) {
-      stats[stat as keyof StatsTable<number>] = pkmn.Stats.calc(
+      stats[stat] = pkmn.Stats.calc(
           stat, base[stat], spread.ivs[stat], spread.evs[stat], level,
           spread.nature, gen);
     }
@@ -281,6 +298,10 @@ export class SpreadRange implements Range<SpreadTable<number>> {
 
   toSpread() {
     return SpreadRange.toSpread(this);
+  }
+
+  toStatsRange(base: StatsTable<number>, gen?: pkmn.Generation, level = 100) {
+    return SpreadRange.toStatsRange(this, base, gen, level);
   }
 
   static display(range: Range<SpreadTable<number>>, compact?: boolean) {
@@ -525,12 +546,15 @@ function parseSpreadValues(s: string, type: 'iv'|'ev', compact?: boolean) {
 
 function displayRange(range: Range<number>, max = Infinity) {
   if (range.min === range.max || range.min === max) return `${range.min}`;
+  if (range.min === 0 && range.max >= max) return '???';
   if (range.max >= max) return `>${range.min}`;
   if (range.min === 0) return `<${range.max}`;
   return `${range.min}-${range.max}`;
 }
 
 function parseRange(s: string, max = Infinity) {
+  if (s === '???') return {min: 0, max};
+
   if (s.startsWith('>')) {
     const min = Number(s.slice(1));
     if (isNaN(min)) return undefined;
@@ -578,5 +602,5 @@ const NATURES = [
 
 function getNature(plus: pkmn.Stat, minus: pkmn.Stat) {
   if (plus === 'hp' || minus === 'hp') return undefined;
-  return NATURES[(1 - STATS[plus]) * 5 + STATS[minus]];
+  return NATURES[(STATS[plus] - 1) * 5 + (STATS[minus] - 1)];
 }
