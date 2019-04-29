@@ -4,7 +4,7 @@ const fs = require('fs');
 const Statistics = require('../build/statistics').Statistics;
 
 let data = '';
-https.get(Statistics.URL, resp => {
+https.get(`${Statistics.URL}/`, resp => {
   resp.on('data', chunk => {
     data += chunk
   });

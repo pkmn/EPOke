@@ -7,14 +7,18 @@ export interface Analysis {
 const GENS = ['rb', 'gs', 'rs', 'dp', 'bw', 'xy', 'sm'];
 
 export const Analyses = new class {
-  readonly URL = 'https://www.smogon.com/dex/';
+  readonly URL = 'https://www.smogon.com/dex';
+
+  gen(gen: pkmn.Generation) {
+    return GENS[gen - 1];
+  }
 
   url(species: string|pkmn.Species, gen: pkmn.Generation) {
     const pokemon = typeof species === 'string' ?
         pkmn.Species.get(species, gen) :
         species;
     if (!pokemon) return undefined;
-    return `${Analyses.URL}${GENS[gen]}/pokemon/${pokemon.id}/`;
+    return `${Analyses.URL}/${Analyses.gen(gen)}/pokemon/${pokemon.id}/`;
   }
 
   parse(raw: string) {

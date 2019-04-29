@@ -45,7 +45,7 @@ export interface SpreadWeights {
 }
 
 export const Statistics = new class {
-  readonly URL = 'https://www.smogon.com/stats/';
+  readonly URL = 'https://www.smogon.com/stats';
 
   latest(page: string): string {
     const lines = page.split('\n');
@@ -63,7 +63,7 @@ export const Statistics = new class {
     const format = typeof fmt === 'string' ? pkmn.Format.fromString(fmt) : fmt;
     if (!format) return undefined;
     const rating = weighted ? (format.id === 'gen7ou' ? 1825 : 1760) : 0;
-    return `${Statistics.URL}${date}/chaos/${format}-${rating}.json`;
+    return `${Statistics.URL}/${date}/chaos/${format}-${rating}.json`;
   }
 
   display(name: string, stats: ProcessedStatistics, cutoff = 3.41) {
