@@ -67,9 +67,12 @@ export class Stats implements StatsTable<number> {
   }
 
   static toSpread(
-      stats: StatsTable<number>, base: StatsTable<number>,
-      gen?: pkmn.Generation, level = 100) {
-    return undefined;  // TODO new Spread() => SpreadTable<number>|undefined
+    stats: StatsTable<number>,
+    base: StatsTable<number>,
+    gen?: pkmn.Generation,
+    level = 100
+  ) {
+    return undefined; // TODO new Spread() => SpreadTable<number>|undefined
   }
 }
 
@@ -80,8 +83,9 @@ export class StatsRange implements Range<StatsTable<number>> {
   constructor(range: Range<StatsTable<number>>);
   constructor(min: StatsTable<number>, max: StatsTable<number>);
   constructor(
-      range: Range<StatsTable<number>>|StatsTable<number>,
-      max?: StatsTable<number>) {
+    range: Range<StatsTable<number>> | StatsTable<number>,
+    max?: StatsTable<number>
+  ) {
     if ('min' in range) {
       this.min = new Stats(range.min);
       this.max = new Stats(range.max);
@@ -105,11 +109,16 @@ export class StatsRange implements Range<StatsTable<number>> {
 
   static display(range: Range<StatsTable<number>>, compact?: boolean) {
     return displayStats(
-        s => displayRange({min: range.min[s], max: range.max[s]}), compact);
+      s => displayRange({ min: range.min[s], max: range.max[s] }),
+      compact
+    );
   }
 
   static fromBase(
-      base: StatsTable<number>, gen?: pkmn.Generation, level = 100) {
+    base: StatsTable<number>,
+    gen?: pkmn.Generation,
+    level = 100
+  ) {
     const min = Object.assign({}, base);
     const max = Object.assign({}, base);
 
@@ -149,13 +158,24 @@ export class StatsRange implements Range<StatsTable<number>> {
   }
 
   static toSpreadRange(
-      range: Range<StatsTable<number>>, base: StatsTable<number>,
-      gen?: pkmn.Generation, level = 100) {
-    const min =
-        Stats.toSpread(range.min as StatsTable<number>, base, gen, level);
-    const max =
-        Stats.toSpread(range.max as StatsTable<number>, base, gen, level);
-    return (!min || !max) ? undefined : new SpreadRange(min, max);
+    range: Range<StatsTable<number>>,
+    base: StatsTable<number>,
+    gen?: pkmn.Generation,
+    level = 100
+  ) {
+    const min = Stats.toSpread(
+      range.min as StatsTable<number>,
+      base,
+      gen,
+      level
+    );
+    const max = Stats.toSpread(
+      range.max as StatsTable<number>,
+      base,
+      gen,
+      level
+    );
+    return !min || !max ? undefined : new SpreadRange(min, max);
   }
 }
 
@@ -172,10 +192,15 @@ export class Spread implements SpreadTable<number> {
 
   constructor(spread: SpreadTable<number>);
   constructor(
-      nature: pkmn.Nature, ivs: StatsTable<number>, evs: StatsTable<number>);
+    nature: pkmn.Nature,
+    ivs: StatsTable<number>,
+    evs: StatsTable<number>
+  );
   constructor(
-      spread: SpreadTable<number>|pkmn.Nature, ivs?: StatsTable<number>,
-      evs?: StatsTable<number>) {
+    spread: SpreadTable<number> | pkmn.Nature,
+    ivs?: StatsTable<number>,
+    evs?: StatsTable<number>
+  ) {
     if ('nature' in spread) {
       this.nature = spread.nature;
       this.ivs = new Stats(spread.ivs);
@@ -206,8 +231,8 @@ export class Spread implements SpreadTable<number> {
   static fromSparse(sparse: SparseSpreadTable<number>) {
     const spread = {
       nature: sparse.nature,
-      ivs: {hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31},
-      evs: {hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0},
+      ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+      evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     };
 
     let stat: pkmn.Stat;
@@ -235,14 +260,23 @@ export class Spread implements SpreadTable<number> {
   }
 
   static toStats(
-      spread: SpreadTable<number>, base: StatsTable<number>,
-      gen?: pkmn.Generation, level = 100) {
+    spread: SpreadTable<number>,
+    base: StatsTable<number>,
+    gen?: pkmn.Generation,
+    level = 100
+  ) {
     const stats: Partial<StatsTable<number>> = {};
     let stat: pkmn.Stat;
     for (stat in STATS) {
       stats[stat] = pkmn.Stats.calc(
-          stat, base[stat], spread.ivs[stat], spread.evs[stat], level,
-          spread.nature, gen);
+        stat,
+        base[stat],
+        spread.ivs[stat],
+        spread.evs[stat],
+        level,
+        spread.nature,
+        gen
+      );
     }
     return new Stats(stats as StatsTable<number>);
   }
@@ -255,8 +289,9 @@ export class SpreadRange implements Range<SpreadTable<number>> {
   constructor(range: Range<SpreadTable<number>>);
   constructor(min: SpreadTable<number>, max: SpreadTable<number>);
   constructor(
-      range: Range<SpreadTable<number>>|SpreadTable<number>,
-      max?: SpreadTable<number>) {
+    range: Range<SpreadTable<number>> | SpreadTable<number>,
+    max?: SpreadTable<number>
+  ) {
     if ('min' in range) {
       this.min = new Spread(range.min);
       this.max = new Spread(range.max);
@@ -284,7 +319,9 @@ export class SpreadRange implements Range<SpreadTable<number>> {
 
   static fromSparse(sparse: Range<SparseSpreadTable<number>>) {
     return new SpreadRange(
-        Spread.fromSparse(sparse.min), Spread.fromSparse(sparse.max));
+      Spread.fromSparse(sparse.min),
+      Spread.fromSparse(sparse.max)
+    );
   }
 
   static fromString(s: string) {
@@ -301,21 +338,38 @@ export class SpreadRange implements Range<SpreadTable<number>> {
   }
 
   static toStatsRange(
-      spread: Range<SpreadTable<number>>, base: StatsTable<number>,
-      gen?: pkmn.Generation, level = 100) {
+    spread: Range<SpreadTable<number>>,
+    base: StatsTable<number>,
+    gen?: pkmn.Generation,
+    level = 100
+  ) {
     const mins: Partial<StatsTable<number>> = {};
     const maxes: Partial<StatsTable<number>> = {};
     let stat: pkmn.Stat;
     for (stat in STATS) {
       mins[stat] = pkmn.Stats.calc(
-          stat, base[stat], spread.min.ivs[stat], spread.min.evs[stat], level,
-          spread.min.nature, gen);
+        stat,
+        base[stat],
+        spread.min.ivs[stat],
+        spread.min.evs[stat],
+        level,
+        spread.min.nature,
+        gen
+      );
       maxes[stat] = pkmn.Stats.calc(
-          stat, base[stat], spread.max.ivs[stat], spread.max.evs[stat], level,
-          spread.max.nature, gen);
+        stat,
+        base[stat],
+        spread.max.ivs[stat],
+        spread.max.evs[stat],
+        level,
+        spread.max.nature,
+        gen
+      );
     }
     return new StatsRange(
-        mins as StatsTable<number>, maxes as StatsTable<number>);
+      mins as StatsTable<number>,
+      maxes as StatsTable<number>
+    );
   }
 }
 
@@ -332,11 +386,15 @@ export class SparseSpread implements SparseSpreadTable<number> {
 
   constructor(spread: SparseSpreadTable<number>);
   constructor(
-      nature: pkmn.Nature, ivs: Partial<StatsTable<number>>,
-      evs: Partial<StatsTable<number>>);
+    nature: pkmn.Nature,
+    ivs: Partial<StatsTable<number>>,
+    evs: Partial<StatsTable<number>>
+  );
   constructor(
-      spread: SparseSpreadTable<number>|pkmn.Nature,
-      ivs?: Partial<StatsTable<number>>, evs?: Partial<StatsTable<number>>) {
+    spread: SparseSpreadTable<number> | pkmn.Nature,
+    ivs?: Partial<StatsTable<number>>,
+    evs?: Partial<StatsTable<number>>
+  ) {
     if ('nature' in spread) {
       this.nature = spread.nature;
       this.ivs = spread.ivs;
@@ -353,7 +411,7 @@ export class SparseSpread implements SparseSpreadTable<number> {
   }
 
   static display(spread: SparseSpreadTable<number>, compact?: boolean) {
-    const {evs, ivs} = displayIVsEVs((s, t) => {
+    const { evs, ivs } = displayIVsEVs((s, t) => {
       if (t === 'iv') {
         const iv = spread.ivs[s];
         const v = iv === undefined ? 31 : iv;
@@ -400,8 +458,9 @@ export class SparseSpreadRange implements Range<SparseSpreadTable<number>> {
   constructor(range: Range<SparseSpreadTable<number>>);
   constructor(min: SparseSpreadTable<number>, max: SparseSpreadTable<number>);
   constructor(
-      range: Range<SparseSpreadTable<number>>|SparseSpreadTable<number>,
-      max?: SparseSpreadTable<number>) {
+    range: Range<SparseSpreadTable<number>> | SparseSpreadTable<number>,
+    max?: SparseSpreadTable<number>
+  ) {
     if ('min' in range) {
       this.min = new SparseSpread(range.min);
       this.max = new SparseSpread(range.max);
@@ -416,22 +475,24 @@ export class SparseSpreadRange implements Range<SparseSpreadTable<number>> {
   }
 
   static display(range: Range<SparseSpreadTable<number>>, compact?: boolean) {
-    const nature =
-        displayNature({min: range.min.nature, max: range.max.nature});
-    const {evs, ivs} = displayIVsEVs((s, t) => {
+    const nature = displayNature({
+      min: range.min.nature,
+      max: range.max.nature,
+    });
+    const { evs, ivs } = displayIVsEVs((s, t) => {
       if (t === 'iv') {
         let min = range.min.ivs[s];
         let max = range.max.ivs[s];
         if (min === undefined) min = 31;
         if (max === undefined) max = 31;
-        const v = displayRange({min, max}, 31);
+        const v = displayRange({ min, max }, 31);
         return !compact && v === '31' ? '' : v;
       } else {
         let min = range.min.evs[s];
         let max = range.max.evs[s];
         if (min === undefined) min = 0;
         if (max === undefined) max = 0;
-        const v = displayRange({min, max}, 252);
+        const v = displayRange({ min, max }, 252);
         return !compact && v === '0' ? '' : v;
       }
     }, compact);
@@ -456,25 +517,27 @@ export class SparseSpreadRange implements Range<SparseSpreadTable<number>> {
 
       nature = parseNature(n.slice(0, n.indexOf(' ')));
       evs = parseSpreadValues(e.substr(5), 'ev');
-      ivs = i ? parseSpreadValues(i.substr(5), 'iv') : {min: {}, max: {}};
+      ivs = i ? parseSpreadValues(i.substr(5), 'iv') : { min: {}, max: {} };
     } else {
       const [ne, i] = s.split('\n');
       const [n, e] = ne.split(' ');
 
       nature = parseNature(n);
       evs = parseSpreadValues(e, 'ev', true);
-      ivs = i ? parseSpreadValues(i.substr(5), 'iv', true) : {min: {}, max: {}};
+      ivs = i
+        ? parseSpreadValues(i.substr(5), 'iv', true)
+        : { min: {}, max: {} };
     }
     if (!nature || !evs || !ivs) return undefined;
     const min = {
       nature: nature.min,
       ivs: ivs.min as StatsTable<number>,
-      evs: evs.min as StatsTable<number>
+      evs: evs.min as StatsTable<number>,
     };
     const max = {
       nature: nature.max,
       ivs: ivs.max as StatsTable<number>,
-      evs: evs.max as StatsTable<number>
+      evs: evs.max as StatsTable<number>,
     };
     return new SparseSpreadRange(min, max);
   }
@@ -486,7 +549,7 @@ export const STATS = {
   def: 2,
   spa: 3,
   spd: 4,
-  spe: 5
+  spe: 5,
 };
 
 function displayStats(display: (stat: pkmn.Stat) => string, compact?: boolean) {
@@ -500,7 +563,9 @@ function displayStats(display: (stat: pkmn.Stat) => string, compact?: boolean) {
 }
 
 function displayIVsEVs(
-    display: (stat: pkmn.Stat, type: 'iv'|'ev') => string, compact?: boolean) {
+  display: (stat: pkmn.Stat, type: 'iv' | 'ev') => string,
+  compact?: boolean
+) {
   let stat: pkmn.Stat;
   const ivs = [];
   const evs = [];
@@ -519,11 +584,11 @@ function displayIVsEVs(
       if (ev) evs.push(`${ev} ${s}`);
     }
   }
-  return {evs, ivs};
+  return { evs, ivs };
 }
 
-function parseSpreadValues(s: string, type: 'iv'|'ev', compact?: boolean) {
-  const spread: Range<Partial<StatsTable<number>>> = {min: {}, max: {}};
+function parseSpreadValues(s: string, type: 'iv' | 'ev', compact?: boolean) {
+  const spread: Range<Partial<StatsTable<number>>> = { min: {}, max: {} };
   const max = type === 'iv' ? 31 : 252;
 
   if (compact) {
@@ -561,27 +626,27 @@ function displayRange(range: Range<number>, max = Infinity) {
 }
 
 function parseRange(s: string, max = Infinity) {
-  if (s === '???') return {min: 0, max};
+  if (s === '???') return { min: 0, max };
 
   if (s.startsWith('>')) {
     const min = Number(s.slice(1));
     if (isNaN(min)) return undefined;
-    return {min, max};
+    return { min, max };
   }
 
   if (s.startsWith('<')) {
     max = Number(s.slice(1));
     if (isNaN(max)) return undefined;
-    return {min: 0, max};
+    return { min: 0, max };
   }
 
   const [lo, hi] = s.split('-');
   const min = Number(lo);
   if (isNaN(min)) return undefined;
-  if (hi === undefined) return {min, max: min};
+  if (hi === undefined) return { min, max: min };
 
   max = Number(hi);
-  return isNaN(max) ? undefined : {min, max};
+  return isNaN(max) ? undefined : { min, max };
 }
 
 function displayNature(range: Range<pkmn.Nature>) {
@@ -593,19 +658,39 @@ function parseNature(s: string) {
   const [lo, hi] = s.split('-');
   const min = pkmn.Natures.get(lo);
   if (min === undefined) return undefined;
-  if (hi === undefined) return {min, max: min};
+  if (hi === undefined) return { min, max: min };
 
   const max = pkmn.Natures.get(hi);
-  return max === undefined ? undefined : {min, max};
+  return max === undefined ? undefined : { min, max };
 }
 
 const nat = (s: string) => pkmn.Natures.get(s)!;
 const NATURES = [
-  nat('Hardy'),  nat('Lonely'), nat('Adamant'), nat('Naughty'), nat('Brave'),
-  nat('Bold'),   nat('Docile'), nat('Impish'),  nat('Lax'),     nat('Relaxed'),
-  nat('Modest'), nat('Mild'),   nat('Bashful'), nat('Rash'),    nat('Quiet'),
-  nat('Calm'),   nat('Gentle'), nat('Careful'), nat('Quirky'),  nat('Sassy'),
-  nat('Timid'),  nat('Hasty'),  nat('Jolly'),   nat('Naive'),   nat('Serious'),
+  nat('Hardy'),
+  nat('Lonely'),
+  nat('Adamant'),
+  nat('Naughty'),
+  nat('Brave'),
+  nat('Bold'),
+  nat('Docile'),
+  nat('Impish'),
+  nat('Lax'),
+  nat('Relaxed'),
+  nat('Modest'),
+  nat('Mild'),
+  nat('Bashful'),
+  nat('Rash'),
+  nat('Quiet'),
+  nat('Calm'),
+  nat('Gentle'),
+  nat('Careful'),
+  nat('Quirky'),
+  nat('Sassy'),
+  nat('Timid'),
+  nat('Hasty'),
+  nat('Jolly'),
+  nat('Naive'),
+  nat('Serious'),
 ];
 
 function getNature(plus: pkmn.Stat, minus: pkmn.Stat) {

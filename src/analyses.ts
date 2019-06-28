@@ -1,18 +1,20 @@
 import * as pkmn from '@pkmn.cc/data';
-import {StatsTable} from './stats';
+import { StatsTable } from './stats';
 
 // tslint:disable:no-any
 export interface DexSettings {
   injectRpcs: [
     any, // 'dump-gens'
     any, // 'dump-basics'
-    [ // 'dump-pokemon'
+    [
+      // 'dump-pokemon'
       string, // key
       {
-        strategies: DexStrategy[],
+        strategies: DexStrategy[];
         [key: string]: any;
       }
-    ]];
+    ]
+  ];
 }
 // tslint:enable:no-any
 
@@ -54,16 +56,16 @@ export interface MoveSet {
 
 const GENS = ['rb', 'gs', 'rs', 'dp', 'bw', 'xy', 'sm'];
 
-export const Analyses = new class {
+export const Analyses = new (class {
   readonly URL = 'https://www.smogon.com/dex';
 
   gen(gen: pkmn.Generation) {
     return GENS[gen - 1];
   }
 
-  url(species: string|pkmn.Species, gen: pkmn.Generation) {
+  url(species: string | pkmn.Species, gen: pkmn.Generation) {
     const pokemon =
-        typeof species === 'string' ? pkmn.Species.get(species, gen) : species;
+      typeof species === 'string' ? pkmn.Species.get(species, gen) : species;
     if (!pokemon) return undefined;
     return `${Analyses.URL}/${Analyses.gen(gen)}/pokemon/${pokemon.id}/`;
   }
@@ -88,7 +90,7 @@ export const Analyses = new class {
     }
     return analyses;
   }
-};
+})();
 
 function toAnalysis(strategy: DexStrategy) {
   const sets = [];

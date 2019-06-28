@@ -14,7 +14,7 @@ export class Random {
   // Mulberry32: https://gist.github.com/tommyettinger/46a874533244883189143505d203312c
   next(min?: number, max?: number) {
     if (min) min = Math.floor(min);
-		if (max) max = Math.floor(max);
+    if (max) max = Math.floor(max);
 
     let z = (this.seed += 0x6d2b79f5 | 0);
     z = Math.imul(z ^ (z >>> 15), z | 1);
@@ -22,7 +22,7 @@ export class Random {
     z = (z ^ (z >>> 14)) >>> 0;
     const n = z / 2 ** 32;
 
-		if (min === undefined) return n;
+    if (min === undefined) return n;
     if (!max) return Math.floor(n * min);
     return Math.floor(n * (max - min)) + min;
   }
@@ -34,18 +34,21 @@ export class Random {
     }
     return arr;
   }
-  
-  sample<T>(arr: ReadonlyArray<T>, remove = false): T {
-		if (arr.length === 0) throw new RangeError('Cannot sample an empty array');
-		const index = this.next(arr.length);
-		const val = arr[index];
+
+  sample<T>(arr: T[], remove = false): T {
+    if (arr.length === 0) throw new RangeError('Cannot sample an empty array');
+    const index = this.next(arr.length);
+    const val = arr[index];
     if (remove) {
       arr[index] = arr[arr.length - 1];
       arr.pop();
     }
-		if (val === undefined && !Object.prototype.hasOwnProperty.call(arr, index)) {
-			throw new RangeError(`Cannot sample a sparse array`);
-		}
-		return val;
-	}
+    if (
+      val === undefined &&
+      !Object.prototype.hasOwnProperty.call(arr, index)
+    ) {
+      throw new RangeError(`Cannot sample a sparse array`);
+    }
+    return val;
+  }
 }
