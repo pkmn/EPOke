@@ -12,19 +12,22 @@ export class Heap<T> {
   private readonly cmp: (a: Node<T>, b: Node<T>) => number;
   private readonly limit: number;
   private readonly data: Array<Node<T>>;
+  private total: number;
 
   static create<T>(cmp: (a: Node<T>, b: Node<T>) => number = Comparators.Max, limit = 0) {
-    return new Heap(cmp, limit, []);
+    return new Heap(cmp, limit, [], 0);
   }
 
   private constructor(
     cmp: (a: Node<T>, b: Node<T>) => number,
     limit: number,
-    data: Array<Node<T>>
+    data: Array<Node<T>>,
+    total: number
   ) {
     this.cmp = cmp;
     this.limit = limit;
     this.data = data;
+    this.total = total;
   }
 
   get length() {
@@ -40,7 +43,7 @@ export class Heap<T> {
   }
 
   clone() {
-    return new Heap(this.cmp, this.limit, this.toArray());
+    return new Heap(this.cmp, this.limit, this.toArray(), this.total);
   }
 
   toArray() {
@@ -48,8 +51,7 @@ export class Heap<T> {
   }
 
   weights() {
-    // TODO: track total as well and adjust these to be relative!
-    return this.data.map(n => n.weight / total);
+    return this.data.map(n => n.weight / this.total);
   }
 
   toString() {
@@ -62,6 +64,7 @@ export class Heap<T> {
 
   pop() {
     const pop = this.data.pop();
+    if (pop !== undefined) this.total -= pop.weight;
     if (this.length > 0 && pop !== undefined) {
       return this.replace(pop);
     }
@@ -72,9 +75,13 @@ export class Heap<T> {
     if (data.length < 1) return false;
     if (data.length === 1) {
       this.bubbleUp(this.data.push(data[0]) - 1);
+      this.total += data[0].weight;
     } else {
       let i = this.length;
-      this.data.push(...data);
+      for (const d of data) {
+        this.data.push(d);
+        this.total += d.weight;
+      }
       for (const length = this.length; i < length; ++i) {
         this.bubbleUp(i);
       }
@@ -86,6 +93,7 @@ export class Heap<T> {
   replace(node: Node<T>) {
     const peek = this.peek();
     this.data[0] = node;
+    this.total += node.weight - (peek.weight || 0);
     this.bubbleDown(0);
     return peek;
   }
@@ -101,9 +109,10 @@ export class Heap<T> {
     if (i === 0) {
       this.pop();
     } else if (i === this.length - 1) {
-      this.data.pop();
+      this.total -= this.data.pop()!.weight;
     } else {
-      this.data.splice(i, 1, this.data.pop()!);
+      const spliced = this.data.splice(i, 1, this.data.pop()!);
+      for (const {weight} of spliced) this.total -= weight;
       this.bubbleUp(i);
       this.bubbleDown(i);
     }
@@ -118,7 +127,7 @@ export class Heap<T> {
       cloned.sort(this.cmp);
       return cloned;
     }
-    const heap = new Heap((a: Node<T>, b: Node<T>) => -1 * this.cmp(a, b), n, []);
+    const heap = new Heap((a: Node<T>, b: Node<T>) => -1 * this.cmp(a, b), n, [], 0);
     const indices = [0];
     while (indices.length) {
       const i = indices.shift()!;
@@ -156,9 +165,7 @@ export class Heap<T> {
       for (let i = 1; i < children.length; i++) {
         ci = this.cmp(this.data[children[i]], this.data[ci]) < 0 ? children[i] : ci;
       }
-      if (typeof this.data[ci] === 'undefined' || this.cmp(self, this.data[ci]) <= 0) {
-        break;
-      }
+      if (this.data[ci] === undefined || this.cmp(self, this.data[ci]) <= 0) break;
       [this.data[i], this.data[ci]] = [this.data[ci], this.data[i]];
       i = ci;
     }
@@ -168,7 +175,7 @@ export class Heap<T> {
   private trim() {
     if (this.limit && this.limit < this.length) {
       let rm = this.length - this.limit;
-      while (rm--) this.data.pop();
+      while (rm--) this.total -= (this.data.pop()!.weight);
     }
   }
 

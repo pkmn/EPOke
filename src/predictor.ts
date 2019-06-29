@@ -46,6 +46,7 @@ export class Predictor {
 
     // TODO: cover moves = need to make a COPY of move heap to update with MOVE BIGRAM each iteration
 
+    // TODO: optimize spread (after HP IVs set)
     set.item = this.predictItem(possibilities.item, set, sample);
     set.happiness = set.moves.includes('frustration' as ID) ? 0 : 255;
     return set;
