@@ -28,8 +28,7 @@ describe('StatsRange', () => {
     });
     const sd = stats.StatsRange.fromString(s.toString())!;
     expect(stats.StatsRange.display(sd)).toEqual(
-      '360-375 HP / 367 Atk / 250-260 Def / ' +
-        '203-205 SpA / 235-239 SpD / 180-187 Spe'
+      '360-375 HP / 367 Atk / 250-260 Def / ' + '203-205 SpA / 235-239 SpD / 180-187 Spe'
     );
     expect(stats.StatsRange.display(sd, true)).toEqual(
       '360-375/367/250-260/203-205/235-239/180-187'
@@ -37,9 +36,7 @@ describe('StatsRange', () => {
   });
 
   test('fromBase', () => {
-    expect(
-      stats.StatsRange.fromBase(pkmn.Species.get('Gengar')!.baseStats)
-    ).toEqual({
+    expect(stats.StatsRange.fromBase(pkmn.Species.get('Gengar')!.baseStats)).toEqual({
       min: { hp: 230, atk: 121, def: 112, spa: 238, spd: 139, spe: 202 },
       max: { hp: 324, atk: 251, def: 240, spa: 394, spd: 273, spe: 350 },
     });
@@ -55,9 +52,7 @@ describe('Spread', () => {
     });
     const sd = stats.SparseSpread.fromString(s.toString())!;
     expect(stats.SparseSpread.display(sd)).toEqual(
-      `EVs: 56 HP / 252 SpA / 200 Spe\n` +
-        `Modest Nature\n` +
-        `IVs: 0 Atk / 30 SpD`
+      `EVs: 56 HP / 252 SpA / 200 Spe\n` + `Modest Nature\n` + `IVs: 0 Atk / 30 SpD`
     );
     expect(stats.SparseSpread.display(sd, true)).toEqual(
       `Modest 56/0-/0/252+/0/200\n` + `IVs: 31/0/31/31/30/31`
@@ -96,9 +91,7 @@ describe('SpreadRange', () => {
       },
     });
 
-    const sd = stats.SparseSpreadRange.fromString(
-      stats.SparseSpreadRange.display(s)
-    )!;
+    const sd = stats.SparseSpreadRange.fromString(stats.SparseSpreadRange.display(s))!;
     expect(stats.SparseSpreadRange.display(sd)).toEqual(
       `EVs: 20-80 HP / 252 SpA / ??? SpD / >200 Spe\n` +
         `Docile-Modest Nature\n` +

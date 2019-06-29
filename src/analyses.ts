@@ -64,8 +64,7 @@ export const Analyses = new (class {
   }
 
   url(species: string | pkmn.Species, gen: pkmn.Generation) {
-    const pokemon =
-      typeof species === 'string' ? pkmn.Species.get(species, gen) : species;
+    const pokemon = typeof species === 'string' ? pkmn.Species.get(species, gen) : species;
     if (!pokemon) return undefined;
     return `${Analyses.URL}/${Analyses.gen(gen)}/pokemon/${pokemon.id}/`;
   }

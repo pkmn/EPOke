@@ -82,10 +82,7 @@ export class StatsRange implements Range<StatsTable<number>> {
 
   constructor(range: Range<StatsTable<number>>);
   constructor(min: StatsTable<number>, max: StatsTable<number>);
-  constructor(
-    range: Range<StatsTable<number>> | StatsTable<number>,
-    max?: StatsTable<number>
-  ) {
+  constructor(range: Range<StatsTable<number>> | StatsTable<number>, max?: StatsTable<number>) {
     if ('min' in range) {
       this.min = new Stats(range.min);
       this.max = new Stats(range.max);
@@ -108,17 +105,10 @@ export class StatsRange implements Range<StatsTable<number>> {
   }
 
   static display(range: Range<StatsTable<number>>, compact?: boolean) {
-    return displayStats(
-      s => displayRange({ min: range.min[s], max: range.max[s] }),
-      compact
-    );
+    return displayStats(s => displayRange({ min: range.min[s], max: range.max[s] }), compact);
   }
 
-  static fromBase(
-    base: StatsTable<number>,
-    gen?: pkmn.Generation,
-    level = 100
-  ) {
+  static fromBase(base: StatsTable<number>, gen?: pkmn.Generation, level = 100) {
     const min = Object.assign({}, base);
     const max = Object.assign({}, base);
 
@@ -163,18 +153,8 @@ export class StatsRange implements Range<StatsTable<number>> {
     gen?: pkmn.Generation,
     level = 100
   ) {
-    const min = Stats.toSpread(
-      range.min as StatsTable<number>,
-      base,
-      gen,
-      level
-    );
-    const max = Stats.toSpread(
-      range.max as StatsTable<number>,
-      base,
-      gen,
-      level
-    );
+    const min = Stats.toSpread(range.min as StatsTable<number>, base, gen, level);
+    const max = Stats.toSpread(range.max as StatsTable<number>, base, gen, level);
     return !min || !max ? undefined : new SpreadRange(min, max);
   }
 }
@@ -191,11 +171,7 @@ export class Spread implements SpreadTable<number> {
   evs: Stats;
 
   constructor(spread: SpreadTable<number>);
-  constructor(
-    nature: pkmn.Nature,
-    ivs: StatsTable<number>,
-    evs: StatsTable<number>
-  );
+  constructor(nature: pkmn.Nature, ivs: StatsTable<number>, evs: StatsTable<number>);
   constructor(
     spread: SpreadTable<number> | pkmn.Nature,
     ivs?: StatsTable<number>,
@@ -288,10 +264,7 @@ export class SpreadRange implements Range<SpreadTable<number>> {
 
   constructor(range: Range<SpreadTable<number>>);
   constructor(min: SpreadTable<number>, max: SpreadTable<number>);
-  constructor(
-    range: Range<SpreadTable<number>> | SpreadTable<number>,
-    max?: SpreadTable<number>
-  ) {
+  constructor(range: Range<SpreadTable<number>> | SpreadTable<number>, max?: SpreadTable<number>) {
     if ('min' in range) {
       this.min = new Spread(range.min);
       this.max = new Spread(range.max);
@@ -318,10 +291,7 @@ export class SpreadRange implements Range<SpreadTable<number>> {
   }
 
   static fromSparse(sparse: Range<SparseSpreadTable<number>>) {
-    return new SpreadRange(
-      Spread.fromSparse(sparse.min),
-      Spread.fromSparse(sparse.max)
-    );
+    return new SpreadRange(Spread.fromSparse(sparse.min), Spread.fromSparse(sparse.max));
   }
 
   static fromString(s: string) {
@@ -366,10 +336,7 @@ export class SpreadRange implements Range<SpreadTable<number>> {
         gen
       );
     }
-    return new StatsRange(
-      mins as StatsTable<number>,
-      maxes as StatsTable<number>
-    );
+    return new StatsRange(mins as StatsTable<number>, maxes as StatsTable<number>);
   }
 }
 
@@ -524,9 +491,7 @@ export class SparseSpreadRange implements Range<SparseSpreadTable<number>> {
 
       nature = parseNature(n);
       evs = parseSpreadValues(e, 'ev', true);
-      ivs = i
-        ? parseSpreadValues(i.substr(5), 'iv', true)
-        : { min: {}, max: {} };
+      ivs = i ? parseSpreadValues(i.substr(5), 'iv', true) : { min: {}, max: {} };
     }
     if (!nature || !evs || !ivs) return undefined;
     const min = {
@@ -562,10 +527,7 @@ function displayStats(display: (stat: pkmn.Stat) => string, compact?: boolean) {
   return s.join(compact ? '/' : ' / ');
 }
 
-function displayIVsEVs(
-  display: (stat: pkmn.Stat, type: 'iv' | 'ev') => string,
-  compact?: boolean
-) {
+function displayIVsEVs(display: (stat: pkmn.Stat, type: 'iv' | 'ev') => string, compact?: boolean) {
   let stat: pkmn.Stat;
   const ivs = [];
   const evs = [];

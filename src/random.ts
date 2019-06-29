@@ -43,10 +43,7 @@ export class Random {
       arr[index] = arr[arr.length - 1];
       arr.pop();
     }
-    if (
-      val === undefined &&
-      !Object.prototype.hasOwnProperty.call(arr, index)
-    ) {
+    if (val === undefined && !Object.prototype.hasOwnProperty.call(arr, index)) {
       throw new RangeError(`Cannot sample a sparse array`);
     }
     return val;

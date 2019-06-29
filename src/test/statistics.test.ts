@@ -21,9 +21,7 @@ describe('Statistics', () => {
   });
 
   test('stats', () => {
-    const ps: ProcessedStatistics = Statistics.process(raw, ['Tyranitar'])[
-      'Tyranitar'
-    ];
+    const ps: ProcessedStatistics = Statistics.process(raw, ['Tyranitar'])['Tyranitar'];
     expect(ps.moves[0].key).toBe('Rock Slide');
   });
 });

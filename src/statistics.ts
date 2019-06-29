@@ -84,9 +84,7 @@ export const Statistics = new (class {
       .slice(0, 5)
       .map(p => p.toFixed(1))
       .join('/')}%\n`;
-    s += `Mixed: ${percent(stats.spreads.mixed.atk)} / ${percent(
-      stats.spreads.mixed.def
-    )}\n`;
+    s += `Mixed: ${percent(stats.spreads.mixed.atk)} / ${percent(stats.spreads.mixed.def)}\n`;
     s += '\n';
 
     const maxes = [];
@@ -109,9 +107,7 @@ export const Statistics = new (class {
     s += `Min%: ${mins.map(p => p.weight.toFixed(1)).join('/')}%\n`;
     s += '\n';
 
-    s += displayWeightedPairs(stats.spreads.spreads, cutoff, k =>
-      Spread.display(k, true)
-    );
+    s += displayWeightedPairs(stats.spreads.spreads, cutoff, k => Spread.display(k, true));
     s += '---\n';
     s += displayWeightedPairs(stats.abilities, cutoff);
     s += '---\n';
@@ -153,10 +149,7 @@ function binarySearch<T>(array: T[], pred: (t: T) => boolean) {
 }
 
 function atLeast<T>(stats: Array<WeightedPair<T>>, val: number) {
-  const ret = binarySearch(
-    stats,
-    (pair: WeightedPair<T>) => pair.weight >= val
-  );
+  const ret = binarySearch(stats, (pair: WeightedPair<T>) => pair.weight >= val);
   // NOTE: we want to make adding 1 to this index safe so we can
   // use it to optimize lookups during speed calculations.
   return ret === -1 ? -2 : ret;
@@ -200,11 +193,7 @@ function items(pokemon: RawProcessedStatistics, gen?: pkmn.Generation) {
   return weighted(pokemon, 'Items', gen);
 }
 
-function spreads(
-  pokemon: RawProcessedStatistics,
-  base: pkmn.StatsTable,
-  gen?: pkmn.Generation
-) {
+function spreads(pokemon: RawProcessedStatistics, base: pkmn.StatsTable, gen?: pkmn.Generation) {
   let totalWeight = 0;
   const totalMixed = { atk: 0, def: 0 };
 
@@ -213,11 +202,7 @@ function spreads(
   const grouped: { [spread: string]: number } = {};
   for (const [spread, weight] of Object.entries(pokemon['Spreads'])) {
     totalWeight += weight;
-    const { bucketed, nature, stats, mixed } = bucketSpreadAndCalcStats(
-      spread,
-      base,
-      gen
-    );
+    const { bucketed, nature, stats, mixed } = bucketSpreadAndCalcStats(spread, base, gen);
 
     if (mixed.atk) totalMixed.atk += weight;
     if (mixed.def) totalMixed.def += weight;
@@ -312,11 +297,7 @@ function spreads(
   return { spreads, natures, mixed, percents, percentiles };
 }
 
-function bucketSpreadAndCalcStats(
-  spread: string,
-  base: pkmn.StatsTable,
-  gen?: pkmn.Generation
-) {
+function bucketSpreadAndCalcStats(spread: string, base: pkmn.StatsTable, gen?: pkmn.Generation) {
   const [n, revs] = spread.split(':');
   const nature = pkmn.Natures.get(n)!;
   const rawEVs = revs.split('/');
