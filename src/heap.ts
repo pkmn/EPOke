@@ -48,7 +48,8 @@ export class Heap<T> {
   }
 
   weights() {
-    return this.data.map(n => n.weight);
+    // TODO: track total as well and adjust these to be relative!
+    return this.data.map(n => n.weight / total);
   }
 
   toString() {
