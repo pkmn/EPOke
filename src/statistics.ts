@@ -33,7 +33,7 @@ export interface WeightedPair<T> {
 
 export interface SpreadWeights {
   // bucketed spread to percent weight
-  spreads: Array<WeightedPair<Spread>>;
+  spreads: Array<WeightedPair<Spread>>; 
   // nature to percent weight
   natures: Array<WeightedPair<pkmn.Nature>>;
   // percent of spreads which are mixed
