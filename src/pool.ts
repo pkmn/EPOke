@@ -25,11 +25,11 @@ export const Comparators = {
 };
 
 export class Pool<T> {
-  /* readonly */ data: Array<Node<T>> = [];
-  readonly limit: number = 0;
   readonly cmp: (a: Node<T>, b: Node<T>) => number;
+  readonly limit: number = 0;
+  /* readonly */ data: Array<Node<T>> = [];
 
-  static create<T>(cmp: (a: Node<T>, b: Node<T>) => number = Comparators.Min, limit = 0) { // TODO
+  static create<T>(cmp: (a: Node<T>, b: Node<T>) => number = Comparators.Max, limit = 0) {
     return new Pool(cmp, limit, []);
   }
 
@@ -203,5 +203,3 @@ export class Pool<T> {
     return Math.floor((index - child) / 2);
   }
 }
-
-export default Pool;
