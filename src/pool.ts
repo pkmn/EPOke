@@ -28,19 +28,22 @@ export class Pool<T> {
   readonly cmp: (a: Node<T>, b: Node<T>) => number;
   readonly limit: number = 0;
   /* readonly */ data: Array<Node<T>> = [];
+  private total: number;
 
   static create<T>(cmp: (a: Node<T>, b: Node<T>) => number = Comparators.Max, limit = 0) {
-    return new Pool(cmp, limit, []);
+    return new Pool(cmp, limit, [], 0);
   }
 
   private constructor(
     cmp: (a: Node<T>, b: Node<T>) => number,
     limit: number,
     data: Array<Node<T>>,
+    total: number
   ) {
     this.cmp = cmp;
     this.limit = limit;
     this.data = data;
+    this.total = total;
   }
 
   get length(): number {
@@ -56,11 +59,15 @@ export class Pool<T> {
   }
 
   clone() {
-    return new Pool(this.cmp, this.limit, this.toArray());
+    return new Pool(this.cmp, this.limit, this.toArray(), this.total);
   }
 
   toArray() {
     return this.data.slice(0);
+  }
+
+  weights() {
+    return this.data.map(n => n.weight / this.total);
   }
 
   toString() {
@@ -73,6 +80,7 @@ export class Pool<T> {
   
   pop() {
     const pop = this.data.pop();
+    if (pop !== undefined) this.total -= pop.weight;
     if (this.length > 0 && pop !== undefined) {
       return this.replace(pop);
     }
@@ -83,10 +91,12 @@ export class Pool<T> {
     if (data.length < 1) return false;
     if (data.length === 1) {
       this.bubbleUp(this.data.push(data[0]) - 1);
+      this.total += data[0].weight;
     } else {
       let i = this.length;
       for (const d of data) {
         this.data.push(d);
+        this.total += d.weight;
       }
       for (const length = this.length; i < length; ++i) {
         this.bubbleUp(i);
@@ -97,8 +107,9 @@ export class Pool<T> {
   }
 
   replace(node: Node<T>) {
-    const peek = this.peek();;
+    const peek = this.peek();
     this.data[0] = node;
+    this.total += node.weight - (peek.weight || 0);
     this.bubbleDown(0);
     return peek;
   }
@@ -114,9 +125,10 @@ export class Pool<T> {
     if (i === 0) {
       this.pop();
     } else if (i === this.length - 1) {
-      this.data.pop();
+      this.total -= this.data.pop()!.weight;
     } else {
-      this.data.splice(i, 1, this.data.pop()!);
+      const spliced = this.data.splice(i, 1, this.data.pop()!);
+      for (const {weight} of spliced) this.total -= weight;
       this.bubbleUp(i);
       this.bubbleDown(i);
     }
@@ -189,7 +201,7 @@ export class Pool<T> {
   private trim() {
     if (this.limit && this.limit < this.length) {
       let rm = this.length - this.limit;
-      while (rm--)this.data.pop();
+      while (rm--) this.total -= (this.data.pop()!.weight);
     }
   }
 
