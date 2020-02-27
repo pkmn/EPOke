@@ -27,7 +27,8 @@ We can come back and run the final spreads through an EV optimizer (would be bet
 
 ### Team
 
-- **Stealth Rock**: teams should pretty much _always_ have one SR user (and shouldn't really have more than 1)
+- **Stealth Rock/ZMove**: teams should pretty much _always_ have one SR user (and shouldn't really have more than 1)
+- **Mega**: usually have 1, rarely 2, sometimes 0
 - **Spikes/Toxic Spikes**: teams should have at _most_ one user
 - **Type Balance**: outside of monotype, a team should generally not all be the same type/weak to the same type
 - **Team Synergy**: teammates should generally cover each others weakness, be able to pivot into each others counters, follow a theme (ie. not Bliss + sweepers)
