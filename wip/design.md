@@ -13,6 +13,8 @@
 
 ## Algorithm
 
+**Team validator only run in valid mode - AI cares more about being fast than perfectly correct**
+
 1. pick a **`Species`**. either this is *set*, we go by *most likely*, or we *sample*. from the `Species` we can then instantiate a `SetPossibilities` object from Stats - only attributes which have been seen before in stats will be included: `createSetPossibilites(format, Species, {gender?, level?, item?, ability?, moves[]?})`. We may know information like gender/level and can save time by just initializing the heap to the one value instead of looping through stats and then removing.
 2. select `Spread` and `Level` (= **`Stats`**) - because these are coming from statistics (and thus have already passed validation) we know they *must* be valid (with some combination of other traits). EVs are trivial (outside of Farceus) as long as they add up to 510, Nature/IVs may cause validation errors based on events (and may restrict moves/ability etc). Similary, level can be greater than the maxLevel allowed for a format sometimes, but almost always using the format max level is going to be the choice (only beneficial to be lower level in niche FEAR or Trick Room cases that can mostly be ignored). We shouldn't need to revalidate here.
 3. select **`Ability`** TODO  **`TV.valid(format, Species, Spread, Ability): boolean`**
@@ -64,3 +66,16 @@ We can come back and run the final spreads through an EV optimizer (would be bet
 
 - **Stealth Rock** / **Spikes/Toxic Spikes/???**: some sort of hardcode?
 - **Trick Room** / **Weather**: ???
+
+
+```
+P(Flamethrower | Fire Blast) = P(Flamethrower AND Fire Blast) / P(Fire Blast)
+                             = (Num(Flamethrower AND Fireblast) / Num(Could use Flamethrower AND Fireblast))
+                               / (Num(Fireblast) / Num(Could use Fireblast))
+```
+
+- count each move, each move pair, and each POKEMON
+- move pair count can use half memory = sort ids and only increment that cell (symmetric matrix)
+- from Pokemon count, can get movepool and calculate "Could use" metrics (not
+  always true given learnset restrictions etc, but close enough)
+
