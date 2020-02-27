@@ -25,9 +25,9 @@ export const Comparators = {
 };
 
 export class Pool<T> {
-  /* private */ readonly cmp: (a: Node<T>, b: Node<T>) => number;
-  /* private */ readonly limit: number = 0;
-  /* private readonly */ data: Array<Node<T>> = [];
+  private readonly cmp: (a: Node<T>, b: Node<T>) => number;
+  private readonly limit: number = 0;
+  private readonly data: Array<Node<T>> = [];
   private readonly indices: Map<T, number>;
   private total: number;
 
@@ -57,11 +57,23 @@ export class Pool<T> {
     return this.data[i];
   }
 
+  // TODO
+  val(i: number) {
+    return this.get(i)?.val;
+  }
+
+  // TODO 
+  weights() {
+    return this.data.map(n => n.weight / this.total);
+  }
+
+  // TODO
   find(t: T) {
     const i = this.indices.get(t);
     return typeof i === 'number' ? i : -1;
   }
 
+  // TODO
   contains(o: T): boolean {
     return this.data.findIndex(n => n.val === o) >= 0;
   }
@@ -72,10 +84,6 @@ export class Pool<T> {
 
   toArray() {
     return this.data.slice(0);
-  }
-
-  weights() {
-    return this.data.map(n => n.weight / this.total);
   }
 
   toString() {
@@ -152,6 +160,7 @@ export class Pool<T> {
     return true;
   }
 
+  // TODO
   update(t: T, mod: number) {
     const i = this.find(t);
     if (i < 0) return false;
@@ -168,7 +177,6 @@ export class Pool<T> {
     }
     return true;
   }
-
 
   top(n = 1) {
     if (this.length === 0 || n <= 0) return [];
@@ -197,15 +205,7 @@ export class Pool<T> {
     return arr;
   }
 
-  /* private */ check() {
-    const getChildrenOf = (idx: number) => 
-      Pool.indicesOfChildren(idx)
-        .map(i => this.data[i])
-        .filter(e => e !== undefined);
-    return this.data.find((n: Node<T>, j: number) => !!getChildrenOf(j).find(c => this.cmp(n, c) > 0));
-  }
-
-  bubbleUp(i: number) {
+  private bubbleUp(i: number) {
     if (!i) return false;
     while (true) {
       const pi = Pool.indexOfParent(i);
@@ -220,7 +220,7 @@ export class Pool<T> {
     return true;
   }
 
-  bubbleDown(i: number) {
+  private bubbleDown(i: number) {
     if (i >= this.data.length - 1) return false;
     const self = this.data[i];
 
@@ -251,7 +251,6 @@ export class Pool<T> {
       }
     }
   }
-
         
   static indicesOfChildren(index: number) {
     return [index * 2 + 1, index * 2 + 2];
