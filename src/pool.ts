@@ -1,69 +1,62 @@
-export type Comparator<T> = (a: T, b: T) => number;
+interface Node<T> {
+  val: T;
+  weight: number;
+}
+
+export const Comparators = {
+  Min: <T extends {}>(a: Node<T>, b: Node<T>) => {
+   if (a?.weight > b?.weight) {
+      return 1;
+    } else if (a?.weight < b?.weight) {
+      return -1;
+    } else {
+      return 0;
+    }
+  },
+  Max: <T extends {}>(a: Node<T>, b: Node<T>) => {
+    if (b?.weight > a?.weight) {
+      return 1;
+    } else if (b?.weight < a?.weight) {
+      return -1;
+    } else {
+      return 0;
+    }
+  },
+};
 
 export class Pool<T> {
-  /* readonly */ data: Array<T> = [];
+  /* readonly */ data: Array<Node<T>> = [];
   readonly limit: number = 0;
-  readonly cmp: Comparator<T>;
+  readonly cmp: (a: Node<T>, b: Node<T>) => number;
 
-  static create<T>(cmp: Comparator<T> = Pool.minComparator, limit = 0) {
+  static create<T>(cmp: (a: Node<T>, b: Node<T>) => number = Comparators.Min, limit = 0) { // TODO
     return new Pool(cmp, limit, []);
   }
 
   private constructor(
-    cmp: Comparator<T>,
+    cmp: (a: Node<T>, b: Node<T>) => number,
     limit: number,
-    data: Array<T>
+    data: Array<Node<T>>,
   ) {
     this.cmp = cmp;
     this.limit = limit;
     this.data = data;
   }
 
-  static minComparator<N>(a: N, b: N): number {
-    if (a > b) {
-      return 1;
-    } else if (a < b) {
-      return -1;
-    } else {
-      return 0;
-    }
-  }
-  
-  static maxComparator<N>(a: N, b: N): number {
-    if (b > a) {
-      return 1;
-    } else if (b < a) {
-      return -1;
-    } else {
-      return 0;
-    }
-  }
- 
- 
-  init(array?: Array<T>): void {
-    if (array) {
-      this.data = array.slice(0);
-    }
-    for (let i = Math.floor(this.data.length); i >= 0; --i) {
-      this.bubbleDown(i);
-    }
-    this.trim();
-  }
-
   get length(): number {
     return this.data.length;
   }
  
-  get(i: number): T {
+  get(i: number) {
     return this.data[i];
   }
 
   contains(o: T): boolean {
-    return this.data.findIndex(el => el === o) >= 0;
+    return this.data.findIndex(n => n.val === o) >= 0;
   }
 
   clone() {
-    return new Pool<T>(this.cmp, this.limit, this.toArray());
+    return new Pool(this.cmp, this.limit, this.toArray());
   }
 
   toArray() {
@@ -86,7 +79,7 @@ export class Pool<T> {
     return pop;
   }
 
-  push(...data: Array<T>): boolean {
+  push(...data: Array<Node<T>>): boolean {
     if (data.length < 1) return false;
     if (data.length === 1) {
       this.bubbleUp(this.data.push(data[0]) - 1);
@@ -103,7 +96,7 @@ export class Pool<T> {
     return true;
   }
 
-  replace(node: T) {
+  replace(node: Node<T>) {
     const peek = this.peek();;
     this.data[0] = node;
     this.bubbleDown(0);
@@ -116,7 +109,7 @@ export class Pool<T> {
       this.pop();
       return true;
     }
-    const i = this.data.findIndex(n => n === t);
+    const i = this.data.findIndex(n => n.val === t);
     if (i < 0) return false;
     if (i === 0) {
       this.pop();
@@ -138,7 +131,7 @@ export class Pool<T> {
       cloned.sort(this.cmp);
       return cloned;
     }
-    const heap = Pool.create((a: T, b: T) => -1 * this.cmp(a, b), n);
+    const heap = Pool.create((a: Node<T>, b: Node<T>) => -1 * this.cmp(a, b), n);
     const indices = [0];
     while (indices.length) {
       const i = indices.shift()!;
@@ -162,7 +155,7 @@ export class Pool<T> {
       Pool.indicesOfChildren(idx)
         .map(i => this.data[i])
         .filter(e => e !== undefined);
-    return this.data.find((n: T, j: number) => !!getChildrenOf(j).find(c => this.cmp(n, c) > 0));
+    return this.data.find((n: Node<T>, j: number) => !!getChildrenOf(j).find(c => this.cmp(n, c) > 0));
   }
 
   /* private */ bubbleDown(i: number) {
