@@ -1,14 +1,14 @@
-import {Pool, Comparators} from './pool';
-import {Random} from './random';
+import { Pool, Comparators } from './pool';
+import { Random } from './random';
 
 describe('Pool', () => {
   describe('#limit', () => {
     it('should limit the pool length', () => {
       const pool: Pool<string> = createPool(toNodes(4), 5);
       expect(pool.length).toEqual(4);
-      pool.push({val: 'foo', weight: 1000});
+      pool.push({ val: 'foo', weight: 1000 });
       expect(pool.length).toEqual(5);
-      pool.push({val: 'bar', weight: 10001});
+      pool.push({ val: 'bar', weight: 10001 });
       expect(pool.length).toEqual(5);
       expect(check(pool)).not.toBeDefined();
     });
@@ -29,13 +29,76 @@ describe('Pool', () => {
     });
   });
 
+  describe('#val(index)', () => {
+    it('should return the val', () => {
+      const pool = createPool();
+      expect(pool.val(-1)).toBeUndefined();
+      expect(pool.val(0)).toEqual(pool.peek().val);
+      expect(pool.val(5)).toEqual(pool.toArray()[5].val);
+    });
+  });
+
+  describe('#weights()', () => {
+    it('should sum to 1', () => {
+      const sum = (vs: number[]) => vs.reduce((acc, v) => acc + v, 0);
+      expect(sum(createPool(toNodes(100)).weights())).toBeCloseTo(1, 5);
+      expect(sum(createPool(toNodes([1, 1, 1, 1])).weights())).toBeCloseTo(1, 5);
+    });
+    it('should return the weight relative to the others', () => {
+      expect(createPool(toNodes(100)).weights()[0]).toBeCloseTo(99 / ((99 * 100) / 2), 5);
+      expect(createPool(toNodes([1, 1, 1, 1])).weights()[0]).toBeCloseTo(0.25, 5);
+    });
+    it('should be updated for removals/additions etc', () => {
+      const pool = createPool();
+      const popped = pool.pop()!;
+      pool.push({ val: 'k100', weight: 100 });
+      pool.push({ val: 'k101', weight: 101 });
+      pool.replace(popped);
+      pool.remove('k50');
+      pool.remove('k25');
+      expect(pool.clone().weights()[0]).toBeCloseTo(100 / ((100 * 101) / 2 - 75), 5);
+    });
+  });
+
+  describe('#find(val)', () => {
+    it('should find the index of a val in the pool', () => {
+      expect(createPool().find('k99')).toBe(0);
+    });
+    it('should return -1 for the index of a val not in the pool', () => {
+      expect(createPool().find('k5000')).toBe(-1);
+    });
+    it('should know the index for every node', () => {
+      const pool = createPool();
+      const popped = pool.pop()!;
+      pool.push({ val: 'k100', weight: 100 });
+      pool.push({ val: 'k101', weight: 101 });
+      pool.replace(popped);
+      pool.remove('k50');
+      pool.remove('k25');
+      const nodes = pool.toArray();
+      for (let i = 0; i < nodes.length; i++) {
+        expect(pool.find(nodes[i].val)).toBe(i);
+      }
+    });
+  });
+
+  describe('#contains(val)', () => {
+    it('should find a val in the pool', () => {
+      const pool = createPool();
+      expect(pool.contains(pool.get(5).val)).toBe(true);
+    });
+    it('should not find a val not in the pool', () => {
+      expect(createPool().contains('k5000')).toBe(false);
+    });
+  });
+
   describe('#clone()', () => {
     it('should clone the pool to a new one', () => {
       const pool = createPool();
       const cloned = pool.clone();
       expect(cloned.length).toEqual(pool.length);
       expect(cloned.toArray()).toEqual(pool.toArray());
-      pool.push({val: 'foo', weight: 1000});
+      pool.push({ val: 'foo', weight: 1000 });
       expect(pool.length).not.toEqual(cloned.length);
     });
   });
@@ -75,7 +138,7 @@ describe('Pool', () => {
     });
     it('should extract the peek if length is 1', () => {
       const pool: Pool<string> = Pool.create();
-      pool.push({val: 'k999', weight: 999});
+      pool.push({ val: 'k999', weight: 999 });
       expect(pool.pop()!.weight).toBe(999);
       expect(pool.length).toBe(0);
     });
@@ -85,6 +148,20 @@ describe('Pool', () => {
       const len = pool.length;
       expect(pool.pop()).toEqual(peek);
       expect(pool.length).toEqual(len - 1);
+      expect(check(pool)).not.toBeDefined();
+    });
+  });
+
+  describe('#modify(val, mod)', () => {
+    it('should return false when not found', () => {
+      expect(Pool.create().modify('foo', 5)).toBe(false);
+    });
+    it('should modify the weight by mod', () => {
+      const pool = createPool();
+      expect(pool.modify('k50', 3)).toBe(true);
+      expect(pool.val(0)).toBe('k50');
+      expect(pool.modify('k70', -1)).toBe(true);
+      expect(pool.top(1000)[pool.length - 1].val).toBe('k70');
       expect(check(pool)).not.toBeDefined();
     });
   });
@@ -118,7 +195,7 @@ describe('Pool', () => {
       const pool = createPool();
       const len = pool.length;
       const peek = pool.peek();
-      expect(pool.replace({val: 'k3000', weight: 3000})).toEqual(peek);
+      expect(pool.replace({ val: 'k3000', weight: 3000 })).toEqual(peek);
       expect(pool.length).toEqual(len);
       expect(pool.contains('k3000')).toBe(true);
       expect(check(pool)).not.toBeDefined();
@@ -138,7 +215,7 @@ describe('Pool', () => {
     });
     it('should remove the peek if it matches and length is 1', () => {
       const pool: Pool<string> = Pool.create();
-      pool.push({val: 'k999', weight: 999});
+      pool.push({ val: 'k999', weight: 999 });
       expect(pool.remove('k999')).toBe(true);
       expect(pool.length).toBe(0);
     });
@@ -231,12 +308,12 @@ function toNodes(w: number | number[]) {
     weights = w;
   }
   const random = new Random();
-  const nodes = weights.map(weight => ({val: `k${weight}`, weight}));
+  const nodes = weights.map(weight => ({ val: `k${weight}`, weight }));
   random.shuffle(nodes);
   return nodes;
 }
 
-function createPool(nodes?: Array<{val: string, weight: number}>, limit = 0) {
+function createPool(nodes?: Array<{ val: string; weight: number }>, limit = 0) {
   const pool: Pool<string> = Pool.create(Comparators.Max, limit);
   pool.push(...(nodes ?? toNodes(100)));
   return pool;
@@ -246,10 +323,12 @@ function check<T>(pool: Pool<T>) {
   const data = pool.toArray();
   const cmp = Comparators.Max;
 
-  const getChildrenOf = (idx: number) => 
+  const getChildrenOf = (idx: number) =>
     Pool.indicesOfChildren(idx)
       .map(i => data[i])
       .filter(e => e !== undefined);
 
-  return data.find((n: {val: T, weight: number}, j: number) => !!getChildrenOf(j).find(c => cmp(n, c) > 0));
+  return data.find(
+    (n: { val: T; weight: number }, j: number) => !!getChildrenOf(j).find(c => cmp(n, c) > 0)
+  );
 }

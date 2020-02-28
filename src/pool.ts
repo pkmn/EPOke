@@ -5,7 +5,7 @@ interface Node<T> {
 
 export const Comparators = {
   Min: <T extends {}>(a: Node<T>, b: Node<T>) => {
-   if (a?.weight > b?.weight) {
+    if (a?.weight > b?.weight) {
       return 1;
     } else if (a?.weight < b?.weight) {
       return -1;
@@ -28,7 +28,7 @@ export class Pool<T> {
   private readonly cmp: (a: Node<T>, b: Node<T>) => number;
   private readonly limit: number = 0;
   private readonly data: Array<Node<T>> = [];
-  private readonly indices: Map<T, number>;
+  readonly indices: Map<T, number>;
   private total: number;
 
   static create<T>(cmp: (a: Node<T>, b: Node<T>) => number = Comparators.Max, limit = 0) {
@@ -52,30 +52,27 @@ export class Pool<T> {
   get length(): number {
     return this.data.length;
   }
- 
+
   get(i: number) {
     return this.data[i];
   }
 
-  // TODO
   val(i: number) {
     return this.get(i)?.val;
   }
 
-  // TODO 
   weights() {
     return this.data.map(n => n.weight / this.total);
   }
 
-  // TODO
   find(t: T) {
     const i = this.indices.get(t);
     return typeof i === 'number' ? i : -1;
+    // return this.data.findIndex(n => n.val === t);
   }
 
-  // TODO
-  contains(o: T): boolean {
-    return this.data.findIndex(n => n.val === o) >= 0;
+  contains(t: T): boolean {
+    return this.indices.has(t);
   }
 
   clone() {
@@ -89,11 +86,11 @@ export class Pool<T> {
   toString() {
     return this.data.toString();
   }
- 
+
   peek() {
     return this.data[0];
   }
-  
+
   pop() {
     const pop = this.data.pop();
     if (pop !== undefined) {
@@ -108,7 +105,7 @@ export class Pool<T> {
     if (data.length < 1) return false;
     if (data.length === 1) {
       const i = this.data.push(data[0]) - 1;
-      this.indices.set(data[0].val, i)
+      this.indices.set(data[0].val, i);
       this.total += data[0].weight;
       this.bubbleUp(i);
     } else {
@@ -140,8 +137,7 @@ export class Pool<T> {
       this.pop();
       return true;
     }
-    //const i = this.find(t);
-    const i = this.data.findIndex(n => n.val === t);
+    const i = this.find(t);
     if (i < 0) return false;
     if (i === 0) {
       this.pop();
@@ -149,8 +145,10 @@ export class Pool<T> {
       this.indices.delete(t);
       this.total -= this.data.pop()!.weight;
     } else {
-      const spliced = this.data.splice(i, 1, this.data.pop()!);
-      for (const {val, weight} of spliced) {
+      const head = this.data.pop()!;
+      const spliced = this.data.splice(i, 1, head);
+      this.indices.set(head.val, i);
+      for (const { val, weight } of spliced) {
         this.indices.delete(val);
         this.total -= weight;
       }
@@ -160,17 +158,16 @@ export class Pool<T> {
     return true;
   }
 
-  // TODO
-  update(t: T, mod: number) {
+  modify(t: T, mod: number) {
     const i = this.find(t);
     if (i < 0) return false;
 
     const node = this.data[i];
-    const updated = {val: node.val, weight: node.weight * mod};
-    this.data[i] = updated;
-    this.total += node.weight - (updated.weight || 0);
-    // FIXME TODO which way to bubble?
-    if (this.cmp(updated, node) <= 0) {
+    const modified = { val: node.val, weight: node.weight * mod };
+    console.log(modified, i, this.cmp(modified, node));
+    this.data[i] = modified;
+    this.total += node.weight - (modified.weight || 0);
+    if (this.cmp(modified, node) <= 0) {
       this.bubbleUp(i);
     } else {
       this.bubbleDown(i);
@@ -210,8 +207,8 @@ export class Pool<T> {
     while (true) {
       const pi = Pool.indexOfParent(i);
       if (pi < 0 || this.cmp(this.data[pi], this.data[i]) <= 0) break;
-      let c = this.data[i];
-      let p = this.data[pi];
+      const c = this.data[i];
+      const p = this.data[pi];
       [this.data[i], this.data[pi]] = [this.data[pi], this.data[i]];
       this.indices.set(c.val, pi);
       this.indices.set(p.val, i);
@@ -231,8 +228,8 @@ export class Pool<T> {
         ci = this.cmp(this.data[children[i]], this.data[ci]) < 0 ? children[i] : ci;
       }
       if (this.data[ci] === undefined || this.cmp(self, this.data[ci]) <= 0) break;
-      let p = this.data[i];
-      let c = this.data[ci];
+      const p = this.data[i];
+      const c = this.data[ci];
       [this.data[i], this.data[ci]] = [this.data[ci], this.data[i]];
       this.indices.set(p.val, ci);
       this.indices.set(c.val, i);
@@ -247,11 +244,11 @@ export class Pool<T> {
       while (rm--) {
         const pop = this.data.pop()!;
         this.indices.delete(pop.val);
-        this.total -= (pop.weight);
+        this.total -= pop.weight;
       }
     }
   }
-        
+
   static indicesOfChildren(index: number) {
     return [index * 2 + 1, index * 2 + 2];
   }
