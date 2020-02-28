@@ -1,5 +1,5 @@
-import { Pool, Comparators } from './pool';
-import { Random } from './random';
+import { Pool, Comparators } from '../pool';
+import { Random } from '../random';
 
 describe('Pool', () => {
   describe('#limit', () => {
