@@ -18,10 +18,11 @@
   "license": "MIT",
   "dependencies": {
     "@types/node": "^13.7.6",
-    "calc": "file:ps"
+    "ps": "file:ps"
   },
   "devDependencies": {
     "@types/jest": "^25.1.3",
+    "benchmark": "^2.1.4",
     "gts": "^1.1.2",
     "jest": "^25.1.0",
     "subpkg": "^0.0.1",
