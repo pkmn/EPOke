@@ -1,12 +1,10 @@
 import {Pool, Comparators} from './pool';
 import {Random} from './random';
 
-const someValues = toNodes([3, 15, 2, 300, 16, 4, 1, 8, 50, 21, 58, 7, 4, 9, 78, 88]);
-
 describe('Pool', () => {
   describe('#limit', () => {
     it('should limit the pool length', () => {
-      const pool: Pool<string> = createPool(4, 5);
+      const pool: Pool<string> = createPool(toNodes(4), 5);
       expect(pool.length).toEqual(4);
       pool.push({val: 'foo', weight: 1000});
       expect(pool.length).toEqual(5);
@@ -44,15 +42,15 @@ describe('Pool', () => {
 
   describe('#toArray()', () => {
     it('should return an array', () => {
-      const pool: Pool<string> = Pool.create();
-      pool.push(...someValues);
+      const nodes = toNodes(100);
+      const pool = createPool(nodes);
       const arr = pool.toArray();
       expect(Array.isArray(arr)).toBe(true);
-      expect(arr.length).toEqual(someValues.length);
-      const clonedValues = someValues.slice(0);
-      clonedValues.sort(Comparators.Max);
+      expect(arr.length).toEqual(nodes.length);
+      const cloned = nodes.slice(0);
+      cloned.sort(Comparators.Max);
       arr.sort(Comparators.Max);
-      expect(arr).toEqual(clonedValues);
+      expect(arr).toEqual(cloned);
     });
   });
 
@@ -154,12 +152,12 @@ describe('Pool', () => {
       expect(check(pool)).not.toBeDefined();
     });
     it('should remove the node from the pool, and keep the pool sorted', () => {
-      const pool: Pool<string> = Pool.create();
-      pool.push(...someValues);
+      const nodes = toNodes(100);
+      const pool = createPool(nodes);
       const arr = pool.toArray();
       const len = pool.length;
-      expect(pool.remove(someValues[3].val)).toBe(true);
-      expect(pool.remove(someValues[4].val)).toBe(true);
+      expect(pool.remove(nodes[3].val)).toBe(true);
+      expect(pool.remove(nodes[4].val)).toBe(true);
       expect(pool.length).toBe(len - 2);
       expect(check(pool)).not.toBeDefined();
     });
@@ -181,19 +179,17 @@ describe('Pool', () => {
       expect(pool.top(10)).toEqual([]);
     });
     it('should return an empty array for invalid N', () => {
-      const pool: Pool<string> = Pool.create();
-      pool.push(...someValues);
+      const pool = createPool();
       expect(pool.top(0)).toEqual([]);
       expect(pool.top(-10)).toEqual([]);
     });
     it('should return the top N (<= length) nodes of the pool', () => {
-      const pool: Pool<string> = Pool.create();
-      pool.push(...someValues.concat(someValues));
+      const pool = createPool();
       const top = pool.toArray().slice(0);
       top.sort(Comparators.Max);
       expect(pool.top(1)).toEqual(top.slice(0, 1));
       expect(pool.top(6)).toEqual(top.slice(0, 6));
-      expect(pool.top(someValues.length + 100)).toEqual(top);
+      expect(pool.top(101)).toEqual(top);
     });
     it('should return the top node of the pool if no N', () => {
       const pool = createPool();
@@ -224,20 +220,25 @@ describe('Pool', () => {
   });
 });
 
-function toNodes(weights: number[]) {
+function toNodes(w: number | number[]) {
+  let weights: number[];
+  if (typeof w === 'number') {
+    weights = [];
+    for (let i = 0; i < w; i++) {
+      weights.push(i);
+    }
+  } else {
+    weights = w;
+  }
   const random = new Random();
   const nodes = weights.map(weight => ({val: `k${weight}`, weight}));
   random.shuffle(nodes);
   return nodes;
 }
 
-function createPool(size = 100, limit = 0) {
-  const weights = [];
-  for (let i = 0; i < size; i++) {
-    weights.push(i);
-  }
+function createPool(nodes?: Array<{val: string, weight: number}>, limit = 0) {
   const pool: Pool<string> = Pool.create(Comparators.Max, limit);
-  pool.push(...toNodes(weights));
+  pool.push(...(nodes ?? toNodes(100)));
   return pool;
 }
 
