@@ -58,9 +58,9 @@ describe('Pool', () => {
 
   describe('#toString()', () => {
     it('should return an string', () => {
-      const pool: Pool<string> = Pool.create();
-      pool.push(...someValues);
-      expect(pool.toString().length).toEqual(someValues.toString().length);
+      const pool = createPool();
+      const arr = pool.toArray();
+      expect(pool.toString().length).toEqual(arr.toString().length);
     });
   });
 
@@ -95,8 +95,9 @@ describe('Pool', () => {
     it('should add one node to the pool, sorted', () => {
       const pool: Pool<string> = Pool.create();
       const len = pool.length;
-      someValues.forEach(el => pool.push(el));
-      expect(pool.length).toEqual(len + someValues.length);
+      const arr = toNodes([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+      arr.forEach(n => pool.push(n));
+      expect(pool.length).toEqual(len + arr.length);
       expect(check(pool)).not.toBeDefined();
     });
     it('should add many nodes to the pool, sorted', () => {
@@ -155,6 +156,7 @@ describe('Pool', () => {
     it('should remove the node from the pool, and keep the pool sorted', () => {
       const pool: Pool<string> = Pool.create();
       pool.push(...someValues);
+      const arr = pool.toArray();
       const len = pool.length;
       expect(pool.remove(someValues[3].val)).toBe(true);
       expect(pool.remove(someValues[4].val)).toBe(true);
