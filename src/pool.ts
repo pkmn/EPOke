@@ -164,6 +164,7 @@ export class Pool<T> {
 
     const node = this.data[i];
     const modified = { val: node.val, weight: node.weight * mod };
+    console.log(modified, i, this.cmp(modified, node));
     this.data[i] = modified;
     this.total += node.weight - (modified.weight || 0);
     if (this.cmp(modified, node) <= 0) {
