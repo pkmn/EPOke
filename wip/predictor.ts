@@ -1,6 +1,6 @@
 // Backfilling:
 // - Spread = should use PS teambuilder algorithm or similar to optimize for something which fits in Range
-// - Ability = 
+// - Ability =
 // possible to run out abilities if stats only has one common and alternative never selected, but could be somehow erroneously
 // ruled out thanks to Bias heuristic! Just give up
 // - items = can run out if limited items in stats, can go off global item stats or just not carry item
@@ -13,7 +13,7 @@ interface SetPossibilities {
   ability: Pool<ID>;
   item: Pool<ID>;
   moves?: Pool<ID>;
-  
+
   level?: number;
   gender?: Gender;
 }
@@ -86,7 +86,7 @@ interface SetPossibilities {
   ability: Pool<ID>;
   item: Pool<ID>;
   moves?: Pool<ID>;
-  
+
   level?: number; // must be in sync with spread.level!
   gender?: Gender;
 }
@@ -105,7 +105,7 @@ export class Predictor {
   private readonly random: Random;
   private readonly size: number;
 
-  private readonly data: Data; 
+  private readonly data: Data;
   private readonly statistics: any;
   private readonly species: Pool<ID>;
   private readonly validator: TeamValidator;
@@ -134,7 +134,10 @@ export class Predictor {
     }
   }
 
-  // POSTCONDITION: SetPossibilities is unmodified!
+  // TODO consider type weaknesses/resistance?
+
+  // PRECONDITION: possibilities has no gaps, though may not be completely filled
+  // POSTCONDITION: possibilities is unmodified!
   predictTeam(possibilities: SetPossibilities[], restrictions: Restrictions = {}, validate = true, stochastic = false) {
     const seed = this.random.seed;
     let pool: Pool<ID> | null = null:
@@ -151,7 +154,7 @@ export class Predictor {
       }
       return set;
     };
-    
+
     let removedMega = false;
     const maybeRemoveMegas = (n: number) => {
       if (removedMega || !restrict.mega) return;
@@ -164,8 +167,8 @@ export class Predictor {
 
     const team: PokemonSet = [];
     for (let i = 0; i < this.size; i++) {
-      if (team[i]) {
-        const mon = team[i];
+      if (possibilities[i]) {
+        const mon = possibilities[i];
         const {set} = predictSet(mon, stochastic);
         if (!set) continue;
         team.push(update(set));
@@ -221,7 +224,7 @@ export class Predictor {
     const moves= new Pool<ID>();
     for (const [move, weight] of stats.moves) {
       if (restrictions.has(move)) continue;
-      moves.push({val: move, weight}); 
+      moves.push({val: move, weight});
     }
 
     return { species: speciesid, spread, ability, item, moves, level, gender };
@@ -261,7 +264,7 @@ export class Predictor {
       set.item = select(possibilities.item, this.random, stochastic) || '';
     } while (set.item && validate && !this.validator.validateSet(set));
 
-    
+
     // TODO apply Move | Bias heuristics
     // TODO apply Move | Ability heuristics
     // TODO apply Move | Item heuristics
@@ -281,7 +284,7 @@ export class Predictor {
     return {set, seed};
   }
 }
-    
+
 function select<T extends {}>(p: Pool<T>, random: Random, stochastic = false) {
   return p.val(stochastic ? sample(p.weights()) : 0);
 }
