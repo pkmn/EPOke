@@ -10,7 +10,7 @@ declare module 'ps' {
         minus?: Stat
         [k: string]: any
     }
-    type PokemonSet<T> = {
+    type PokemonSet<T = string> = {
         name: string,
         species: T,
         item: T,
@@ -37,7 +37,10 @@ declare module 'ps' {
         megaStone?: string
         megaEvolves?: string
     }
-    interface Move extends Effect {}
+    interface Move extends Effect {
+        basePower: number
+        category: 'Physical' | 'Special' | 'Status'
+    }
     type Nonstandard = 'Glitch' | 'Past' | 'Future' | 'CAP' | 'LGPE' | 'Pokestar' | 'Custom'
     interface Species extends Effect {
         abilities: {0: string, 1?: string, H?: string, S?: string}

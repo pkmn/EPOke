@@ -112,6 +112,7 @@ export class Predictor {
 
   // Cache of all the Megas and Z-Move items allowable in the format
   private readonly megas: ID[];
+  // TODO: account for mega items!? Megas are account for as species, not in items
   private readonly zitems: Set<ID>;
 
   constructor(format: ID, random: Random, size = 6) {
