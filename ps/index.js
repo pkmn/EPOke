@@ -1,20 +1,27 @@
 'use strict';
-const Dex = require('pokemon-showdown/.sim-dist').Dex;
+const ps = require('pokemon-showdown/.sim-dist');
 
-const toID = Dex.Data.Tools.getId;
+const toID = ps.Dex.Data.Tools.getId;
 
-class Data {
-  static forFormat(format) {
-    if (Data.cache === undefined) Data.cache = new Map();
-    if (format instanceof Data) return format;
+class Dex {
+  static get() {
+    return Dex.forFormatInternal();
+  }
+
+  static async forFormat(format) {
+    return Dex.forFormatInternal(format);
+  }
+
+  static forFormatInternal(format) {
+    if (Dex.cache === undefined) Dex.cache = new Map();
     format = toID(format);
-    let data = Data.cache.get(format);
-    if (!data) {
-      const f = Dex.getFormat(format);
-      data = new Data(Dex.forFormat(f), f.id);
-      Data.cache.set(format, data);
+    let dex = Dex.cache.get(format);
+    if (!dex) {
+      const f = ps.Dex.getFormat(format);
+      dex = new Dex(ps.Dex.forFormat(f), f.id);
+      Dex.cache.set(format, dex);
     }
-    return data;
+    return dex;
   }
 
   constructor(dex, format) {
@@ -69,16 +76,70 @@ class Data {
   }
 };
 
-function calcStat(stat, base, iv, ev, level, nature) {
+const NAMES = {
+  HP: 'hp', hp: 'hp',
+  Attack: 'atk', Atk: 'atk', atk: 'atk',
+  Defense: 'def', Def: 'def', def: 'def',
+  Special: 'spa', Spc: 'spa', spc: 'spa',
+  'Special Attack': 'spa', SpA: 'spa', SAtk: 'spa', SpAtk: 'spa', spa: 'spa',
+  'Special Defense': 'spd', SpD: 'spd', SDef: 'spd', SpDef: 'spd', spd: 'spd',
+  Speed: 'spe', Spe: 'spe', Spd: 'spe', spe: 'spe',
+};
+
+const DISPLAY = {
+  hp: ['HP', 'HP'],
+  atk: ['Atk', 'Attack'],
+  def: ['Def', 'Defense'],
+  spa: ['SpA', 'Special Attack'],
+  spd: ['SpD', 'Special Defense'],
+  spe: ['Spd', 'Speed'],
+  spc: ['Spc', 'Special'],
+};
+
+function getNature(s) {
+  return ps.Dex.getNature(s);
+}
+
+function getStat(s) {
+  return NAMES[s];
+}
+
+function displayStat(str, full = false, gen = 8) {
+  let s = NAMES[str];
+  if (s === undefined) return str;
+  if (gen === 1 && s === 'spa') s = 'spc';
+  return DISPLAY[s][+full];
+}
+
+function calcStat(stat, base, iv, ev, level, nature, gen = 8) {
+  return gen < 3
+  ? calcRBY(stat, base, Math.floor(iv / 2), ev, level)
+  : calcADV(stat, base, iv, ev, level, nature);
+}
+
+function calcRBY(stat, base, dv, ev, level) {
+  // BUG: we ignore EVs - do we care about converting ev to stat experience?
   if (stat === 'hp') {
-    return base === 1 ? base : Math.floor((base * 2 + iv + Math.floor(ev / 4)) * level / 100) + level + 10;
+    return Math.floor((((base + dv) * 2 + 63) * level) / 100) + level + 10;
   } else {
-    const n = !nature ? 1 : nature.plus === stat ? 1.1 : nature.minus === stat ? 0.9 : 1;
-    return Math.floor((Math.floor((base * 2 + iv + Math.floor(ev / 4)) * level / 100) + 5) * n);
+    return Math.floor((((base + dv) * 2 + 63) * level) / 100) + 5;
   }
 }
 
-function statToEV(stat, val, base, iv, level, nature) {
+function calcADV(stat, base, iv, ev, level, nature) {
+  if (stat === 'hp') {
+    return base === 1
+      ? base
+      : Math.floor(((base * 2 + iv + Math.floor(ev / 4)) * level) / 100) + level + 10;
+  } else {
+    const mod = !nature ? 1 : nature.plus === stat ? 1.1 : nature.minus === stat ? 0.9 : 1;
+    return Math.floor((Math.floor(((base * 2 + iv + Math.floor(ev / 4)) * level) / 100) + 5) * mod);
+  }
+}
+
+function statToEV(stat, val, base, iv, level, nature, gen = 8) {
+  // BUG: similar to above, we're ignoring the idea of EVs
+  if (gen < 3) return 252;
   const rud = (a, b) => Math.trunc(a / b) + (a % b === 0 ? 0 : 1);
   let ev;
   if (stat === 'hp') {
@@ -87,7 +148,6 @@ function statToEV(stat, val, base, iv, level, nature) {
     const n = !nature ? 1 : nature.plus === stat ? 1.1 : nature.minus === stat ? 0.9 : 1;
     ev = Math.max(0, (rud((rud(val, n) - 5) * 100, level) - 2 * base - iv) * 4);
   }
-  // TODO: can we actually compute the EV without needing to search?
   for (; ev > 0; ev -= 4) {
     if (calcStat(stat, base, iv, ev - 4, level, nature) !== val) break;
   }
@@ -133,8 +193,11 @@ function hiddenPower(ivs, gen = 7) {
 }
 
 module.exports = {
-  Data,
+  Dex,
   toID,
+  getNature,
+  getStat,
+  displayStat,
   calcStat,
   statToEV,
   hiddenPower,

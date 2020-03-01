@@ -1,9 +1,15 @@
-import * as pkmn from '@pkmn.cc/data';
+import {
+  Stat,
+  StatsTable,
+  Generation,
+  Nature,
+  calcStat,
+  displayStat,
+  getStat,
+  getNature,
+} from 'ps';
 
 // TODO: handle displaying SpA/SpD as Spc in Gen 1
-
-export type Stat = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe'
-export type StatsTable<T = number> = {[stat in Stat]: T };
 
 export interface Range<T> {
   min: T;
@@ -35,13 +41,13 @@ export class Stats implements StatsTable {
     return Stats.toRange(this);
   }
 
-  toSpread(base: StatsTable, gen?: pkmn.Generation, level = 100) {
+  toSpread(base: StatsTable, gen?: Generation, level = 100) {
     return Stats.toSpread(this, base, gen, level);
   }
 
   static equal(a: Partial<StatsTable>, b: Partial<StatsTable>) {
     if (Object.keys(a).length !== Object.keys(b).length) return false;
-    let stat: pkmn.Stat;
+    let stat: Stat;
     for (stat in STATS) {
       if (a[stat] !== b[stat]) return false;
     }
@@ -62,12 +68,7 @@ export class Stats implements StatsTable {
     return new StatsRange(stats, stats);
   }
 
-  static toSpread(
-    stats: StatsTable,
-    base: StatsTable,
-    gen?: pkmn.Generation,
-    level = 100
-  ) {
+  static toSpread(stats: StatsTable, base: StatsTable, gen?: Generation, level = 100) {
     return undefined; // TODO new Spread() => SpreadTable<number>|undefined
   }
 }
@@ -96,7 +97,7 @@ export class StatsRange implements Range<StatsTable> {
     return StatsRange.toStats(this);
   }
 
-  toSpreadRange(base: StatsTable, gen?: pkmn.Generation, level = 100) {
+  toSpreadRange(base: StatsTable, gen?: Generation, level = 100) {
     return StatsRange.toSpreadRange(this, base, gen, level);
   }
 
@@ -104,17 +105,17 @@ export class StatsRange implements Range<StatsTable> {
     return displayStats(s => displayRange({ min: range.min[s], max: range.max[s] }), compact);
   }
 
-  static fromBase(base: StatsTable, gen?: pkmn.Generation, level = 100) {
+  static fromBase(base: StatsTable, gen?: Generation, level = 100) {
     const min = Object.assign({}, base);
     const max = Object.assign({}, base);
 
-    let stat: pkmn.Stat;
+    let stat: Stat;
     for (stat in STATS) {
       const other = stat === 'spe' ? 'atk' : 'spe';
-      const minus = getNature(other, stat);
-      const plus = getNature(stat, other);
-      min[stat] = pkmn.Stats.calc(stat, base[stat], 0, 0, level, minus, gen);
-      max[stat] = pkmn.Stats.calc(stat, base[stat], 31, 252, level, plus, gen);
+      const minus = getNatureFromPlusMinus(other, stat);
+      const plus = getNatureFromPlusMinus(stat, other);
+      min[stat] = calcStat(stat, base[stat], 0, 0, level, minus, gen);
+      max[stat] = calcStat(stat, base[stat], 31, 252, level, plus, gen);
     }
 
     return new StatsRange(min, max);
@@ -123,7 +124,7 @@ export class StatsRange implements Range<StatsTable> {
   static fromString(s: string) {
     const min: Partial<StatsTable> = {};
     const max: Partial<StatsTable> = {};
-    const stats = Object.keys(STATS) as pkmn.Stat[];
+    const stats = Object.keys(STATS) as Stat[];
     const compact = !s.endsWith('e');
 
     const split = s.split(compact ? '/' : ' / ');
@@ -143,12 +144,7 @@ export class StatsRange implements Range<StatsTable> {
     return new Stats(range.min);
   }
 
-  static toSpreadRange(
-    range: Range<StatsTable>,
-    base: StatsTable,
-    gen?: pkmn.Generation,
-    level = 100
-  ) {
+  static toSpreadRange(range: Range<StatsTable>, base: StatsTable, gen?: Generation, level = 100) {
     const min = Stats.toSpread(range.min as StatsTable, base, gen, level);
     const max = Stats.toSpread(range.max as StatsTable, base, gen, level);
     return !min || !max ? undefined : new SpreadRange(min, max);
@@ -156,23 +152,19 @@ export class StatsRange implements Range<StatsTable> {
 }
 
 export interface SpreadTable<T> {
-  nature: pkmn.Nature;
+  nature: Nature;
   ivs: StatsTable<T>;
   evs: StatsTable<T>;
 }
 
 export class Spread implements SpreadTable<number> {
-  nature: pkmn.Nature;
+  nature: Nature;
   ivs: Stats;
   evs: Stats;
 
   constructor(spread: SpreadTable<number>);
-  constructor(nature: pkmn.Nature, ivs: StatsTable, evs: StatsTable);
-  constructor(
-    spread: SpreadTable<number> | pkmn.Nature,
-    ivs?: StatsTable,
-    evs?: StatsTable
-  ) {
+  constructor(nature: Nature, ivs: StatsTable, evs: StatsTable);
+  constructor(spread: SpreadTable<number> | Nature, ivs?: StatsTable, evs?: StatsTable) {
     if ('nature' in spread) {
       this.nature = spread.nature;
       this.ivs = new Stats(spread.ivs);
@@ -207,7 +199,7 @@ export class Spread implements SpreadTable<number> {
       evs: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     };
 
-    let stat: pkmn.Stat;
+    let stat: Stat;
     for (stat in STATS) {
       const iv = sparse.ivs[stat];
       if (iv !== undefined) spread.ivs[stat] = iv;
@@ -231,16 +223,11 @@ export class Spread implements SpreadTable<number> {
     return new SpreadRange(spread, spread);
   }
 
-  static toStats(
-    spread: SpreadTable<number>,
-    base: StatsTable,
-    gen?: pkmn.Generation,
-    level = 100
-  ) {
+  static toStats(spread: SpreadTable<number>, base: StatsTable, gen?: Generation, level = 100) {
     const stats: Partial<StatsTable> = {};
-    let stat: pkmn.Stat;
+    let stat: Stat;
     for (stat in STATS) {
-      stats[stat] = pkmn.Stats.calc(
+      stats[stat] = calcStat(
         stat,
         base[stat],
         spread.ivs[stat],
@@ -278,7 +265,7 @@ export class SpreadRange implements Range<SpreadTable<number>> {
     return SpreadRange.toSpread(this);
   }
 
-  toStatsRange(base: StatsTable, gen?: pkmn.Generation, level = 100) {
+  toStatsRange(base: StatsTable, gen?: Generation, level = 100) {
     return SpreadRange.toStatsRange(this, base, gen, level);
   }
 
@@ -306,14 +293,14 @@ export class SpreadRange implements Range<SpreadTable<number>> {
   static toStatsRange(
     spread: Range<SpreadTable<number>>,
     base: StatsTable,
-    gen?: pkmn.Generation,
+    gen?: Generation,
     level = 100
   ) {
     const mins: Partial<StatsTable> = {};
     const maxes: Partial<StatsTable> = {};
-    let stat: pkmn.Stat;
+    let stat: Stat;
     for (stat in STATS) {
-      mins[stat] = pkmn.Stats.calc(
+      mins[stat] = calcStat(
         stat,
         base[stat],
         spread.min.ivs[stat],
@@ -322,7 +309,7 @@ export class SpreadRange implements Range<SpreadTable<number>> {
         spread.min.nature,
         gen
       );
-      maxes[stat] = pkmn.Stats.calc(
+      maxes[stat] = calcStat(
         stat,
         base[stat],
         spread.max.ivs[stat],
@@ -337,24 +324,20 @@ export class SpreadRange implements Range<SpreadTable<number>> {
 }
 
 export interface SparseSpreadTable<T = number> {
-  nature: pkmn.Nature;
+  nature: Nature;
   ivs: Partial<StatsTable<T>>;
   evs: Partial<StatsTable<T>>;
 }
 
 export class SparseSpread implements SparseSpreadTable {
-  nature: pkmn.Nature;
+  nature: Nature;
   ivs: Partial<StatsTable>;
   evs: Partial<StatsTable>;
 
   constructor(spread: SparseSpreadTable);
+  constructor(nature: Nature, ivs: Partial<StatsTable>, evs: Partial<StatsTable>);
   constructor(
-    nature: pkmn.Nature,
-    ivs: Partial<StatsTable>,
-    evs: Partial<StatsTable>
-  );
-  constructor(
-    spread: SparseSpreadTable | pkmn.Nature,
+    spread: SparseSpreadTable | Nature,
     ivs?: Partial<StatsTable>,
     evs?: Partial<StatsTable>
   ) {
@@ -420,10 +403,7 @@ export class SparseSpreadRange implements Range<SparseSpreadTable> {
 
   constructor(range: Range<SparseSpreadTable>);
   constructor(min: SparseSpreadTable, max: SparseSpreadTable);
-  constructor(
-    range: Range<SparseSpreadTable> | SparseSpreadTable,
-    max?: SparseSpreadTable
-  ) {
+  constructor(range: Range<SparseSpreadTable> | SparseSpreadTable, max?: SparseSpreadTable) {
     if ('min' in range) {
       this.min = new SparseSpread(range.min);
       this.max = new SparseSpread(range.max);
@@ -513,22 +493,22 @@ export const STATS = {
   spe: 5,
 };
 
-function displayStats(display: (stat: pkmn.Stat) => string, compact?: boolean) {
+function displayStats(display: (stat: Stat) => string, compact?: boolean) {
   const s = [];
-  let stat: pkmn.Stat;
+  let stat: Stat;
   for (stat in STATS) {
     const d = display(stat);
-    s.push(compact ? d : `${d} ${pkmn.Stats.display(stat)}`);
+    s.push(compact ? d : `${d} ${displayStat(stat)}`);
   }
   return s.join(compact ? '/' : ' / ');
 }
 
-function displayIVsEVs(display: (stat: pkmn.Stat, type: 'iv' | 'ev') => string, compact?: boolean) {
-  let stat: pkmn.Stat;
+function displayIVsEVs(display: (stat: Stat, type: 'iv' | 'ev') => string, compact?: boolean) {
+  let stat: Stat;
   const ivs = [];
   const evs = [];
   for (stat in STATS) {
-    const s = pkmn.Stats.display(stat);
+    const s = displayStat(stat);
     const iv = display(stat, 'iv');
     if (compact) {
       ivs.push(iv);
@@ -550,7 +530,7 @@ function parseSpreadValues(s: string, type: 'iv' | 'ev', compact?: boolean) {
   const max = type === 'iv' ? 31 : 252;
 
   if (compact) {
-    const stats = Object.keys(STATS) as pkmn.Stat[];
+    const stats = Object.keys(STATS) as Stat[];
     for (let [i, range] of s.split('/').entries()) {
       if (range.endsWith('+') || range.endsWith('-')) {
         range = range.slice(0, -1);
@@ -564,7 +544,7 @@ function parseSpreadValues(s: string, type: 'iv' | 'ev', compact?: boolean) {
   } else {
     for (const pair of s.split(' / ')) {
       const [range, name] = pair.split(' ');
-      const stat = pkmn.Stats.get(name);
+      const stat = getStat(name);
       const val = parseRange(range, max);
       if (!stat || !val) return undefined;
       spread.min[stat] = val.min;
@@ -607,22 +587,22 @@ function parseRange(s: string, max = Infinity) {
   return isNaN(max) ? undefined : { min, max };
 }
 
-function displayNature(range: Range<pkmn.Nature>) {
+function displayNature(range: Range<Nature>) {
   if (range.min === range.max) return `${range.min}`;
   return `${range.min}-${range.max}`;
 }
 
 function parseNature(s: string) {
   const [lo, hi] = s.split('-');
-  const min = pkmn.Natures.get(lo);
+  const min = getNature(lo);
   if (min === undefined) return undefined;
   if (hi === undefined) return { min, max: min };
 
-  const max = pkmn.Natures.get(hi);
+  const max = getNature(hi);
   return max === undefined ? undefined : { min, max };
 }
 
-const nat = (s: string) => pkmn.Natures.get(s)!;
+const nat = (s: string) => getNature(s)!;
 const NATURES = [
   nat('Hardy'),
   nat('Lonely'),
@@ -651,7 +631,7 @@ const NATURES = [
   nat('Serious'),
 ];
 
-function getNature(plus: pkmn.Stat, minus: pkmn.Stat) {
+function getNatureFromPlusMinus(plus: Stat, minus: Stat) {
   if (plus === 'hp' || minus === 'hp') return undefined;
   return NATURES[(STATS[plus] - 1) * 5 + (STATS[minus] - 1)];
 }

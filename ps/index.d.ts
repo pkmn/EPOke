@@ -1,8 +1,9 @@
 declare module 'ps' {
     type ID = '' | string & {__isID: true}
+    type Generation = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
     type Stat = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe'
     type Gender = 'M' | 'F' | 'N' | ''
-    type StatsTable<T> = {[stat in Stat]: T }
+    type StatsTable<T = number> = {[stat in Stat]: T }
     interface Nature {
         name: string
         plus?: Stat
@@ -57,7 +58,10 @@ declare module 'ps' {
     interface DexTable<T> {
         [key: string]: T
     }
-    class Data {
+    class Dex {
+        static get(): Dex;
+        static forFormat(format?: string): Promise<Dex>
+
         Abilities: DexTable<Ability>
         Items: DexTable<Item>
         Moves: DexTable<Move>
@@ -66,24 +70,25 @@ declare module 'ps' {
         Aliases: {[id: string]: string}
         Natures: DexTable<Nature>
         Types: DexTable<Type>
-        
-        format: ID
-        gen: 1|2|3|4|5|6|7
 
-        static forFormat(format?: string|Data): Data
+        format: ID
+        gen: Generation
 
         getAbility(name: string): Ability | undefined
         getItem(name: string): Item | undefined
         getMove(name: string): Move | undefined
         getSpecies(name: string): Species | undefined
-        
+
         getNature(name: string): Nature | undefined
         getType(name: string): Type | undefined
 
         hasFormatsDataTier(name: string): boolean
     }
     function toID(text: any): ID
-    function calcStat(stat: Stat, base: number, iv: number, ev: number, level: number, nature?: Nature): number
-    function statToEV(stat: Stat, val: number, base: number, iv: number, level: number, nature?: Nature): number
+    function getNature(n: string): Nature | undefined
+    function getStat(s: string): Stat | undefined
+    function displayStat(str: string, full?: boolean, gen?: Generation): string
+    function calcStat(stat: Stat, base: number, iv: number, ev: number, level: number, nature?: Nature, gen?: Generation): number
+    function statToEV(stat: Stat, val: number, base: number, iv: number, level: number, nature?: Nature, gen?: Generation): number
     function hiddenPower(ivs: StatsTable<number>, gen?: number): {type: string, basePower: number} | undefined
 }
