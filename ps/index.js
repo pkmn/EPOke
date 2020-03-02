@@ -194,6 +194,7 @@ function hiddenPower(ivs, gen = 7) {
 
 module.exports = {
   Dex,
+  TeamValidator: ps.TeamValidator,
   toID,
   getNature,
   getStat,

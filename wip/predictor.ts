@@ -1,62 +1,73 @@
-// Backfilling:
-// - Spread = should use PS teambuilder algorithm or similar to optimize for something which fits in Range
-// - Ability =
-// possible to run out abilities if stats only has one common and alternative never selected, but could be somehow erroneously
-// ruled out thanks to Bias heuristic! Just give up
-// - items = can run out if limited items in stats, can go off global item stats or just not carry item
-// - moves = can iterate through entire move pool or return less than 4 moves
+import {Dex, ID, StatsTable, Generation, Gender, TeamValidator, PokemonSet, Species} from 'ps';
+import {Pool} from '../src/pool';
+import {Random} from '../src/random';
+import {Stats, StatsRange} from '../src/stats';
+import {DisplayStatistics, DisplayUsageStatistics} from '@smogon/stats'; // TODO smogon, once moved
 
-interface SetPossibilities {
-  species: ID;
-
-  spread: SpreadPossibilties;
-  ability: Pool<ID>;
-  item: Pool<ID>;
-  moves?: Pool<ID>;
-
-  level?: number;
-  gender?: Gender;
-}
-
-class SpreadPossibilities {
+export class SpreadPossibilities {
   private readonly base: StatsTable;
   private readonly gen: Generation;
   private readonly random: Random;
   private readonly level: number;
 
   private _statsRange: StatsRange;
-  private spreads: Pool<Spread>;
+  private stats: Pool<StatsTable>;
+  private cloned: boolean;
   private dirty: boolean;
 
-  constructor(
-    spreads: {[spread: string]: number},
+  static create(
+    stats: {[stats: string]: number},
     base: StatsTable,
     level: number,
     gen: Generation,
     random: Random
   ) {
-    this.base = base;
-    this.level = level;
-
-    this.gen = gen;
-    this.random = random;
-
-    this._statsRange = StatsRange.fromBase(base, gen, level);
-
-    this.spreads = new Pool();
-    for (const s in spreads) {
-      const spread = Spreads.fromString(s);
-      const stats = Spreads.toStats(base, gen, level);
-      if (this._statsRange.includes(stats)) {
-        this.spreads.push({val: spread, weight: spreads[s]});
+    const statsRange = StatsRange.fromBase(base, gen, level);
+    const pool = Pool.create<StatsTable>();
+    for (const s in stats) {
+      const stats = Stats.fromString(s);
+      if (statsRange.includes(stats)) {
+        pool.push({val: stats, weight: stats[s]});
       }
     }
+    return new SpreadPossibilities(base, gen, random, level, statsRange, pool, false, false);
+  }
 
-    this.dirty = false;
+  private constructor(
+    base: StatsTable,
+    gen: Generation,
+    random: Random,
+    level: number,
+    statsRange: StatsRange,
+    stats: Pool<StatsTable>,
+    dirty: boolean,
+    cloned: boolean,
+  ) {
+    this.base = base;
+    this.gen = gen;
+    this.random = random;
+    this.level = level;
+    this._statsRange = statsRange;
+    this.stats = stats;
+    this.dirty = dirty;
+    this.cloned = cloned;
+  }
+
+  unsafeClone() {
+    return new SpreadPossibilities(
+      this.base,
+      this.gen,
+      this.random,
+      this.level,
+      new StatsRange(this._statsRange),
+      this.stats, // cloned lazily
+      this.dirty,
+      true
+    );
   }
 
   get statsRange() {
-    return this.statsRange;
+    return this._statsRange;
   }
 
   set statsRange(statsRange: StatsRange) {
@@ -66,107 +77,226 @@ class SpreadPossibilities {
   }
 
   select(stochastic = false) {
+    if (this.cloned) {
+      this.stats = this.stats.clone();
+      this.cloned = false;
+    }
     if (this.dirty) {
-      this.spreads.prune((spread: spread) => {
-        const stats = Spreads.toStats(this.base, this.gen, this.level);
-        return !this._statsRange.includes(stats);
-      });
-
+      this.stats.prune((stat: StatsTable) => !this._statsRange.includes(stats));
       this.dirty = false;
     }
-
-    return select(this.spreads, this.random, stochastic);
+    const stats = select(this.stats, this.random, stochastic);
+    if (!stats) {
+      // TODO
+    }
+    return Stats.toSpread(stats, this.base, this.gen, this.level);
   }
 }
 
-interface SetPossibilities {
-  species: ID;
+export class SetPossibilities {
+  readonly species: Species;
 
-  spread: SpreadPossibilties;
-  ability: Pool<ID>;
-  item: Pool<ID>;
-  moves?: Pool<ID>;
-
-  level?: number; // must be in sync with spread.level!
   gender?: Gender;
+
+  private _level: number;
+
+  private _spreadPool: SpreadPossibilities;
+  private _abilityPool: Pool<string>;
+  private _itemPool: Pool<string>;
+  private _movePool: Pool<string>;
+
+  private readonly _moves: string[];
+
+  private dirty: boolean;
+  private cloned: {spread?: boolean, ability?: boolean, item?: boolean, moves?: boolean };
+
+  private readonly stats: DisplayUsageStatistics;
+  private readonly dex: Dex;
+  private readonly random: Random;
+
+  static create(
+    speciesName: string,
+    stats: DisplayUsageStatistics,
+    dex: Dex,
+    random: Random,
+    heuristic = (t: 'ability' | 'item' | 'move', v: string, w: number) => w,
+    level?: number,
+    gender?: Gender
+  ) {
+    level = level || dex.format.defaultLevel || dex.format.maxLevel || 100;
+    const species = dex.getSpecies(speciesName);
+
+    const spreadPool = SpreadPossibilities.create(stats.stats, species.baseStats, level, dex.gen, random);
+    const abilityPool = Pool.create<string>();
+    for (const ability in stats.abilities) {
+      const weight = heuristic('ability', ability, stats.abilities[ability]);
+      if (weight) abilityPool.push({val: ability, weight});
+    }
+    const itemPool = Pool.create<string>();
+    for (const item in stats.items) {
+      const weight = heuristic('item', item, stats.items[item]);
+      if (weight) itemPool.push({val: item, weight});
+    }
+    const movePool = Pool.create<string>();
+    for (const move in stats.moves) {
+      const weight = heuristic('move', move, stats.moves[move]);
+      if (weight) movePool.push({val: move, weight});
+    }
+
+    return new SetPossibilities(stats, dex, random, species, gender, level, spreadPool, abilityPool, itemPool, movePool, [], false, {});
+  }
+
+  private constructor(
+    stats: DisplayUsageStatistics,
+    dex: Dex,
+    random: Random,
+    species: Species,
+    gender: Gender | undefined,
+    level: number,
+    spreadPool: SpreadPossibilities,
+    abilityPool: Pool<string>,
+    itemPool: Pool<string>,
+    movePool: Pool<string>,
+    moves: string[],
+    dirty: boolean,
+    cloned: {spread?: boolean, ability?: boolean, item?: boolean, moves?: boolean },
+  ) {
+    this.stats = stats;
+    this.dex = dex;
+    this.random = random;
+    this.species = species;
+    this.gender = gender;
+    this._level = level;
+    this._spreadPool = spreadPool;
+    this._abilityPool = abilityPool;
+    this._itemPool = itemPool;
+    this._movePool = movePool;
+    this._moves = moves;
+    this.dirty = dirty;
+    this.cloned = cloned;
+  }
+
+  // NOTE: lazy cloning is only safe if cloning from an immutable!
+  unsafeClone() {
+    return new SetPossibilities(
+      this.stats,
+      this.dex,
+      this.random,
+      this.species,
+      this.gender,
+      this.level,
+      this._spreadPool.clone(), // cloned lazily
+      this._abilityPool, // cloned lazily
+      this._itemPool, // cloned lazily
+      this._movePool, // cloned lazily
+      this._moves.slice(),
+      this.dirty,
+      {spread: true, ability: true, item: true, moves: true}
+    );
+  }
+
+  get level() {
+    return this._level;
+  }
+
+  set level(level: number) {
+    this._level = level;
+    this.dirty = true;
+  }
+
+  get spread() {
+    if (this.cloned.spread) {
+      this._spreadPool = this._spreadPool.clone();
+      this.cloned.spread = false;
+    }
+    if (this.dirty) {
+      this._spreadPool = SpreadPossibilities.create(
+        this.stats.stats, this.species.baseStats, this.level, this.dex.gen, this.random);
+    }
+    return this._spreadPool;
+  }
+
+  get abilityPool() {
+    if (this.cloned.ability) {
+      this._abilityPool = this._abilityPool.clone();
+      this.cloned.ability = false;
+    }
+    return this._abilityPool;
+  }
+
+  get itemPool() {
+    if (this.cloned.item) {
+      this._itemPool = this._itemPool.clone();
+      this.cloned.item = false;
+    }
+    return this._itemPool;
+  }
+
+  get movePool() {
+    if (this.cloned.moves) {
+      this._movePool = this._movePool.clone();
+      this.cloned.moves = false;
+    }
+    return this._movePool;
+  }
+
+  get ability() {
+    return this._abilityPool.length === 1 ? this._abilityPool.val(0) : undefined;
+  }
+
+  set ability(ability: string) {
+    this._abilityPool = Pool.create();
+    this._abilityPool.push({val: ability, weight: 1});
+  }
+
+  get item() {
+    return this._itemPool.length === 1 ? this._itemPool.val(0) : undefined;
+  }
+
+  set item(item: string) {
+    this._itemPool = Pool.create();
+    this._itemPool.push({val: item, weight: 1});
+  }
+
+  get moves(): readonly string[] {
+    return this._moves;
+  }
+
+  addMove(move: string) {
+    this._moves.push(move);
+    this._movePool.remove(move);
+  }
 }
 
-interface Restrictions {
-  mega?: boolean;
-  zitem?: boolean;
-  moves?: Set<ID>;
-}
-
-const RESTRICTED_MOVES = [ 'stealthrock', 'toxicspikes', 'spikes' ];
-
-// NOTE: lifetime = multiple battles!
 export class Predictor {
-  private readonly format: ID;
+  private readonly dex: Dex;
+  private readonly statistics: DisplayStatistics;
   private readonly random: Random;
   private readonly size: number;
 
-  private readonly data: Data;
-  private readonly statistics: any;
-  private readonly species: Pool<ID>;
+  private readonly species: Pool<string>;
   private readonly validator: TeamValidator;
 
-  // Cache of all the Megas and Z-Move items allowable in the format
-  private readonly megas: ID[];
-  // TODO: account for mega items!? Megas are account for as species, not in items
-  private readonly zitems: Set<ID>;
-
-  constructor(format: ID, random: Random, size = 6) {
-    this.format = format;
+  constructor(dex: Dex, statistics: DisplayStatistics, random: Random, size = 6) {
+    this.dex = dex;
+    this.statistics = statistics;
     this.random = random;
     this.size = size;
-    this.validator = new TeamValidator(this.format, {failFast: true, lenient: true});
 
-    this.statistics = Statistics.get(format);
-    this.species = new Pool();
-    this.megas = new Set();
-    for (const [mon, weight] of this.statistics) {
-      if (!isValid(mon, format)) continue;
-      if (isMega(mon)) megas.add(mon);
-      this.species.push({val: mon, weight});
-    }
-    this.zitems = new Set();
-    for (const [item] in this.data.items) {
-      if (isZ(item)) this.zitems.add(item);
-    }
+    this.validator = new TeamValidator(dex.format);
+    this.species = Pool.create();
   }
 
-  // TODO consider type weaknesses/resistance?
+  // TODO: problem - don't want to modify possibilites but need to apply heuristics to them = expensive clone of SetPossibilities which clones all fields = lazy clone
+  // problem: need some way to LOCK in movein pool
 
   // PRECONDITION: possibilities has no gaps, though may not be completely filled
   // POSTCONDITION: possibilities is unmodified!
-  predictTeam(possibilities: SetPossibilities[], restrictions: Restrictions = {}, validate = true, stochastic = false) {
+  predictTeam(possibilities: SetPossibilities[], validate = 0, stochastic = false) {
     const seed = this.random.seed;
-    let pool: Pool<ID> | null = null:
+    let pool: Pool<string> | null = null;
 
-    const restrict = Object.extend({}, restrictions);
-    const update = (set: PokemonSet) => {
-      if (isMega(set)) restrict.mega = true;
-      if (isZ(set)) restrict.zitems = true;
-      for (const move of set.moves) {
-        if (RESTRICTED_MOVES.includes(move) && restricted.moves && !restricted.moves.includes(move)) {
-          restrict.moves = restrictions.moves || [];
-          restrict.moves.push(move);
-        }
-      }
-      return set;
-    };
-
-    let removedMega = false;
-    const maybeRemoveMegas = (n: number) => {
-      if (removedMega || !restrict.mega) return;
-      for (const mega of this.megas) {
-        if (pool.size <= n) break;
-        pool!.remove(mega);
-      }
-      removedMega = true;
-    };
-
-    const team: PokemonSet = [];
+    const team: PokemonSet[] = [];
     for (let i = 0; i < this.size; i++) {
       if (possibilities[i]) {
         const mon = possibilities[i];
@@ -197,7 +327,7 @@ export class Predictor {
         team.push(set);
         // Throw away entire Pokemon for on aspect, terminate loop with a team of < 6 if run out of species
         // TODO: want just team validation part, assume each indivdual mon is already fine on its own!
-        if (validate && !this.validator.validateTeam(team)) {
+        if (validate-- && !this.validator.validateTeam(team)) {
           team.pop();
           i--;
         }
@@ -207,87 +337,85 @@ export class Predictor {
     return {team, restrictions, seed};
   }
 
-  createSetPossibilities(speciesid: ID, restrictions: Set<Restriction>, level?: number, gender?: Gender) {
-    const stats = this.stats.get(speciesid);
-    const species = Data.getSpecies(speciesid);
-
-    const level = level || this.format.defaultLevel || this.format.maxLevel || 100;
-    const spread = new SpreadPossibilities(stats.spreads, species.baseStats, level, this.format.gen, this.random);
-    const ability = new Pool<ID>();
-    for (const [ability, weight] of stats.abilities) {
-      ability.push({val: ability, weight});
-    }
-    const item = new Pool<ID>();
-    for (const [item, weight] of stats.items) {
-      if (restrictions.has('zmove') && this.zitems.has(item)) continue;
-      item.push({val: item, weight});
-    }
-    const moves= new Pool<ID>();
-    for (const [move, weight] of stats.moves) {
-      if (restrictions.has(move)) continue;
-      moves.push({val: move, weight});
-    }
-
-    return { species: speciesid, spread, ability, item, moves, level, gender };
-  }
-
   // POSTCONDITION: SetPossibilities is unmodified!
-  predictSet(possibilities: SetPossibilities, validate = true, stochastic = false) {
+  predictSet(possibilities: SetPossibilities, stochastic = false) {
     const seed = this.random.seed;
     const species = possibilities.species;
-    const spread = possibilities.spread.select() || {nature: undefined, ivs: undefined, evs: undefined};
+    const spread = possibilities.spread.select();
 
-    const set: PokemonSet<ID> = {
-      name: species,
-      species,
+    // BUG: shiny is required for certain event moves
+    const set: PokemonSet = {
+      name: species.name,
+      species: species.name,
       level: possibilities.level,
       nature: spread.nature?.id!,
       ivs: spread.ivs!,
       evs: spread.evs!,
-      gender: '',
-      ability: '';
-      item: '',
-      moves: [],
-      // BUG: shiny is required for certain event moves
+      gender: '' ,
+      ability: possibilities.ability || '',
+      item: possibilities.item || '',
+      moves: possibilities.moves.slice(),
     };
 
+    if (!set.ability) {
+      const abilityPool = this.applyAbilityHeuristics(set, possibilities.abilityPool.clone());
+      set.ability = select(abilityPool, this.random, stochastic) || '';
+    }
+
+    const itemPool = this.applyItemHeuristics(set, possibilities.itemPool.clone());
+    set.item = select(itemPool, this.random, stochastic) || '';
+
+    if (set.moves.length < 4) {
+      const movePool = this.applyMoveHeuristics(set, possibilities.movePool.clone());
+      let last = '';
+      while (set.moves.length < 4) {
+        if (last) this.applyMoveMoveHeuristics(last, movePool);
+        const move = select(movePool, this.random, stochastic) || '';
+        if (!move) break;
+        set.moves.push(move);
+        last = move;
+      }
+    }
+
+    const unhappy = set.moves.includes('frustration' as ID) && !set.moves.includes('return' as ID);
+    set.happiness = unhappy ? 0 : 255;
+
+    this.optimizeSpread(set);
+
+    return {set, seed};
+  }
+
+  // FIXME: may actually have knowns - moves and spreadPool/abilityPool/itemPool if size === 1!!!!
+
+  applyAbilityHeuristics(set: PokemonSet, pool: Pool<string>) {
     // TODO apply Ability | Bias heuristics!
+    return pool;
+  }
 
-    do {
-      set.ability = select(possibilities.ability, this.random, stochastic) || '';
-    } while (set.ability && validate && !this.validator.validateSet(set));
-
-
+  applyItemHeuristics(set: PokemonSet, pool: Pool<string>) {
     // TODO apply Item | Bias heuristics
     // TODO apply Item | Ability heuristics
+    return pool;
+  }
 
-    do {
-      set.item = select(possibilities.item, this.random, stochastic) || '';
-    } while (set.item && validate && !this.validator.validateSet(set));
-
-
+  applyMoveHeuristics(set: PokemonSet, pool: Pool<string>) {
     // TODO apply Move | Bias heuristics
     // TODO apply Move | Ability heuristics
     // TODO apply Move | Item heuristics
+    return pool;
+  }
 
-    const moves = possibilities.moves.clone();
-    do {
-      const last = set.moves[set.moves.length - 1];
-      if (last) {
-        // TODO apply Move | Move heuristics!
-      }
-      const move = select(moves, this.random, stochastic) || '';
-      if (!move) break;
-      set.moves.push(move);
-    } while (validate && !this.validator.validateSet(set));
+  applyMoveMoveHeuristics(move: string, pool: Pool<string>) {
+    // TODO apply Move | Move heuristics!
+  }
 
-    set.happiness = set.moves.includes('frustration' as ID) && !set.moves.includes('return' as ID) ? 0 : 255;
-    return {set, seed};
+  optimizeSpread(set: PokemonSet) {
+    // TODO: optimize EVs and fill in any missing
   }
 }
 
 function select<T extends {}>(p: Pool<T>, random: Random, stochastic = false) {
-  return p.val(stochastic ? sample(p.weights()) : 0);
+  return p.val(stochastic ? sample(p.weights(), random) : 0);
 }
 
 // Vose's alias method: http://www.keithschwarz.com/darts-dice-coins/
@@ -335,20 +463,37 @@ function sample(probabilities: number[], random: Random) {
   return coinToss ? column : alias[column];
 }
 
-// TODO: should be per format, and both teammate AND move heuristics
-//
-// Symmetric matrix of (move1, move2) => P(move1 | move2). Because move1 and move2
-// are interchangeable we only store the upper half of the matrix, requiring
-// N(N+1)/2 space instead of N*N.
-//
-//     0 1 2 3
-//       4 5 6
-//         7 8
-//           9
-//
-const BIGRAMS: number[] = [];
+  // TODO consider type weaknesses/resistance?
 
-function lookup(matrix: number[], row: number, col: number, N: number) {
-  if (row <= col) return row * N - ((row - 1) * (row - 1 + 1)) / 2 + col - row;
-  return col * N - ((col - 1) * (col - 1 + 1)) / 2 + row - col;
-}
+
+  // interface Restrictions {
+  //   mega?: boolean;
+  //   zitem?: boolean;
+  //   moves?: Set<ID>;
+  // }
+
+  // const RESTRICTED_MOVES = [ 'stealthrock', 'toxicspikes', 'spikes' ];
+
+
+ // const restrict = Object.extend({}, restrictions);
+    // const update = (set: PokemonSet) => {
+    //   if (isMega(set)) restrict.mega = true;
+    //   if (isZ(set)) restrict.zitems = true;
+    //   for (const move of set.moves) {
+    //     if (RESTRICTED_MOVES.includes(move) && restricted.moves && !restricted.moves.includes(move)) {
+    //       restrict.moves = restrictions.moves || [];
+    //       restrict.moves.push(move);
+    //     }
+    //   }
+    //   return set;
+    // };
+
+    // let removedMega = false;
+    // const maybeRemoveMegas = (n: number) => {
+    //   if (removedMega || !restrict.mega) return;
+    //   for (const mega of this.megas) {
+    //     if (pool.size <= n) break;
+    //     pool!.remove(mega);
+    //   }
+    //   removedMega = true;
+    // };

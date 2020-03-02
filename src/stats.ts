@@ -77,6 +77,7 @@ export class StatsRange implements Range<StatsTable> {
   min: Stats;
   max: Stats;
 
+  // PRECONDITION: min <= max
   constructor(range: Range<StatsTable>);
   constructor(min: StatsTable, max: StatsTable);
   constructor(range: Range<StatsTable> | StatsTable, max?: StatsTable) {
@@ -101,8 +102,24 @@ export class StatsRange implements Range<StatsTable> {
     return StatsRange.toSpreadRange(this, base, gen, level);
   }
 
+  includes(stats: StatsTable | StatsRange) {
+    return StatsRange.includes(this, stats);
+  }
+
   static display(range: Range<StatsTable>, compact?: boolean) {
     return displayStats(s => displayRange({ min: range.min[s], max: range.max[s] }), compact);
+  }
+
+  static includes(a: StatsRange, b: StatsTable | StatsRange) {
+    let stat: Stat;
+    for (stat in STATS) {
+      if ('min' in b) {
+        if (a.min[stat] > b.min[stat] || a.max[stat] < b.max[stat]) return false;
+      } else {
+        if (a.min[stat] > b[stat] || a.max[stat] < b[stat]) return false;
+      }
+    }
+    return true;
   }
 
   static fromBase(base: StatsTable, gen?: Generation, level = 100) {
@@ -184,8 +201,8 @@ export class Spread implements SpreadTable<number> {
     return Spread.toRange(this);
   }
 
-  toStats(base: StatsTable) {
-    return Spread.toStats(this, base);
+  toStats(base: StatsTable, gen?: Generation, level = 100) {
+    return Spread.toStats(this, base, gen, level);
   }
 
   static display(spread: SpreadTable<number>, compact?: boolean) {

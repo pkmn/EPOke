@@ -18,7 +18,8 @@
   "license": "MIT",
   "dependencies": {
     "@types/node": "^13.7.6",
-    "calc": "file:ps"
+    "ps": "file:ps",
+    "@smogon/stats": "file:../Pokemon-Showdown-Stats/stats"
   },
   "devDependencies": {
     "@types/jest": "^25.1.3",
