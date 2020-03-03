@@ -307,7 +307,7 @@ function toNodes(w: number | number[]) {
   } else {
     weights = w;
   }
-  const random = new Random();
+  const random = Random.create();
   const nodes = weights.map(weight => ({ val: `k${weight}`, weight }));
   random.shuffle(nodes);
   return nodes;

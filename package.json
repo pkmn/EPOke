@@ -17,7 +17,7 @@
   "author": "Kirk Scheibelhut",
   "license": "MIT",
   "dependencies": {
-    "@types/node": "^13.7.6",
+    "@types/node": "^13.7.7",
     "ps": "file:ps",
     "@smogon/stats": "file:../Pokemon-Showdown-Stats/stats"
   },
@@ -27,7 +27,7 @@
     "jest": "^25.1.0",
     "subpkg": "^0.0.1",
     "ts-jest": "^25.2.1",
-    "typescript": "^3.8.2"
+    "typescript": "^3.8.3"
   },
   "scripts": {
     "check": "subpkg run check && gts check",
