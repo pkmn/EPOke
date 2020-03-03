@@ -16,6 +16,10 @@ export interface Range<T> {
   max: T;
 }
 
+function isRange<T>(r: unknown | Range<T>): r is Range<T> {
+  return (r as Range<T>).min !== undefined;
+}
+
 export class Stats implements StatsTable {
   hp: number;
   atk: number;
@@ -81,7 +85,7 @@ export class StatsRange implements Range<StatsTable> {
   constructor(range: Range<StatsTable>);
   constructor(min: StatsTable, max: StatsTable);
   constructor(range: Range<StatsTable> | StatsTable, max?: StatsTable) {
-    if ('min' in range) {
+    if (isRange(range)) {
       this.min = new Stats(range.min);
       this.max = new Stats(range.max);
     } else {
@@ -113,7 +117,7 @@ export class StatsRange implements Range<StatsTable> {
   static includes(a: StatsRange, b: StatsTable | StatsRange) {
     let stat: Stat;
     for (stat in STATS) {
-      if ('min' in b) {
+      if (isRange(b)) {
         if (a.min[stat] > b.min[stat] || a.max[stat] < b.max[stat]) return false;
       } else {
         if (a.min[stat] > b[stat] || a.max[stat] < b[stat]) return false;
@@ -265,7 +269,7 @@ export class SpreadRange implements Range<SpreadTable<number>> {
   constructor(range: Range<SpreadTable<number>>);
   constructor(min: SpreadTable<number>, max: SpreadTable<number>);
   constructor(range: Range<SpreadTable<number>> | SpreadTable<number>, max?: SpreadTable<number>) {
-    if ('min' in range) {
+    if (isRange(range)) {
       this.min = new Spread(range.min);
       this.max = new Spread(range.max);
     } else {
@@ -421,7 +425,7 @@ export class SparseSpreadRange implements Range<SparseSpreadTable> {
   constructor(range: Range<SparseSpreadTable>);
   constructor(min: SparseSpreadTable, max: SparseSpreadTable);
   constructor(range: Range<SparseSpreadTable> | SparseSpreadTable, max?: SparseSpreadTable) {
-    if ('min' in range) {
+    if (isRange(range)) {
       this.min = new SparseSpread(range.min);
       this.max = new SparseSpread(range.max);
     } else {
