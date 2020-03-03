@@ -1,235 +1,173 @@
-interface Node<T> {
-  val: T;
-  weight: number;
-}
-
-export const Comparators = {
-  Min: <T extends {}>(a: Node<T>, b: Node<T>) => {
-    if (a?.weight > b?.weight) {
-      return 1;
-    } else if (a?.weight < b?.weight) {
-      return -1;
-    } else {
-      return 0;
-    }
-  },
-  Max: <T extends {}>(a: Node<T>, b: Node<T>) => {
-    if (b?.weight > a?.weight) {
-      return 1;
-    } else if (b?.weight < a?.weight) {
-      return -1;
-    } else {
-      return 0;
-    }
-  },
-};
+import { Random } from './random';
 
 export class Pool<T> {
-  private readonly cmp: (a: Node<T>, b: Node<T>) => number;
-  private readonly limit: number = 0;
-  private readonly data: Array<Node<T>> = [];
-  private total: number;
+  // the M elements locked
+  readonly locked: readonly T[];
 
-  static create<T>(cmp: (a: Node<T>, b: Node<T>) => number = Comparators.Max, limit = 0) {
-    return new Pool(cmp, limit, [], 0);
-  }
+  // elements eligble for selection
+  #data: Array<[T, number]>;
+  // the top element
+  #top: [T | null, number];
+  // elements which were weighted down to 0
+  #zero: T[];
+  // updater functions to apply on select
+  #fns: Array<(k: T, v: number) => number>;
 
-  private constructor(
-    cmp: (a: Node<T>, b: Node<T>) => number,
-    limit: number,
-    data: Array<Node<T>>,
-    total: number
+  static create<T>(
+    obj: Record<string, number>,
+    // hardly typesafe, users are required to pass in a decoding function if T != string
+    fn: (k: string, v: number) => [T, number] = (k, v) => [k as any, v]
   ) {
-    this.cmp = cmp;
-    this.limit = limit;
-    this.data = data;
-    this.total = total;
-  }
+    const data = [];
+    const zero = [];
 
-  get length(): number {
-    return this.data.length;
-  }
+    let top: [T | null, number] = [null, 0];
 
-  get(i: number) {
-    return this.data[i];
-  }
-
-  val(i: number) {
-    return this.get(i)?.val;
-  }
-
-  weights() {
-    return this.data.map(n => n.weight / this.total);
-  }
-
-  find(t: T) {
-    return this.data.findIndex(n => n.val === t);
-  }
-
-  contains(t: T): boolean {
-    return this.find(t) >= 0;
-  }
-
-  clone() {
-    return new Pool(this.cmp, this.limit, this.toArray(), this.total);
-  }
-
-  toArray() {
-    return this.data.slice(0);
-  }
-
-  toString() {
-    return this.data.toString();
-  }
-
-  peek() {
-    return this.data[0];
-  }
-
-  pop() {
-    const pop = this.data.pop();
-    if (pop !== undefined) {
-      this.total -= pop.weight;
-      if (this.length > 0) return this.replace(pop);
-    }
-    return pop;
-  }
-
-  push(...data: Array<Node<T>>): boolean {
-    if (data.length < 1) return false;
-    if (data.length === 1) {
-      this.total += data[0].weight;
-      this.bubbleUp(this.data.push(data[0]) - 1);
-    } else {
-      let i = this.length;
-      for (const d of data) {
-        this.data.push(d);
-        this.total += d.weight;
+    for (const k in obj) {
+      const d = fn(k, obj[k]);
+      const t = d[0];
+      const v = d[1];
+      if (v < 0) continue;
+      if (v === 0) {
+        zero.push(t);
+        continue;
       }
-      for (const length = this.length; i < length; ++i) {
-        this.bubbleUp(i);
+
+      const p: [T, number] = [t, v];
+      data.push(p);
+      if (v > top[1]) top = p;
+    }
+
+    return new Pool<T>([], data, top, zero);
+  }
+
+  private constructor(locked: T[], data: Array<[T, number]>, top: [T | null, number], zero: T[]) {
+    this.locked = locked;
+
+    this.#data = data;
+    this.#top = top;
+    this.#zero = zero;
+    this.#fns = [];
+  }
+
+  update(fn: (k: T, v: number) => number) {
+    this.#fns.push(fn);
+  }
+
+  lock(key: T) {
+    (this.locked as T[]).push(key);
+    this.update((k: T, v: number) => (k === key ? -1 : v));
+  }
+
+  select(fn = (k: T, v: number) => v, random?: Random) {
+    const odata = [];
+    const ndata = [];
+
+    const ozero = this.#zero;
+    const nzero = this.#zero.slice(0);
+
+    let otop: [T | null, number] = [null, 0];
+    let ntop: [T | null, number] = [null, 0];
+
+    let total = 0;
+    for (let [k, v] of this.#data) {
+      v = this.apply(k, v);
+      if (v < 0) continue;
+      if (v === 0) {
+        ozero.push(k);
+        nzero.push(k);
+        continue;
       }
-    }
-    this.trim();
-    return true;
-  }
 
-  replace(node: Node<T>) {
-    const peek = this.peek();
-    this.data[0] = node;
-    this.total += node.weight - (peek.weight || 0);
-    this.bubbleDown(0);
-    return peek;
-  }
+      let p: [T, number] = [k, v];
+      odata.push(p);
+      if (v > otop[1]) otop = p;
 
-  remove(t?: T) {
-    if (!this.length) return false;
-    if (t === undefined) {
-      this.pop();
-      return true;
-    }
-    const i = this.find(t);
-    if (i < 0) return false;
-    if (i === 0) {
-      this.pop();
-    } else if (i === this.length - 1) {
-      this.total -= this.data.pop()!.weight;
-    } else {
-      const spliced = this.data.splice(i, 1, this.data.pop()!);
-      for (const { weight } of spliced) {
-        this.total -= weight;
+      v = fn(k, v);
+      if (v < 0) continue;
+      if (v === 0) {
+        nzero.push(k);
+        continue;
       }
-      this.bubbleUp(i);
-      this.bubbleDown(i);
-    }
-    return true;
-  }
 
-  modify(t: T, mod: number) {
-    const i = this.find(t);
-    if (i < 0) return false;
-
-    const node = this.data[i];
-    const modified = { val: node.val, weight: node.weight * mod };
-    this.data[i] = modified;
-    this.total += node.weight - (modified.weight || 0);
-    if (this.cmp(modified, node) <= 0) {
-      this.bubbleUp(i);
-    } else {
-      this.bubbleDown(i);
+      total += v;
+      p = [k, v];
+      ndata.push(p);
+      if (v > ntop[1]) ntop = p;
     }
-    return true;
-  }
 
-  top(n = 1) {
-    if (this.length === 0 || n <= 0) return [];
-    if (this.length === 1 && n === 1) return [this.peek()];
-    if (n >= this.length) {
-      const cloned = this.data.slice(0);
-      cloned.sort(this.cmp);
-      return cloned;
-    }
-    const heap = Pool.create((a: Node<T>, b: Node<T>) => -1 * this.cmp(a, b), n);
-    const indices = [0];
-    while (indices.length) {
-      const i = indices.shift()!;
-      if (i < this.length) {
-        if (heap.length < n) {
-          heap.push(this.data[i]);
-          indices.push(...Pool.indicesOfChildren(i));
-        } else if (this.cmp(this.data[i], heap.peek()!) <= 0) {
-          heap.replace(this.data[i]);
-          indices.push(...Pool.indicesOfChildren(i));
-        }
+    this.#data = odata;
+    this.#zero = ozero;
+    this.#top = otop;
+    this.#fns = [];
+
+    let val: T | undefined = undefined;
+    if (this.#data.length) {
+      if (random) {
+        const weights = ndata.map(d => d[1] / total);
+        val = ndata[sample(weights, random)][0]!;
+      } else {
+        val = ntop[0]!;
       }
+    } else if (nzero.length) {
+      val = random ? random.sample(nzero) : nzero[nzero.length - 1];
     }
-    const arr = heap.toArray();
-    arr.sort(this.cmp);
-    return arr;
+
+    const pool = new Pool<T>(this.locked.slice(0), ndata, ntop, nzero);
+
+    return { val, pool };
   }
 
-  private bubbleUp(i: number) {
-    if (!i) return false;
-    while (true) {
-      const pi = Pool.indexOfParent(i);
-      if (pi < 0 || this.cmp(this.data[pi], this.data[i]) <= 0) break;
-      [this.data[i], this.data[pi]] = [this.data[pi], this.data[i]];
-      i = pi;
+  private apply(k: T, v: number) {
+    for (const fn of this.#fns) {
+      v = fn(k, v);
+      if (v <= 0) return v;
     }
-    return true;
+    return v;
+  }
+}
+
+// Vose's alias method: http://www.keithschwarz.com/darts-dice-coins/
+// PRECONDITION: probabilities.length > 0 AND sum(probabilities) == 1
+function sample(probabilities: number[], random: Random) {
+  if (probabilities.length <= 1) return 0;
+
+  const alias: number[] = new Array(probabilities.length);
+  const probability: number[] = new Array(probabilities.length);
+  const average = 1.0 / probabilities.length;
+
+  const small: number[] = [];
+  const large: number[] = [];
+  for (const [i, p] of probabilities.entries()) {
+    (p >= average ? large : small).push(i);
   }
 
-  private bubbleDown(i: number) {
-    if (i >= this.data.length - 1) return false;
-    const self = this.data[i];
+  // In the mathematical specification of the algorithm, we will always exhaust
+  // the small worklist before the large worklist. However, due to floating point
+  // inaccuracies, this is not necessarily true. Consequently, this inner loop
+  // (which tries to pair small and large elements) will have to check that both
+  // worklists aren't empty.
+  while (small.length && large.length) {
+    const less = small.pop()!;
+    const more = large.pop()!;
 
-    while (true) {
-      const children = Pool.indicesOfChildren(i);
-      let ci = children[0];
-      for (let i = 1; i < children.length; i++) {
-        ci = this.cmp(this.data[children[i]], this.data[ci]) < 0 ? children[i] : ci;
-      }
-      if (this.data[ci] === undefined || this.cmp(self, this.data[ci]) <= 0) break;
-      [this.data[i], this.data[ci]] = [this.data[ci], this.data[i]];
-      i = ci;
-    }
-    return true;
+    // Scale the probabilities up such that 1/n is given weight 1.0
+    probability[less] *= probabilities.length;
+    alias[less] = more;
+    probabilities[more] += probabilities[less] - average;
+
+    (probabilities[more] >= 1.0 / probabilities.length ? large : small).push(more);
   }
 
-  private trim() {
-    if (this.limit && this.limit < this.length) {
-      let rm = this.length - this.limit;
-      while (rm--) this.total -= this.data.pop()!.weight;
-    }
-  }
+  // At this point, everything is in one worklist, which means the remaining
+  // probabilities should all be 1/n. Due to numerical issues, we can't be sure
+  // which stack will hold the entries, so we empty both.
+  while (small.length) probability[small.pop()!] = 1;
+  while (large.length) probability[large.pop()!] = 1;
 
-  static indicesOfChildren(index: number) {
-    return [index * 2 + 1, index * 2 + 2];
-  }
-
-  static indexOfParent(index: number) {
-    if (index <= 0) return -1;
-    const child = index % 2 ? 1 : 2;
-    return Math.floor((index - child) / 2);
-  }
+  // At this point, our data structure has been built and we can actually
+  // select the an index.
+  const column = random.next(probability.length);
+  const coinToss = random.next() < probability[column];
+  return coinToss ? column : alias[column];
 }
