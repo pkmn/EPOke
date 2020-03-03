@@ -115,7 +115,7 @@ export class Pool<T> {
 
     const pool = new Pool<T>(this.locked.slice(0), ndata, ntop, nzero);
 
-    return { val, pool };
+    return [ val, pool ] as [T, Pool<T>];
   }
 
   private apply(k: T, v: number) {
