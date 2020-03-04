@@ -89,7 +89,7 @@ declare module 'ps' {
     }
     class TeamValidator {
         constructor(format: ID)
-        validateTeam(team: PokemonSet[]): string[] | null
+        validateTeam(team: PokemonSet[], removeNicknames?: boolean, skipSets?: boolean): string[] | null
         validateSet(set: PokemonSet): string[] | null
     }
     function toID(text: any): ID

@@ -1,9 +1,9 @@
 import { Dex, ID,Species, StatsTable, Generation, Gender } from 'ps';
 import { DisplayUsageStatistics } from '@smogon/stats'; // -> smogon
 
-import { Pool } from './pool';
+import { Pools, Pool } from './pool';
 import { Random } from './random';
-import { Stats, StatsRange } from './stats';
+import { Stats, StatsRange, Spread } from './stats';
 
 type DeepReadonly<T> = T extends primitive ? T : DeepReadonlyObject<T>;
 type primitive = string | number | boolean | undefined | null | Function | ID;
@@ -18,7 +18,7 @@ export class SetPossibilities {
   readonly abilities: Pool<string>;
   readonly items: Pool<string>;
   readonly moves: Pool<string>;
-  
+
   gender: Gender | undefined;
 
   static create(
@@ -32,12 +32,12 @@ export class SetPossibilities {
     level = level || dex.format.defaultLevel || dex.format.maxLevel || 100;
     const species = dex.getSpecies(speciesName)!;
     const spreads = SpreadPossibilities.create(
-      stats.stats, species.baseStats, dex.gen, level, ephemeral
+      stats.stats, species.baseStats, dex.gen, level!, ephemeral
     );
-    const abilities = Pool.create<string>(stats.abilities, ephemeral); 
-    const items = Pool.create<string>(stats.items, ephemeral); 
-    const moves = Pool.create<string>(stats.moves, ephemeral); 
-    return new SetPossibilities(species, gender, spreads, abilities, items, moves);
+    const abilities = Pools.create(stats.abilities, ephemeral);
+    const items = Pools.create(stats.items, ephemeral);
+    const moves = Pools.create(stats.moves, ephemeral);
+    return new SetPossibilities(species, spreads, abilities, items, moves, gender);
   }
 
   constructor(
@@ -45,7 +45,8 @@ export class SetPossibilities {
     spreads: SpreadPossibilities,
     abilities: Pool<string>,
     items: Pool<string>,
-    moves: Pool<string>
+    moves: Pool<string>,
+    gender: Gender | undefined,
   ) {
     this.species = species;
     this.spreads = spreads;
@@ -67,8 +68,8 @@ export class SetPossibilities {
     return this.abilities.locked.length ? this.abilities.locked[0] : undefined;
   }
 
-  set ability(ability: string) {
-    if (this.abilties.locked.length) {
+  set ability(ability: string | undefined) {
+    if (this.abilities.locked.length) {
       throw new Error(`${ability} cannot replace locked ability ${this.ability}`);
     }
     this.abilities.lock(ability);
@@ -78,7 +79,7 @@ export class SetPossibilities {
     return this.items.locked.length ? this.items.locked[0] : undefined;
   }
 
-  set item(item: string) {
+  set item(item: string | undefined) {
     if (this.items.locked.length) {
       throw new Error(`${item} cannot replace locked item ${this.item}`);
     }
@@ -111,7 +112,7 @@ export class SpreadPossibilities {
   ) {
     const range = StatsRange.fromBase(base, gen, level);
     // No need to filter because we know all of the stats must be within range
-    const pool = Pool.create<StatsTable>(stats, (k, v) => [Stats.fromString(k)!, v], ephemeral);
+    const pool = Pools.create<StatsTable>(stats, (k, v) => [Stats.fromString(k)!, v], ephemeral);
     return new SpreadPossibilities(base, gen, level, range, pool, false);
   }
 
@@ -153,7 +154,7 @@ export class SpreadPossibilities {
     this.#dirty = true;
   }
 
-  select(fn = (s: StatsTable, v: number) => v, random?: Random) {
+  select(fn = (s: StatsTable, v: number) => v, random?: Random): [Spread, SpreadPossibilities] {
     this.#dirty = true;
     const f = (s: StatsTable, v: number) => (this.#range.includes(s) ? fn(s, v) : -1);
     const [stats, pool] = this.#pool.select(f, random);

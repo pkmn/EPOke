@@ -8,7 +8,7 @@ export interface Pool<T> {
 }
 
 export const Pools = new (class {
-  static create<T = string, V = number>(
+  create<T = string, V = number>(
     obj: Record<string, V>,
     fn?: ((k: string, v: V) => [T, number]) | boolean,
     ephemeral = false

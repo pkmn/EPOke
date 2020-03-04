@@ -1,24 +1,25 @@
-import { Dex, TeamValidator } from 'ps';
+import { Dex, TeamValidator, PokemonSet, StatsTable } from 'ps';
 import { DisplayStatistics, DisplayUsageStatistics } from '@smogon/stats'; // -> smogon
 
-import { Pool } from './pool';
+import { Pools, Pool } from './pool';
+import { SetPossibilities } from './possibilities';
 import { Random } from './random';
 
 interface Heuristics {
   // NOT Species | Species
-  update(set: PokemonSet);
+  update(set: PokemonSet): void;
   // Species | Species
-  species(...species: string[]) => (k: string, v: number) => number;
+  species(...species: string[]): (k: string, v: number) => number;
   spread(set: Partial<PokemonSet>): (s: StatsTable, v: number) => number;
   ability(set: Partial<PokemonSet>): (k: string, v: number) => number
-  item(set: Partial<PokemonSet>) => (k: string, v: number) => number;
+  item(set: Partial<PokemonSet>): (k: string, v: number) => number;
   // NOT Move | Move
-  moves(set: Partial<PokemonSet>) => (k: string, v: number) => number;
+  moves(set: Partial<PokemonSet>): (k: string, v: number) => number;
   // Move | Move
-  move(...move: string[]) => (k: string, v: number) => number;
+  move(...move: string[]): (k: string, v: number) => number;
 }
 
-const AFN = (k: any, v: number) => v;
+const AFN = (_: any, v: number) => v;
 const AHEURISTIC: Heuristics = {
   update: () => {},
   species: species => (k, v) => (species.includes(k) ? -1 : v),
@@ -41,7 +42,7 @@ export class Predictor {
     this.statistics = statistics;
 
     this.validator = new TeamValidator(dex.format);
-    this.species = Pool.create<string>(
+    this.species = Pools.create<string, DisplayUsageStatistics>(
       statistics.pokemon,
       (k, v) => isAllowed(k, dex.format) ? [k, v.usage.weighted] : [k, -1]
     );
@@ -56,25 +57,25 @@ export class Predictor {
 
     let last: PokemonSet | null = null;
     const team: PokemonSet[] = [];
-    while (this.team.length < 6) {
+    while (team.length < 6) {
       let set: PokemonSet;
-      if (possibilities[this.team.length]) {
-        set = this.predictSet(possibilities[i], random, H);
+      if (possibilities[team.length]) {
+        set = this.predictSet(possibilities[team.length], random, H);
       } else {
-        const fn = H.species(last ? last : ...team.map(s => s.species));
+        const fn = last ? H.species(last.species) : H.species(...team.map(s => s.species));
         const s = species.select(fn, random);
         species = s[1];
-        const stats = this.statistics[s[0]];
-        const p = SetPossibilities.create(this.dex, stats, s[0], undefined, undefined, true);
-        const set = this.predictSet(p, random, H);
+        const stats = this.statistics.pokemon[s[0]!];
+        const p = SetPossibilities.create(this.dex, stats, s[0]!, undefined, undefined, true);
+        set = this.predictSet(p, random, H);
         last = set;
       }
-      if (validate-- > 0 && !this.validate(team, set)) {
+      if (validate-- > 0 && !this.validate(team)) {
         last = null;
         continue;
       }
       team.push(set);
-      if (this.team.length < size) H.update(set);
+      if (team.length < 6) H.update(set);
     }
 
     return team;
@@ -82,27 +83,31 @@ export class Predictor {
 
   // POSTCONDITION: possibilities is unmodified
   predictSet(p: SetPossibilities, random?: Random, H: Heuristics) {
-    const set: Partial<PokemonSet> = {
-      species: p.species,
+    const set: Partial<PokemonSet> & {moves: string[]} = {
+      species: p.species.name,
+      name: p.species.name,
       level: p.level,
-      gender: possibilties.gender || '' ,
+      gender: p.gender || '' ,
       ability: p.ability || '',
       item: p.item || '',
       moves: p.moves.locked.slice(),
     };
-    const spread = p.spread.select(H.spread(set), random)[0];
-    set.nature: spread.nature?.id!;
-    set.ivs: spread.ivs!;
-    set.evs: spread.evs!;
+    const spread = p.spreads.select(H.spread(set), random)[0];
+    set.nature = spread.nature.id;
+    set.ivs = spread.ivs;
+    set.evs = spread.evs;
 
     if (!set.ability) set.ability = p.abilities.select(H.ability(set), random)[0] || '';
     if (!set.item) set.item = p.items.select(H.item(set), random)[0] || '';
 
+    let moves = p.moves;
+    let last: string | null = null;
     while (set.moves.length < 4) {
       const fn = last ?  H.species(last) : combine(H.moves(set), H.move(...set.moves));
-      const m = p.moves.select(fn, random);
+      const m = moves.select(fn, random);
       moves = m[1];
       const move = m[0]
+      if (!move) break;
       last = move;
       set.moves.push(move);
     }
@@ -115,31 +120,34 @@ export class Predictor {
     return set as PokemonSet;
   }
 
-
-  // TODO: Ideally we want to only validate the team as a whole + only the newest set
-  // FIXME: (format.validateSet || this.validateSet).call(this, set, teamHas);
-  private validate(team: PokemonSet[], set: PokemonSet) {
-    // FIXME: ignore min length validation!
-    const invalid = this.validator.validateTeam(team);
+  private validate(team: PokemonSet[]) {
+    const set = team[team.length - 1];
+    // We optimize by only looking at the high level details and validating the latest set below
+    let invalid = this.validator.validateTeam(team, false, true);
     if (!invalid) return true;
-	  // Correct invalidations where set is required to be shiny due to an event
+
+    // Ignore min length validations - we'll eventually have 6
+    invalid = invalid.filter(s => !s.startsWith('You must bring at least'));
+    if (!invalid) return true;
+
+    // BUG: validateSet should really be checking to see if the format has an override with
+    // `(format.validateSet || validator.validateSet).call(validator, set)` but its
+    // pretty much only niche Other Metagames that use format.validateSet so we don't care
+    invalid = this.validator.validateSet(set);
+    if (!invalid) return true;
+
+    // Correct invalidations where set is required to be shiny due to an event.
 	  if (invalid.length === 1 && invalid[0].includes('must be shiny')) {
-      const name = invalid[0].match(/(.*) must be shiny/)![1];
-      for (const set in team) {
-        if (set.name === name) {
-          set.shiny = true;
-          break;
-        }
-      }
+      set.shiny = true;
       // TODO: can we get away with not revalidating the set here?
-      return !this.validator.validateSet(set, {});
+      return !this.validator.validateSet(set);
     }
     return false;
   }
 }
 
-function combine<T>(a: (k: T, v: number) => v, b: (k: T, v: number) => v) {
-  return (k: T, v: number) {
+function combine<T>(a: (k: T, v: number) => number, b: (k: T, v: number) => number) {
+  return (k: T, v: number) => {
     v = a(k, v);
     return v <= 0 ? v : b(k, v);
   }
