@@ -57,79 +57,56 @@ export class Pool<T> {
   }
 
   select(fn = (k: T, v: number) => v, random?: Random) {
-    const data = [];
-    const fnzero = [];
-    let top: [T | null, number] = [null, 0];
+    const self = { data: [], zero: this.#zero, top: [null, 0] as [T | null, number] };
+    const them = { data: [], zero: this.#zero.slice(0), top: [null, 0] as [T | null, number] };
 
     let total = 0;
-    const self = this.dupe((k, v) => {
+    for (let [k, v] of this.#data) {
+      v = this.apply(k, v);
+      if (v < 0) continue;
+      if (v === 0) {
+        self.zero.push(k);
+        them.zero.push(k);
+        continue;
+      }
+
+      let p: [T, number] = [k, v];
+      self.data.push(p);
+      if (v > self.top[1]) self.top = p;
+
       v = fn(k, v);
       if (v < 0) continue;
       if (v === 0) {
-        fnzero.push(k);
+        them.zero.push(k);
         continue;
       }
 
       total += v;
       p = [k, v];
-      data.push(p);
-      if (v > top[1]) top = p;
-    });
+      them.data.push(p);
+      if (v > them.top[1]) them.top = p;
+    }
 
-    this.#data = self[0];
-    this.#top = self[1];
-    this.#zero = self[2];
+    this.#data = self.data;
+    this.#zero = self.zero;
+    this.#top = self.top;
     this.#fns = [];
 
-    const zero = [];
-    for (const v of self[2]) zero.push(v);
-    for (const v of fnzero) zero.push(v);
-
     let val: T | undefined = undefined;
-    if (data.length) {
+    if (them.data.length) {
       if (random) {
-        const weights = data.map(d => d[1] / total);
-        val = data[sample(weights, random)][0]!;
+        const weights = them.data.map(d => d[1] / total);
+        val = them.data[sample(weights, random)][0]!;
       } else {
-        val = top[0]!;
+        val = then.top[0]!;
       }
-    } else if (zero.length) {
-      val = random ? random.sample(zero) : zero[zero.length - 1];
+    } else if (them.zero.length) {
+      val = random ? random.sample(them.zero) : them.zero[them.zero.length - 1];
     }
 
-    const pool = new Pool<T>(this.locked.slice(0), data, top, zero);
+    const pool = new Pool<T>(this.locked.slice(0), them.data, them.top, them.zero);
 
     return [ val, pool ] as [T, Pool<T>];
-  }
-
-  clone() {
-    const [data, top, zero] = this.dupe();
-    return new Pool<T>(this.locked.slice(0), data, top, zero);
-  }
-
-  private dupe(fn: (k: T, v: number) => void) {
-
-    const data = [];
-    const zero = this.#zero.slice(0);
-
-    let top: [T | null, number] = [null, 0];
-
-    for (let [k, v] of this.#data) {
-      v = this.apply(k, v);
-      if (v < 0) continue;
-      if (v === 0) {
-        zero.push(k);
-        continue;
-      }
-
-      let p: [T, number] = [k, v];
-      data.push(p);
-      if (v > top[1]) top = p;
-
-      if (fn) fn(k, v);
-    }
-
-    return [data, top, zero];
   }
 
   private apply(k: T, v: number) {
