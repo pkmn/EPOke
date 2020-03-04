@@ -198,7 +198,7 @@ class TeamValidator {
     this.validator = new ps.TeamValidator(dex.format);
   }
 
-  validateTeam(team, skipSets = false){
+  validateTeam(team, skipSets = {}){
     return this.validator.validateTeam(team, false, skipSets);
   }
 
@@ -208,9 +208,10 @@ class TeamValidator {
 
   checkSpecies(species) {
     const s = this.dex.Species(species);
+    const setHas = {};
     // BUG: we assume the template === tierTemplate, which is true coming
     // from usage stats, but not if anything calls checkSpecies in the future
-    return this.validator.checkSpecies(null, s, s, {});
+    return [this.validator.checkSpecies(null, s, s, setHas), setHas];
   }
 }
 

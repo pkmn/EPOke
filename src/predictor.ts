@@ -1,4 +1,4 @@
-import { Dex, TeamValidator, PokemonSet, StatsTable, Generation } from 'ps';
+import { Dex, TeamValidator, PokemonSet, StatsTable, Generation, toID } from 'ps';
 import { DisplayStatistics, DisplayUsageStatistics } from '@smogon/stats'; // -> smogon
 
 import { Pools, Pool } from './pool';
@@ -35,6 +35,7 @@ export class Predictor {
   private readonly statistics: DisplayStatistics;
 
   private readonly species: Pool<string>;
+  private readonly speciesHas: Record<string, Record<string, boolean>>;
   private readonly validator: TeamValidator;
 
   constructor(dex: Dex, statistics: DisplayStatistics) {
@@ -42,12 +43,17 @@ export class Predictor {
     this.statistics = statistics;
 
     this.validator = new TeamValidator(dex);
+    this.speciesHas = {};
     this.species = Pools.create<string, DisplayUsageStatistics>(
       statistics.pokemon,
       // We wants to ensure the species hasn't been banned since
       // the last time that usage statistics were published
-      (k, v) => this.validator.checkSpecies(k) ? [k, v.usage.weighted] : [k, -1]
-    );
+      (k, v) => {
+        const [invalid, speciesHas] = this.validator.checkSpecies(k);
+        if (invalid) return [k, -1];
+        this.speciesHas[k] = speciesHas;
+        return [k, v.usage.weighted];
+      });
   }
 
   // PRECONDITION: possibilities has no gaps
@@ -135,8 +141,20 @@ export class Predictor {
 
   private validate(team: PokemonSet[]) {
     const set = team[team.length - 1];
+
+    const skipSets: Record<string, Record<string, boolean>> = {};
+    for (const s of team) {
+      const setHas = Object.assign({}, this.speciesHas[s.species]);
+      setHas[`ability:${toID(s.item)}`] = true;
+      setHas[`item:${toID(s.item)}`] = true;
+      for (const move of s.moves) {
+        setHas[`move:${toID(move)}`] = true;
+      }
+      skipSets[s.name] = setHas;
+    }
+
     // We optimize by only looking at the high level details and validating the latest set below
-    let invalid = this.validator.validateTeam(team, true);
+    let invalid = this.validator.validateTeam(team, skipSets);
     if (!invalid) return true;
 
     // Ignore min length validations - we'll eventually have 6

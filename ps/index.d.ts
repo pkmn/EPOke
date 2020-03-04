@@ -89,9 +89,9 @@ declare module 'ps' {
     }
     class TeamValidator {
         constructor(dex: Dex)
-        validateTeam(team: PokemonSet[], skipSets?: boolean): string[] | null
+        validateTeam(team: PokemonSet[], skipSets?: Record<string, Record<string, boolean>>): string[] | null
         validateSet(set: PokemonSet): string[] | null
-        checkSpecies(species: string): string[] | null
+        checkSpecies(species: string): [string[] | null, Record<string, boolean>]
     }
     function toID(text: any): ID
     function getNature(n: string): Nature | undefined
