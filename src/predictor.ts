@@ -139,6 +139,7 @@ export class Predictor {
     return optimizeSpread(set as PokemonSet);
   }
 
+  // TODO: take a PokemonSet<ID> to remove toID calls?
   private validate(team: PokemonSet[]) {
     const set = team[team.length - 1];
 

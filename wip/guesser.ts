@@ -1,6 +1,5 @@
 
 import {Dex, Generation, PokemonSet, StatsTable, Stat, Species, calcStat, getNature} from 'ps';
-import { moveCursor } from 'readline';
 
 function guessRole(set: PokemonSet) {
   // TODO: account for Megas

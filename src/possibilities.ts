@@ -159,15 +159,16 @@ export class SpreadPossibilities {
   select(fn = (s: StatsTable, v: number) => v, random?: Random): [Spread, SpreadPossibilities] {
     this.#dirty = true;
     const f = (s: StatsTable, v: number) => (this.#range.includes(s) ? fn(s, v) : -1);
-    const [stats, pool] = this.#pool.select(f, random);
+    let [stats, pool] = this.#pool.select(f, random);
 
     const updated = new SpreadPossibilities(
       this.#base, this.#gen, this.#level, this.#range, pool, true
     );
-    if (!stats) {
-      // TODO come up with arbitrary set that is within range
-      return [null, updated];
-    }
-    return [Stats.toSpread(stats, this.#base, this.#gen, this.#level), updated];
+
+    // FIXME: Actually want to assume netural for stats provided they fit under #range.max
+    // TODO: these stats will eventually get filled by the optimizer, but we need to ensure
+    // that bias/role calculation will consider the base stats as well, not just the spread
+    if (!stats) stats = this.#range.min;
+    return [Stats.toSpread(stats, this.#base, this.#gen, this.#level)!, updated];
   }
 }
