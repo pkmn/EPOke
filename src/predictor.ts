@@ -42,10 +42,12 @@ export class Predictor {
     this.dex = dex;
     this.statistics = statistics;
 
-    this.validator = new TeamValidator(dex.format);
+    this.validator = new TeamValidator(dex);
     this.species = Pools.create<string, DisplayUsageStatistics>(
       statistics.pokemon,
-      (k, v) => isAllowed(k, dex) ? [k, v.usage.weighted] : [k, -1]
+      // We wants to ensure the species hasn't been banned since
+      // the last time that usage statistics were published
+      (k, v) => this.validator.checkSpecies(k) ? [k, v.usage.weighted] : [k, -1]
     );
   }
 
@@ -121,7 +123,7 @@ export class Predictor {
   private validate(team: PokemonSet[]) {
     const set = team[team.length - 1];
     // We optimize by only looking at the high level details and validating the latest set below
-    let invalid = this.validator.validateTeam(team, false, true);
+    let invalid = this.validator.validateTeam(team, true);
     if (!invalid) return true;
 
     // Ignore min length validations - we'll eventually have 6
@@ -149,27 +151,6 @@ function combine<T>(a: (k: T, v: number) => number, b: (k: T, v: number) => numb
     v = a(k, v);
     return v <= 0 ? v : b(k, v);
   }
-}
-
-const HIERARCHY = ['LC', 'LC Uber', 'NFE', 'PU', 'NU', 'NUBL', 'RU', 'RUBL', 'UU', 'UUBL', 'OU', '(Uber)', 'Uber'];
-function isAllowed(name: string, dex: Dex) {
-  const species = dex.getSpecies(name);
-  if (!species ||
-    species.isNonstandard ||
-    !dex.hasFormatsDataTier(species.id) ||
-    !species.tier ||
-    species.tier === 'Illegal' ||
-    species.tier === 'Unreleased'
-  ) {
-    return false;
-  }
-
-  if (dex.format.endsWith('littlecup')) {
-    return species.tier === 'LC';
-  }
-
-  const tier = dex.format as typeof HIERARCHY[number]; // TODO FIXME
-  return HIERARCHY.indexOf(species.tier) <= HIERARCHY.indexOf(tier);
 }
 
 function optimizeSpread(set: PokemonSet) {

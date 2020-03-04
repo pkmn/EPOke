@@ -192,9 +192,31 @@ function hiddenPower(ivs, gen = 7) {
   return {type, basePower};
 }
 
+class TeamValidator {
+  constructor(dex) {
+    this.dex = dex;
+    this.validator = new ps.TeamValidator(dex.format);
+  }
+
+  validateTeam(team, skipSets = false){
+    return this.validator.validateTeam(team, false, skipSets);
+  }
+
+  validateSet(set) {
+    return this.validator.validateSet(set, {});
+  }
+
+  checkSpecies(species) {
+    const s = this.dex.Species(species);
+    // BUG: we assume the template === tierTemplate, which is true coming
+    // from usage stats, but not if anything calls checkSpecies in the future
+    return this.validator.checkSpecies(null, s, s, {});
+  }
+}
+
 module.exports = {
   Dex,
-  TeamValidator: ps.TeamValidator,
+  TeamValidator,
   toID,
   getNature,
   getStat,

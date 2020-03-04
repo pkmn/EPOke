@@ -88,9 +88,10 @@ declare module 'ps' {
         hasFormatsDataTier(name: string): boolean
     }
     class TeamValidator {
-        constructor(format: ID)
-        validateTeam(team: PokemonSet[], removeNicknames?: boolean, skipSets?: boolean): string[] | null
+        constructor(dex: Dex)
+        validateTeam(team: PokemonSet[], skipSets?: boolean): string[] | null
         validateSet(set: PokemonSet): string[] | null
+        checkSpecies(species: string): string[] | null
     }
     function toID(text: any): ID
     function getNature(n: string): Nature | undefined
