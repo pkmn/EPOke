@@ -64,7 +64,8 @@ export class Predictor {
         const fn = H.species(last ? last : ...team.map(s => s.species));
         const s = species.select(fn, random);
         species = s[1];
-        const p = SetPossibilities.create(this.dex, s[0])
+        const stats = this.statistics[s[0]];
+        const p = SetPossibilities.create(this.dex, stats, s[0], undefined, undefined, true);
         const set = this.predictSet(p, random, H);
         last = set;
       }
@@ -117,7 +118,7 @@ export class Predictor {
 
   // TODO: Ideally we want to only validate the team as a whole + only the newest set
   private validate(team: PokemonSet[], set: PokemonSet) {
-    // TODO: ignore min length validation!
+    // FIXME: ignore min length validation!
     const invalid = this.validator.validateTeam(team);
     if (!invalid) return true;
 	  // Correct invalidations where set is required to be shiny due to an event
@@ -133,5 +134,12 @@ export class Predictor {
       return !this.validator.validateSet(set, {});
     }
     return false;
+  }
+}
+
+function combine<T(a: (k: T, v: number) => v, b: (k: T, v: number) => v) {
+  return (k: T, v: number) {
+    v = a(k, v);
+    return v <= 0 ? v : b(k, v);
   }
 }

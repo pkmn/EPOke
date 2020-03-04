@@ -15,8 +15,10 @@ export class Pool<T> {
 
   static create<T = string, V = number>(
     obj: Record<string, V>,
-    fn?: (k: string, v: V) => [T, number]
+    fn?: boolean | (k: string, v: V) => [T, number]
+    ephemeral = false
   ) {
+    if (ephemeral) return new EphemeralPool<T>(obj, fn || undefined);
     const data = [];
     const zero = [];
 
@@ -115,6 +117,95 @@ export class Pool<T> {
       if (v <= 0) return v;
     }
     return v;
+  }
+}
+
+class EphemeralPool<T, V> implements Pool<T> {
+  #obj: Record<string, V> | null;
+  #fn?: (k: string, v: V) => [T, number];
+
+  #data: Array<[T, number]>;
+  #zero: T[];
+
+  constructor(obj: Record<string, V>, fn?: (k: string, v: V) => [T, number]) {
+    this.#obj = obj;
+    this.#fn = fn;
+
+    this.data = [];
+    this.#zero = [];
+  }
+
+  get locked() {
+    return [];
+  }
+
+  update(fn: (k: T, v: number) => number) {
+    throw new Error('Illegal call to update on EphemeralPool');
+  }
+
+  lock(key: T) {
+    throw new Error('Illegal call to lock on EphemeralPool');
+  }
+
+  select(fn = (k: T, v: number) => v, random?: Random) {
+    const data = [];
+    const zero = this.zero.slice(0);
+
+    let total = 0;
+    let top: [T | null, number] = [null, 0];
+    if (!this.obj) {
+      for (const k in obj) {
+        let [t, v] = this.fn ? this.fn(k, obj[k]) : [k, obj[k]];
+        if (v < 0) continue;
+        if (v === 0) {
+          zero.push(t);
+          continue;
+        }
+
+        v = fn(t, v);
+        if (v < 0) continue;
+        if (v === 0) {
+          zero.push(t);
+          continue;
+        }
+
+        total += v;
+        const p: [T, number] = [t, v];
+        data.push(p);
+        if (v > top[1]) top = p;
+      }
+    } else {
+      for (let [k, v] of this.#data) {
+        v = fn(k, v);
+        if (v < 0) continue;
+        if (v === 0) {
+          zero.push(k);
+          continue;
+        }
+
+        total += v;
+        const p: [T, number] = [k, v];
+        data.push(p);
+        if (v >top[1]) top = p;
+      }
+    }
+
+    this.#data = data;
+    this.#zero = zero;
+
+    let val: T | undefined = undefined;
+    if (data.length) {
+      if (random) {
+        const weights = data.map(d => d[1] / total);
+        val = data[sample(weights, random)][0]!;
+      } else {
+        val = then.top[0]!;
+      }
+    } else if (zero.length) {
+      val = random ? random.sample(zero) : zero[zero.length - 1];
+    }
+
+    return [ val, this ] as [T, Pool<T>];
   }
 }
 

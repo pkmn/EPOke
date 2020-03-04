@@ -25,17 +25,18 @@ export class SetPossibilities {
     dex: Dex,
     stats: DisplayUsageStatistics,
     speciesName: string,
-    // TODO heuristics (t: 'ability' | 'item' | 'move', v: string, w: number) => w
     level?: number,
-    gender?: Gender
+    gender?: Gender,
+    ephemeral = false
   ) {
     level = level || dex.format.defaultLevel || dex.format.maxLevel || 100;
     const species = dex.getSpecies(speciesName)!;
-    const spreads = SpreadPossibilities.create(stats.stats, species.baseStats, dex.gen, level);
-    // TODO heuristics
-    const abilities = Pool.create<string>(stats.abilities); 
-    const items = Pool.create<string>(stats.items); 
-    const moves = Pool.create<string>(stats.moves); 
+    const spreads = SpreadPossibilities.create(
+      stats.stats, species.baseStats, dex.gen, level, ephemeral
+    );
+    const abilities = Pool.create<string>(stats.abilities, ephemeral); 
+    const items = Pool.create<string>(stats.items, ephemeral); 
+    const moves = Pool.create<string>(stats.moves, ephemeral); 
     return new SetPossibilities(species, gender, spreads, abilities, items, moves);
   }
 
@@ -106,10 +107,11 @@ export class SpreadPossibilities {
     base: StatsTable,
     gen: Generation,
     level: number,
+    ephemeral = false
   ) {
     const range = StatsRange.fromBase(base, gen, level);
     // No need to filter because we know all of the stats must be within range
-    const pool = Pool.create<StatsTable>(stats, (k, v) => [Stats.fromString(k)!, v]);
+    const pool = Pool.create<StatsTable>(stats, (k, v) => [Stats.fromString(k)!, v], ephemeral);
     return new SpreadPossibilities(base, gen, level, range, pool, false);
   }
 
@@ -156,7 +158,9 @@ export class SpreadPossibilities {
     const f = (s: StatsTable, v: number) => (this.#range.includes(s) ? fn(s, v) : -1);
     const [stats, pool] = this.#pool.select(f, random);
 
-    const updated = new SpreadPossibilities(this.#base, this.#gen, this.#level, this.#range, pool, true);
+    const updated = new SpreadPossibilities(
+      this.#base, this.#gen, this.#level, this.#range, pool, true
+    );
     if (!stats) {
       // TODO come up with arbitrary set that is within range
       return [null, updated];
