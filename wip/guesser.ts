@@ -15,17 +15,17 @@ function guessRole(set: PokemonSet) {
   // TODO: 46000 is after modifiers, will need to reduce
   if (bulk < 46000 && stats.spe >= 70) isFast = true;
 }
-function ensureMinEVs(evs: StatsTable, stat: Stat, min: number, evTotal: number) {
+function ensureMinEVs(evs: StatsTable, stat: Stat, min: number, total: number) {
   if (!evs[stat]) evs[stat] = 0;
   let diff = min - evs[stat];
-  if (diff <= 0) return evTotal;
-  if (evTotal <= 504) {
-    const change = Math.min(508 - evTotal, diff);
-    evTotal += change;
+  if (diff <= 0) return total;
+  if (total <= 504) {
+    const change = Math.min(508 - total, diff);
+    total += change;
     evs[stat] += change;
     diff -= change;
   }
-  if (diff <= 0) return evTotal;
+  if (diff <= 0) return total;
   const evPriority = {def: 1, spd: 1, hp: 1, atk: 1, spa: 1, spe: 1};
   let prioStat: Stat;
   for (prioStat in evPriority) {
@@ -33,18 +33,18 @@ function ensureMinEVs(evs: StatsTable, stat: Stat, min: number, evTotal: number)
     if (evs[prioStat] && evs[prioStat] > 128) {
       evs[prioStat] -= diff;
       evs[stat] += diff;
-      return evTotal;
+      return total;
     }
   }
-  return evTotal; // can't do it :(
+  return total; // can't do it :(
 }
-function ensureMaxEVs(evs: StatsTable, stat: Stat, min: number, evTotal: number) {
+function ensureMaxEVs(evs: StatsTable, stat: Stat, min: number, total: number) {
   if (!evs[stat]) evs[stat] = 0;
   const diff = evs[stat] - min;
-  if (diff <= 0) return evTotal;
+  if (diff <= 0) return total;
   evs[stat] -= diff;
-  evTotal -= diff;
-  return evTotal; // can't do it :(
+  total -= diff;
+  return total; // can't do it :(
 }
 
 const SR_WEAKNESSES = ['Fire', 'Flying', 'Bug', 'Ice'];
@@ -86,7 +86,7 @@ function guessEVs(dex: Dex, set: PokemonSet): Partial<StatsTable> {
   let hp = set.evs['hp'] || 0;
   let stat = getStat('hp', hp);
 
-  let evTotal = Object.values(set.evs).reduce((a, v) => a + v, 0);
+  let total = Object.values(set.evs).reduce((a, v) => a + v, 0);
 
   const berry = (set.item || '').slice(-5) === 'Berry';
   if ((set.item === 'Leftovers' || set.item === 'Black Sludge') && moves.has('Substitute') && stat !== 404) {
@@ -108,42 +108,42 @@ function guessEVs(dex: Dex, set: PokemonSet): Partial<StatsTable> {
   }
 
   if (hpDivisibility) {
-    while (hp < 252 && evTotal < 508 && !(stat % hpDivisibility) !== hpShouldBeDivisible) {
+    while (hp < 252 && total < 508 && !(stat % hpDivisibility) !== hpShouldBeDivisible) {
       hp += 4;
       stat = getStat('hp', hp);
-      evTotal += 4;
+      total += 4;
     }
     while (hp > 0 && !(stat % hpDivisibility) !== hpShouldBeDivisible) {
       hp -= 4;
       stat = getStat('hp', hp);
-      evTotal -= 4;
+      total -= 4;
     }
     while (hp > 0 && stat === getStat('hp', hp - 4)) {
       hp -= 4;
-      evTotal -= 4;
+      total -= 4;
     }
     if (hp || set.evs['hp']) set.evs['hp'] = hp;
   }
 
   if (species.id === 'tentacruel') {
-    evTotal = this.ensureMinEVs(set.evs, 'spe', 16, evTotal);
+    total = ensureMinEVs(set.evs, 'spe', 16, total);
   } else if (species.id === 'skarmory') {
-    evTotal = this.ensureMinEVs(set.evs, 'spe', 24, evTotal);
+    total = ensureMinEVs(set.evs, 'spe', 24, total);
   } else if (species.id === 'jirachi') {
-    evTotal = this.ensureMinEVs(set.evs, 'spe', 32, evTotal);
+    total = ensureMinEVs(set.evs, 'spe', 32, total);
   } else if (species.id === 'celebi') {
-    evTotal = this.ensureMinEVs(set.evs, 'spe', 36, evTotal);
+    total = ensureMinEVs(set.evs, 'spe', 36, total);
   } else if (species.id === 'volcarona') {
-    evTotal = this.ensureMinEVs(set.evs, 'spe', 52, evTotal);
+    total = ensureMinEVs(set.evs, 'spe', 52, total);
   } else if (species.id === 'gliscor') {
-    evTotal = this.ensureMinEVs(set.evs, 'spe', 72, evTotal);
+    total = ensureMinEVs(set.evs, 'spe', 72, total);
   } else if (species.id === 'dragonite' && set.evs.hp) {
-    evTotal = this.ensureMaxEVs(set.evs, 'spe', 220, evTotal);
+    total = ensureMaxEVs(set.evs, 'spe', 220, total);
   }
 
   let secondaryStat: Stat | null = null;
-  if (evTotal < 508) {
-    let remaining = 508 - evTotal;
+  if (total < 508) {
+    let remaining = 508 - total;
     if (remaining > 252) remaining = 252;
     if (!set.evs.atk && categories.Physical >= 1) {
       secondaryStat = 'atk';

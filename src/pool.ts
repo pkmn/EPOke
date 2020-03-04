@@ -13,10 +13,9 @@ export class Pool<T> {
   // updater functions to apply on select
   #fns: Array<(k: T, v: number) => number>;
 
-  static create<T>(
-    obj: Record<string, number>,
-    // hardly typesafe, users are required to pass in a decoding function if T != string
-    fn: (k: string, v: number) => [T, number] = (k, v) => [k as any, v]
+  static create<T = string, V = number>(
+    obj: Record<string, V>,
+    fn?: (k: string, v: V) => [T, number]
   ) {
     const data = [];
     const zero = [];
@@ -24,9 +23,7 @@ export class Pool<T> {
     let top: [T | null, number] = [null, 0];
 
     for (const k in obj) {
-      const d = fn(k, obj[k]);
-      const t = d[0];
-      const v = d[1];
+      const [t, v] = fn ? fn(k, obj[k]) : [k, obj[k]];
       if (v < 0) continue;
       if (v === 0) {
         zero.push(t);
@@ -60,62 +57,79 @@ export class Pool<T> {
   }
 
   select(fn = (k: T, v: number) => v, random?: Random) {
-    const odata = [];
-    const ndata = [];
-
-    const ozero = this.#zero;
-    const nzero = this.#zero.slice(0);
-
-    let otop: [T | null, number] = [null, 0];
-    let ntop: [T | null, number] = [null, 0];
+    const data = [];
+    const fnzero = [];
+    let top: [T | null, number] = [null, 0];
 
     let total = 0;
-    for (let [k, v] of this.#data) {
-      v = this.apply(k, v);
-      if (v < 0) continue;
-      if (v === 0) {
-        ozero.push(k);
-        nzero.push(k);
-        continue;
-      }
-
-      let p: [T, number] = [k, v];
-      odata.push(p);
-      if (v > otop[1]) otop = p;
-
+    const self = this.dupe((k, v) => {
       v = fn(k, v);
       if (v < 0) continue;
       if (v === 0) {
-        nzero.push(k);
+        fnzero.push(k);
         continue;
       }
 
       total += v;
       p = [k, v];
-      ndata.push(p);
-      if (v > ntop[1]) ntop = p;
-    }
+      data.push(p);
+      if (v > top[1]) top = p;
+    });
 
-    this.#data = odata;
-    this.#zero = ozero;
-    this.#top = otop;
+    this.#data = self[0];
+    this.#top = self[1];
+    this.#zero = self[2];
     this.#fns = [];
 
+    const zero = [];
+    for (const v of self[2]) zero.push(v);
+    for (const v of fnzero) zero.push(v);
+
     let val: T | undefined = undefined;
-    if (this.#data.length) {
+    if (data.length) {
       if (random) {
-        const weights = ndata.map(d => d[1] / total);
-        val = ndata[sample(weights, random)][0]!;
+        const weights = data.map(d => d[1] / total);
+        val = data[sample(weights, random)][0]!;
       } else {
-        val = ntop[0]!;
+        val = top[0]!;
       }
-    } else if (nzero.length) {
-      val = random ? random.sample(nzero) : nzero[nzero.length - 1];
+    } else if (zero.length) {
+      val = random ? random.sample(zero) : zero[zero.length - 1];
     }
 
-    const pool = new Pool<T>(this.locked.slice(0), ndata, ntop, nzero);
+    const pool = new Pool<T>(this.locked.slice(0), data, top, zero);
 
     return [ val, pool ] as [T, Pool<T>];
+  }
+
+  clone() {
+    const [data, top, zero] = this.dupe();
+    return new Pool<T>(this.locked.slice(0), data, top, zero);
+  }
+
+  private dupe(fn: (k: T, v: number) => void) {
+
+    const data = [];
+    const zero = this.#zero.slice(0);
+
+    let top: [T | null, number] = [null, 0];
+
+    for (let [k, v] of this.#data) {
+      v = this.apply(k, v);
+      if (v < 0) continue;
+      if (v === 0) {
+        zero.push(k);
+        continue;
+      }
+
+      let p: [T, number] = [k, v];
+      data.push(p);
+      if (v > top[1]) top = p;
+
+      if (fn) fn(k, v);
+    }
+
+    return [data, top, zero];
   }
 
   private apply(k: T, v: number) {

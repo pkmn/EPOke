@@ -9,12 +9,12 @@ import { DeepReadonly } from './types';
 export class SetPossibilities {
   readonly species: Species;
 
+  readonly spreads: SpreadPossibilities;
+  readonly abilities: Pool<string>;
+  readonly items: Pool<string>;
+  readonly moves: Pool<string>;
+  
   gender: Gender | undefined;
-
-  #spreads: SpreadPossibilities;
-  #abilities: Pool<string>;
-  #items: Pool<string>;
-  #moves: Pool<string>;
 
   static create(
     dex: Dex,
@@ -34,28 +34,56 @@ export class SetPossibilities {
     return new SetPossibilities(species, gender, spreads, abilities, items, moves);
   }
 
-  private constructor(
+  constructor(
     species: Species,
-    gender: Gender | undefined,
     spreads: SpreadPossibilities,
     abilities: Pool<string>,
     items: Pool<string>,
     moves: Pool<string>
   ) {
     this.species = species;
+    this.spreads = spreads;
+    this.abilities = abilities;
+    this.items = items;
+    this.moves = moves;
     this.gender = gender;
-    this.#spreads = spreads;
-    this.#abilities = abilities;
-    this.#items = items;
-    this.#moves = moves;
   }
 
   get level() {
-    return this.#spreads.level;
+    return this.spreads.level;
   }
 
   set level(level: number) {
-    this.#spreads.level = level;
+    this.spreads.level = level;
+  }
+
+  get ability() {
+    return this.abilities.locked.length ? this.abilities.locked[0] : undefined;
+  }
+
+  set ability(ability: string) {
+    if (this.abilties.locked.length) {
+      throw new Error(`${ability} cannot replace locked ability ${this.ability}`);
+    }
+    this.abilities.lock(ability);
+  }
+
+  get item() {
+    return this.items.locked.length ? this.items.locked[0] : undefined;
+  }
+
+  set item(item: string) {
+    if (this.items.locked.length) {
+      throw new Error(`${item} cannot replace locked item ${this.item}`);
+    }
+    this.items.lock(item);
+  }
+
+  set move(move: string) {
+    if (this.moves.locked.length >= 4) {
+      throw new Error(`${move} cannot be be added to locked moves ${this.moves}`);
+    }
+    this.moves.lock(move);
   }
 }
 
@@ -101,7 +129,7 @@ export class SpreadPossibilities {
   }
 
   set level(level: number) {
-    if (this.#dirty) throw new Error('Level cannot be changed after use');
+    if (this.#dirty) throw new Error(`Level ${this.level} cannot be changed after use to ${level}`);
     // @ts-ignore readonly
     this.#level = level;
     this.#range = StatsRange.fromBase(this.#base, this.#gen, this.#level);
