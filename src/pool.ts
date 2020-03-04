@@ -1,31 +1,27 @@
 import { Random } from './random';
 
-export class Pool<T> {
-  // the M elements locked
-  readonly locked: readonly T[];
+export interface Pool<T> {
+  locked: readonly T[];
+  update(fn: (k: T, v: number) => number): void;
+  lock(key: T): void;
+  select(fn?: (k: T, v: number) => number, random?: Random): [T | undefined, Pool<T>];
+}
 
-  // elements eligble for selection
-  #data: Array<[T, number]>;
-  // the top element
-  #top: [T | null, number];
-  // elements which were weighted down to 0
-  #zero: T[];
-  // updater functions to apply on select
-  #fns: Array<(k: T, v: number) => number>;
-
+export const Pools = new (class {
   static create<T = string, V = number>(
     obj: Record<string, V>,
-    fn?: boolean | (k: string, v: V) => [T, number]
+    fn?: ((k: string, v: V) => [T, number]) | boolean,
     ephemeral = false
   ) {
-    if (ephemeral) return new EphemeralPool<T>(obj, fn || undefined);
+    if (fn === true || ephemeral) {
+      return new EphemeralPool<T, V>(obj, !fn || fn === true ? undefined : fn);
+    }
+
     const data = [];
     const zero = [];
 
-    let top: [T | null, number] = [null, 0];
-
     for (const k in obj) {
-      const [t, v] = fn ? fn(k, obj[k]) : [k, obj[k]];
+      const [t, v] = fn ? fn(k, obj[k]) : [k, obj[k]] as unknown as [T, number];
       if (v < 0) continue;
       if (v === 0) {
         zero.push(t);
@@ -34,17 +30,27 @@ export class Pool<T> {
 
       const p: [T, number] = [t, v];
       data.push(p);
-      if (v > top[1]) top = p;
     }
 
-    return new Pool<T>([], data, top, zero);
+    return new PoolImpl<T>([], data, zero);
   }
+})();
 
-  private constructor(locked: T[], data: Array<[T, number]>, top: [T | null, number], zero: T[]) {
+class PoolImpl<T> implements Pool<T> {
+  // the M elements locked
+  readonly locked: readonly T[];
+
+  // elements eligble for selection
+  #data: Array<[T, number]>;
+  // elements which were weighted down to 0
+  #zero: T[];
+  // updater functions to apply on select
+  #fns: Array<(k: T, v: number) => number>;
+
+  constructor(locked: T[], data: Array<[T, number]>, zero: T[]) {
     this.locked = locked;
 
     this.#data = data;
-    this.#top = top;
     this.#zero = zero;
     this.#fns = [];
   }
@@ -58,10 +64,11 @@ export class Pool<T> {
     this.update((k: T, v: number) => (k === key ? -1 : v));
   }
 
-  select(fn = (k: T, v: number) => v, random?: Random) {
-    const self = { data: [], zero: this.#zero, top: [null, 0] as [T | null, number] };
-    const them = { data: [], zero: this.#zero.slice(0), top: [null, 0] as [T | null, number] };
+  select(fn = (k: T, v: number) => v, random?: Random): [T | undefined, Pool<T>] {
+    const self = { data: [] as Array<[T, number]>, zero: this.#zero };
+    const them = { data: [] as Array<[T, number]>, zero: this.#zero.slice(0) };
 
+    let top: [T | null, number] = [null, 0];
     let total = 0;
     for (let [k, v] of this.#data) {
       v = this.apply(k, v);
@@ -74,7 +81,6 @@ export class Pool<T> {
 
       let p: [T, number] = [k, v];
       self.data.push(p);
-      if (v > self.top[1]) self.top = p;
 
       v = fn(k, v);
       if (v < 0) continue;
@@ -86,12 +92,11 @@ export class Pool<T> {
       total += v;
       p = [k, v];
       them.data.push(p);
-      if (v > them.top[1]) them.top = p;
+      if (v > top[1]) top = p;
     }
 
     this.#data = self.data;
     this.#zero = self.zero;
-    this.#top = self.top;
     this.#fns = [];
 
     let val: T | undefined = undefined;
@@ -100,13 +105,13 @@ export class Pool<T> {
         const weights = them.data.map(d => d[1] / total);
         val = them.data[sample(weights, random)][0]!;
       } else {
-        val = then.top[0]!;
+        val = top[0]!;
       }
     } else if (them.zero.length) {
       val = random ? random.sample(them.zero) : them.zero[them.zero.length - 1];
     }
 
-    const pool = new Pool<T>(this.locked.slice(0), them.data, them.top, them.zero);
+    const pool = new PoolImpl<T>(this.locked.slice(0), them.data, them.zero);
 
     return [ val, pool ] as [T, Pool<T>];
   }
@@ -131,7 +136,7 @@ class EphemeralPool<T, V> implements Pool<T> {
     this.#obj = obj;
     this.#fn = fn;
 
-    this.data = [];
+    this.#data = [];
     this.#zero = [];
   }
 
@@ -139,23 +144,23 @@ class EphemeralPool<T, V> implements Pool<T> {
     return [];
   }
 
-  update(fn: (k: T, v: number) => number) {
+  update() {
     throw new Error('Illegal call to update on EphemeralPool');
   }
 
-  lock(key: T) {
+  lock() {
     throw new Error('Illegal call to lock on EphemeralPool');
   }
 
-  select(fn = (k: T, v: number) => v, random?: Random) {
+  select(fn = (k: T, v: number) => v, random?: Random): [T | undefined, Pool<T>] {
     const data = [];
-    const zero = this.zero.slice(0);
+    const zero = this.#zero.slice(0);
 
     let total = 0;
     let top: [T | null, number] = [null, 0];
-    if (!this.obj) {
-      for (const k in obj) {
-        let [t, v] = this.fn ? this.fn(k, obj[k]) : [k, obj[k]];
+    if (this.#obj) {
+      for (const k in this.#obj) {
+        let [t, v] = this.#fn ? this.#fn(k, this.#obj[k]) : [k, this.#obj[k]] as unknown as [T, number];
         if (v < 0) continue;
         if (v === 0) {
           zero.push(t);
@@ -199,7 +204,7 @@ class EphemeralPool<T, V> implements Pool<T> {
         const weights = data.map(d => d[1] / total);
         val = data[sample(weights, random)][0]!;
       } else {
-        val = then.top[0]!;
+        val = top[0]!;
       }
     } else if (zero.length) {
       val = random ? random.sample(zero) : zero[zero.length - 1];

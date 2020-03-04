@@ -6,19 +6,19 @@ import { Random } from './random';
 
 interface Heuristics {
   // NOT Species | Species
-  update(set: PokemonSet) ;
+  update(set: PokemonSet);
   // Species | Species
-  species(...species: string[]) => (k: string, v: number) => number; 
-  spread(set: Partial<PokemonSet>): (s: StatsTable, v: number) => number; 
-  ability(set: Partial<PokemonSet>): (k: string, v: number) => number 
-  item(set: Partial<PokemonSet>) => (k: string, v: number) => number; 
+  species(...species: string[]) => (k: string, v: number) => number;
+  spread(set: Partial<PokemonSet>): (s: StatsTable, v: number) => number;
+  ability(set: Partial<PokemonSet>): (k: string, v: number) => number
+  item(set: Partial<PokemonSet>) => (k: string, v: number) => number;
   // NOT Move | Move
-  moves(set: Partial<PokemonSet>) => (k: string, v: number) => number; 
+  moves(set: Partial<PokemonSet>) => (k: string, v: number) => number;
   // Move | Move
-  move(...move: string[]) => (k: string, v: number) => number; 
+  move(...move: string[]) => (k: string, v: number) => number;
 }
 
-const AFN = (k: any, v: number) => v; 
+const AFN = (k: any, v: number) => v;
 const AHEURISTIC: Heuristics = {
   update: () => {},
   species: species => (k, v) => (species.includes(k) ? -1 : v),
@@ -117,6 +117,7 @@ export class Predictor {
 
 
   // TODO: Ideally we want to only validate the team as a whole + only the newest set
+  // FIXME: (format.validateSet || this.validateSet).call(this, set, teamHas);
   private validate(team: PokemonSet[], set: PokemonSet) {
     // FIXME: ignore min length validation!
     const invalid = this.validator.validateTeam(team);
@@ -137,7 +138,7 @@ export class Predictor {
   }
 }
 
-function combine<T(a: (k: T, v: number) => v, b: (k: T, v: number) => v) {
+function combine<T>(a: (k: T, v: number) => v, b: (k: T, v: number) => v) {
   return (k: T, v: number) {
     v = a(k, v);
     return v <= 0 ? v : b(k, v);
