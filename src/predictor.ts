@@ -4,6 +4,7 @@ import { DisplayStatistics, DisplayUsageStatistics } from '@smogon/stats'; // ->
 import { Pools, Pool } from './pool';
 import { SetPossibilities } from './possibilities';
 import { Random } from './random';
+import { format } from 'url';
 
 interface Heuristics {
   // NOT Species | Species
@@ -44,7 +45,7 @@ export class Predictor {
     this.validator = new TeamValidator(dex.format);
     this.species = Pools.create<string, DisplayUsageStatistics>(
       statistics.pokemon,
-      (k, v) => isAllowed(k, dex.format) ? [k, v.usage.weighted] : [k, -1]
+      (k, v) => isAllowed(k, dex) ? [k, v.usage.weighted] : [k, -1]
     );
   }
 
@@ -82,7 +83,7 @@ export class Predictor {
   }
 
   // POSTCONDITION: possibilities is unmodified
-  predictSet(p: SetPossibilities, random?: Random, H: Heuristics) {
+  predictSet(p: SetPossibilities, random?: Random, H: Heuristics = AHEURISTIC) {
     const set: Partial<PokemonSet> & {moves: string[]} = {
       species: p.species.name,
       name: p.species.name,
@@ -114,10 +115,7 @@ export class Predictor {
 
     const unhappy = set.moves.includes('Frustration') && !set.moves.includes('Return');
     set.happiness = unhappy ? 0 : 255;
-
-    optimizeSpread(set);
-
-    return set as PokemonSet;
+    return optimizeSpread(set as PokemonSet);
   }
 
   private validate(team: PokemonSet[]) {
@@ -151,4 +149,29 @@ function combine<T>(a: (k: T, v: number) => number, b: (k: T, v: number) => numb
     v = a(k, v);
     return v <= 0 ? v : b(k, v);
   }
+}
+
+const HIERARCHY = ['LC', 'LC Uber', 'NFE', 'PU', 'NU', 'NUBL', 'RU', 'RUBL', 'UU', 'UUBL', 'OU', '(Uber)', 'Uber'];
+function isAllowed(name: string, dex: Dex) {
+  const species = dex.getSpecies(name);
+  if (!species ||
+    species.isNonstandard ||
+    !dex.hasFormatsDataTier(species.id) ||
+    !species.tier ||
+    species.tier === 'Illegal' ||
+    species.tier === 'Unreleased'
+  ) {
+    return false;
+  }
+
+  if (dex.format.endsWith('littlecup')) {
+    return species.tier === 'LC';
+  }
+
+  const tier = dex.format as typeof HIERARCHY[number]; // TODO FIXME
+  return HIERARCHY.indexOf(species.tier) <= HIERARCHY.indexOf(tier);
+}
+
+function optimizeSpread(set: PokemonSet) {
+  return set; // TODO
 }

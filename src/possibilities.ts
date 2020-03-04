@@ -69,6 +69,7 @@ export class SetPossibilities {
   }
 
   set ability(ability: string | undefined) {
+    if (!ability) throw new Error('Cannot lock undefined item');
     if (this.abilities.locked.length) {
       throw new Error(`${ability} cannot replace locked ability ${this.ability}`);
     }
@@ -80,6 +81,7 @@ export class SetPossibilities {
   }
 
   set item(item: string | undefined) {
+    if (!item) throw new Error('Cannot lock undefined item');
     if (this.items.locked.length) {
       throw new Error(`${item} cannot replace locked item ${this.item}`);
     }
