@@ -1,4 +1,4 @@
-import { Dex, TeamValidator, PokemonSet, StatsTable } from 'ps';
+import { Dex, TeamValidator, PokemonSet, StatsTable, Generation } from 'ps';
 import { DisplayStatistics, DisplayUsageStatistics } from '@smogon/stats'; // -> smogon
 
 import { Pools, Pool } from './pool';
@@ -167,6 +167,8 @@ function combine<T>(a: (k: T, v: number) => number, b: (k: T, v: number) => numb
   }
 }
 
-function optimizeSpread(set: PokemonSet) {
-  return set; // TODO
+function optimizeSpread(set: PokemonSet, gen: Generation = 8) {
+   // TODO in Gen 8 we can Mint to change the nature, before
+   // then we can check if there are any events for the mon?
+  return set;
 }
