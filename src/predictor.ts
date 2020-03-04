@@ -20,14 +20,14 @@ interface Heuristics {
   move(...move: string[]): (k: string, v: number) => number;
 }
 
-const AFN = (_: any, v: number) => v;
+const FN = (_: any, v: number) => v;
 const AHEURISTIC: Heuristics = {
   update: () => {},
   species: species => (k, v) => (species.includes(k) ? -1 : v),
-  spread: () => AFN,
-  ability: () => AFN,
-  item: () => AFN,
-  moves: () => AFN,
+  spread: () => FN,
+  ability: () => FN,
+  item: () => FN,
+  moves: () => FN,
   move: moves => (k, v) => (moves.includes(k) ? -1 : v),
 };
 
@@ -58,26 +58,37 @@ export class Predictor {
 
     let species = this.species;
 
-    let last: PokemonSet | null = null;
+    let last: PokemonSet | boolean = true;
     const team: PokemonSet[] = [];
     while (team.length < 6) {
       let set: PokemonSet;
       if (possibilities[team.length]) {
         set = this.predictSet(possibilities[team.length], random, H);
       } else {
-        const fn = last ? H.species(last.species) : H.species(...team.map(s => s.species));
+        // We apply heuristics for all of the the fixed teammates at the
+        // same time (and only if we need to fill in any non-fixed members),
+        // otherwise we apply heuristics if we added a teammate the last
+        // time around
+        const fn = last === true ?
+          H.species(...team.map(s => s.species)) :
+          last ? H.species(last.species) : FN;
         const s = species.select(fn, random);
         species = s[1];
         const stats = this.statistics.pokemon[s[0]!];
+        // We pass in ephemeral = true as an optimization because this object will
+        // never receive updates and we don't care about it getting trampled
         const p = SetPossibilities.create(this.dex, stats, s[0]!, undefined, undefined, true);
         set = this.predictSet(p, random, H);
         last = set;
       }
+      // Validate if requested - we clear last if invalid to ensure we don't
+      // apply additional heuristics given we didn't add a new teammate
       if (validate-- > 0 && !this.validate(team)) {
-        last = null;
+        last = false;
         continue;
       }
       team.push(set);
+      // Update heuristics unless we're already done building
       if (team.length < 6) H.update(set);
     }
 
@@ -106,10 +117,13 @@ export class Predictor {
     let moves = p.moves;
     let last: string | null = null;
     while (set.moves.length < 4) {
-      const fn = last ?  H.species(last) : combine(H.moves(set), H.move(...set.moves));
+      // The first time through we want to apply both the heuristics to moves based on
+      // the set as well as the individual Move | Move contributions for any locked moves
+      const fn = last ? H.species(last) : combine(H.moves(set), H.move(...set.moves));
       const m = moves.select(fn, random);
       moves = m[1];
-      const move = m[0]
+      const move = m[0];
+      // Something like Ditto isn't going to have a full move pool, so this is possible
       if (!move) break;
       last = move;
       set.moves.push(move);
