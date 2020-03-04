@@ -125,19 +125,19 @@ function guessEVs(dex: Dex, set: PokemonSet): Partial<StatsTable> {
     if (hp || set.evs['hp']) set.evs['hp'] = hp;
   }
 
-  if (species.id === 'tentacruel') {
+  if (species.name === 'Tentacruel') {
     total = ensureMinEVs(set.evs, 'spe', 16, total);
-  } else if (species.id === 'skarmory') {
+  } else if (species.name === 'Skarmory') {
     total = ensureMinEVs(set.evs, 'spe', 24, total);
-  } else if (species.id === 'jirachi') {
+  } else if (species.name === 'Jirachi') {
     total = ensureMinEVs(set.evs, 'spe', 32, total);
-  } else if (species.id === 'celebi') {
+  } else if (species.name === 'Celebi') {
     total = ensureMinEVs(set.evs, 'spe', 36, total);
-  } else if (species.id === 'volcarona') {
+  } else if (species.name === 'Volcarona') {
     total = ensureMinEVs(set.evs, 'spe', 52, total);
-  } else if (species.id === 'gliscor') {
+  } else if (species.name === 'Gliscor') {
     total = ensureMinEVs(set.evs, 'spe', 72, total);
-  } else if (species.id === 'dragonite' && set.evs.hp) {
+  } else if (species.name === 'Dragonite' && set.evs.hp) {
     total = ensureMaxEVs(set.evs, 'spe', 220, total);
   }
 
