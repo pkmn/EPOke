@@ -4,7 +4,6 @@ import { DisplayStatistics, DisplayUsageStatistics } from '@smogon/stats'; // ->
 import { Pools, Pool } from './pool';
 import { SetPossibilities } from './possibilities';
 import { Random } from './random';
-import { format } from 'url';
 
 interface Heuristics {
   // NOT Species | Species
