@@ -1,5 +1,12 @@
 import {Dex, PokemonSet, StatsTable, Stat, Species, MoveCategory, calcStat, getNature} from 'ps';
 
+
+// TODO
+
+// - Remove any offensive EVs in a stat that the Pokemon doesn't use. This has the slight problem of giving Attack EVs to Rapid Spin Pokemon and other similar issues. Technical Machine doesn't realize that even though the move does damage, it's not used for attacking.
+// - Move around HP, Defense, and Special Defense EVs to reduce waste. As an example, a Pokemon with 600 HP and 100 in each defense is better off having 400 HP and 200 in each defense. It will take all hits better. Technical Machine finds the solution that uses the fewest defensive EVs to keep the ability to take physical and special hits the same. This doesn't take into account passing Substitute or Wish, nor does it consider moves like Leech Seed and Pain Split.
+// - Find multiple ways to keep the Speed the same.
+
 // From Guangcong Luo's MIT Licensed src/battle-tooltips.ts in smogon/pokemon-showdown-client
 export const Optimizer = new (class {
   // PRECONDITION: SUM(set.evs) <= 510
@@ -39,7 +46,7 @@ export const Optimizer = new (class {
       let remaining = 508 - total;
       // NB: set.evs here instead of evs, as we want the original investments and not after
       // HP and speed were tweaked above (i.e. what were the *intended* areas to focus on?)
-      for (const stat of prioritizeStats(set.evs, stats, categories, total)) {
+      for (const stat of prioritizeStats(set.evs, stats, categories)) {
         let ev = Math.min(remaining, 252);
         let val = getStat(stat, ev);
         // If hp was modified it could potentially undo the work above with respect to
@@ -196,7 +203,15 @@ function setup(dex: Dex, set: PokemonSet) {
   return { species, stats, getStat, categories, moves, total, srWeak };
 }
 
-function prioritizeStats(evs: StatsTable, base: StatsTable, has: Record<MoveCategory, number>, total: number) {
+// TODO
+
+// Technical Machine currently randomly divides all remaining EVs among each stat. However, my plans for the future are to weight this random padding by how often that particular EV is used by that Pokemon. In other words, a Pokemon that generally invests a lot in Speed is more likely to have its Speed EVs padded than a Pokemon that rarely puts a single EV into Speed.
+
+
+
+// 1. prefer evs, if 0 then check base stats
+// 2. if less than 2 stats have evs, favor an attacking stat provided has offensive attacks
+function prioritizeStats(evs: StatsTable, base: StatsTable, has: Record<MoveCategory, number>) {
   // Sort the largest original EV investments / base stats first
   const ev = Object.entries(evs).sort((a, b) => b[1] - a[1]);
   const bs = Object.entries(base).sort((a, b) => b[1] - a[1]);

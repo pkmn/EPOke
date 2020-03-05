@@ -30,6 +30,12 @@ const AHEURISTIC: Heuristics = {
   move: moves => (k, v) => (moves.includes(k) ? -1 : v),
 };
 
+
+// TODO non lead multiplier!
+/*
+The first multiplier for the Pokemon is the non-lead multiplier. Whenever my AI has seen a team, It has always seen at least one Pokemon: the lead. We have lead stats for Pokemon, and so we can remove that from the general stats and get a non-lead multiplier. For instance, if Pidgey is used 100 times total, and is used 40 times as a lead, that means if I don't see it as a lead, it actually only has 60% of the usages that the overall stats suggest.
+*/
+
 export class Predictor {
   private readonly dex: Dex;
   private readonly statistics: DisplayStatistics;
