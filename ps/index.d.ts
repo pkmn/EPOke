@@ -63,6 +63,11 @@ declare module 'ps' {
     interface DexTable<T> {
         [key: string]: T
     }
+    interface Format {
+        id: ID
+        defaultLevel?: number
+        maxLevel?: number
+    }
     class Dex {
         static get(): Dex;
         static forFormat(format?: string): Promise<Dex>
@@ -76,7 +81,7 @@ declare module 'ps' {
         Natures: DexTable<Nature>
         Types: DexTable<Type>
 
-        format: ID
+        format: Format
         gen: Generation
 
         getAbility(name: string): Ability | undefined

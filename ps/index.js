@@ -18,7 +18,7 @@ class Dex {
     let dex = Dex.cache.get(format);
     if (!dex) {
       const f = ps.Dex.getFormat(format);
-      dex = new Dex(ps.Dex.forFormat(f), f.id);
+      dex = new Dex(ps.Dex.forFormat(f), f);
       Dex.cache.set(format, dex);
     }
     return dex;
