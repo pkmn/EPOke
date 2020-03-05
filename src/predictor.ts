@@ -75,6 +75,12 @@ export class Predictor {
   // PRECONDITION: possibilities has no gaps
   // POSTCONDITION: possibilities and its elements are unmodified
   predictTeam(possibilities: SetPossibilities[], random?: Random, validate = 0) {
+    // The current validator implementation is difficult to use iteratively effectively, as
+    // such the predictor is not structured to validate in a way which would be guaranteed to
+    // make progress when not used stochastically (if a deterministic set were invalid it
+    // would result in unproductive looping where no progress gets made)
+    // TODO: if incremental set validation becomes possible this can be implemented
+    if (validate && !random) throw new Error('Impossible to validate determistic prediction');
     const H = AHEURISTIC; // TODO: real heuristics
 
     let species = this.species;
