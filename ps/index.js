@@ -211,7 +211,7 @@ class TeamValidator {
     const setHas = {};
     // BUG: we assume the template === tierTemplate, which is true coming
     // from usage stats, but not if anything calls checkSpecies in the future
-    return [this.validator.checkSpecies(null, s, s, setHas), setHas];
+    return [this.validator.checkSpecies(null, s, s, {skipSets: setHas}), setHas];
   }
 }
 

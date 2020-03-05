@@ -37,9 +37,11 @@ declare module 'ps' {
         megaStone?: string
         megaEvolves?: string
     }
+    type MoveCategory = 'Physical' | 'Special' | 'Status'
     interface Move extends Effect {
         basePower: number
-        category: 'Physical' | 'Special' | 'Status'
+        category: MoveCategory
+        type: string
     }
     type Nonstandard = 'Glitch' | 'Past' | 'Future' | 'CAP' | 'LGPE' | 'Pokestar' | 'Custom'
     interface Species extends Effect {

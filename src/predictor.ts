@@ -35,6 +35,7 @@ export class Predictor {
   private readonly statistics: DisplayStatistics;
 
   private readonly species: Pool<string>;
+  private readonly leads: Pool<string>;
   private readonly speciesHas: Record<string, Record<string, boolean>>;
   private readonly validator: TeamValidator;
 
@@ -46,14 +47,23 @@ export class Predictor {
     this.speciesHas = {};
     this.species = Pools.create<string, DisplayUsageStatistics>(
       statistics.pokemon,
-      // We wants to ensure the species hasn't been banned since
-      // the last time that usage statistics were published
+      // We wants to ensure the species hasn't been banned since the last time that
+      // usage statistics were published
       (k, v) => {
         const [invalid, speciesHas] = this.validator.checkSpecies(k);
         if (invalid) return [k, -1];
         this.speciesHas[k] = speciesHas;
         return [k, v.usage.weighted];
       });
+    // We need to also create a pool weighted by *lead* statistics as opposed to the
+    // more general *usage* statistics. We unfortunately still iterate over the same
+    // object, but slightly optimize the legality checking by leveraging the speciesHas
+    // info. It probably isn't worth optimizing things further to lazily create this
+    // pool on first use or to find a way build it at the same time as this.species given
+    // how this only happens once
+    this.leads = Pools.create<string, DisplayUsageStatistics>(
+      statistics.pokemon,
+      (k, v) => this.speciesHas[k]  ? [k, v.lead.weighted] : [k, -1]);
   }
 
   // PRECONDITION: possibilities has no gaps
@@ -70,16 +80,32 @@ export class Predictor {
       if (possibilities[team.length]) {
         set = this.predictSet(possibilities[team.length], random, H);
       } else {
-        // We apply heuristics for all of the the fixed teammates at the
-        // same time (and only if we need to fill in any non-fixed members),
-        // otherwise we apply heuristics if we added a teammate the last
-        // time around
-        const fn = last === true ?
-          H.species(...team.map(s => s.species)) :
-          last ? H.species(last.species) : FN;
-        const s = species.select(fn, random);
-        species = s[1];
-        const stats = this.statistics.pokemon[s[0]!];
+        let s: [string | undefined, Pool<string>];
+        if (!team.length && this.dex.gen < 5) {
+          // Leads are very important in DPP and below - as such lead statistics need
+          // to be used instead of the general usage statistics. No heuristics are
+          // applied (there's literally no information that *could* be applied), so
+          // there's no need to worry about mutating this.leads. Technically, the
+          // leads pool could be special cased at startup to cache its top element,
+          // but this only matters in the super niche case that a lead prediction is
+          // required in an early gen deterministically which is expected to be rare
+          s = this.leads.select(FN, random);
+        } else {
+          // Apply heuristics for all of the the fixed teammates at the same time
+          // (and only if we need to fill in any non-fixed members), otherwise we
+          // apply heuristics if we added a teammate the last time around
+          const fn = last === true ?
+            H.species(...team.map(s => s.species)) :
+            last ? H.species(last.species) : FN;
+          s = species.select(fn, random);
+          species = s[1];
+        }
+
+        // There should pretty much always be a species given that the number of possibilities
+        // is much larger than 6 we need and we only remove the ones we've already selected, but
+        // just in case there's not really anything do to here but exit
+        if (!s[0]) break;
+        const stats = this.statistics.pokemon[s[0]];
         // We pass in ephemeral = true as an optimization because this object will
         // never receive updates and we don't care about it getting trampled
         const p = SetPossibilities.create(this.dex, stats, s[0]!, undefined, undefined, true);
