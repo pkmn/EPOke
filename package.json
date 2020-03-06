@@ -19,6 +19,7 @@
   "dependencies": {
     "@types/node": "^13.7.7",
     "ps": "file:ps",
+    "@smogon/calc": "^0.0.4"
     "@smogon/stats": "file:../Pokemon-Showdown-Stats/stats"
   },
   "devDependencies": {
