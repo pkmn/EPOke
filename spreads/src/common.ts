@@ -1,8 +1,8 @@
 import {StatName} from '@pkmn/types';
 import {STATS, NATURES, GEN, Generation} from './data';
 
-const S = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
-const N = [...NATURES];
+const STAT_ORDER = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
+const RBY_STAT_ORDER = ['hp', 'atk', 'def', 'spa', 'spe'] as const;
 
 export interface Range<T> {
   min: T;
@@ -13,11 +13,15 @@ export function isRange<T>(r: unknown | Range<T>): r is Range<T> {
   return 'min' in (r as Range<T>);
 }
 
-export function displayStats(display: (stat: StatName) => string, compact?: boolean, gen?: Generation) {
+export function displayStats(
+  display: (stat: StatName) => string,
+  compact?: boolean,
+  gen?: Generation
+) {
   const skip = GEN(gen) === 1;
 
   const s = [];
-  for (const stat of S) {
+  for (const stat of STAT_ORDER) {
     if (skip && stat === 'spd') continue;
     const d = display(stat);
     s.push(compact ? d : `${d} ${STATS.display(stat, gen)}`);
@@ -25,18 +29,20 @@ export function displayStats(display: (stat: StatName) => string, compact?: bool
   return s.join(compact ? '/' : ' / ');
 }
 
+export function statOrder(gen?: Generation) {
+  return GEN(gen) === 1 ? RBY_STAT_ORDER : STAT_ORDER;
+}
+
 export function displayIVsEVs(
   display: (stat: StatName, type: 'iv' | 'ev') => string,
   compact?: boolean,
   gen?: Generation
 ) {
-  const skip = GEN(gen) === 1;
-
   const ivs = [];
   const evs = [];
-  for (const stat of S) {
-    if (skip && stat === 'spd') continue;
 
+  const order = statOrder(gen);
+  for (const stat of order) {
     const s = STATS.display(stat, gen);
     const iv = display(stat, 'iv');
     if (compact) {
@@ -51,6 +57,7 @@ export function displayIVsEVs(
       if (ev) evs.push(`${ev} ${s}`);
     }
   }
+
   return {evs, ivs};
 }
 
@@ -86,7 +93,9 @@ export function parseRange(s: string, max = Infinity) {
   return isNaN(max) ? undefined : {min, max};
 }
 
+const N = [...NATURES];
+
 export function getNatureFromPlusMinus(plus: StatName, minus: StatName) {
   if (plus === 'hp' || minus === 'hp') return undefined;
-  return N[(S.indexOf(plus) - 1) * 5 + (S.indexOf(minus) - 1)];
+  return N[(STAT_ORDER.indexOf(plus) - 1) * 5 + (STAT_ORDER.indexOf(minus) - 1)];
 }

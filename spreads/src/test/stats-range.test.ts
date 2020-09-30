@@ -1,3 +1,4 @@
+/* eslint-disable jest/prefer-to-contain */
 import {Stats} from '../stats';
 import {StatsRange} from '../stats-range';
 
@@ -7,10 +8,10 @@ describe('StatsRange', () => {
       min: {hp: 360, atk: 367, def: 250, spa: 203, spd: 235, spe: 180},
       max: {hp: 375, atk: 367, def: 260, spa: 205, spd: 239, spe: 187},
     });
-    expect(s).toContain(s.min);
-    expect(s).toContain(s.max);
-    expect(s).toContain({hp: 365, atk: 367, def: 255, spa: 204, spd: 237, spe: 185});
-    expect(s).not.toContain({hp: 365, atk: 368, def: 255, spa: 204, spd: 237, spe: 185});
+    expect(s.includes(s.min)).toBe(true);
+    expect(s.includes(s.max)).toBe(true);
+    expect(s.includes({hp: 365, atk: 367, def: 255, spa: 204, spd: 237, spe: 185})).toBe(true);
+    expect(s.includes({hp: 365, atk: 368, def: 255, spa: 204, spd: 237, spe: 185})).toBe(false);
   });
 
   test('toString', () => {
@@ -33,7 +34,7 @@ describe('StatsRange', () => {
   });
 
   test('fromString', () => {
-    expect(Stats.fromString(
+    expect(StatsRange.fromString(
       '360-375 HP / 367 Atk / 203-205 SpA / 235-239 SpD / 180-187 Spe'
     )).toBeUndefined();
 
@@ -51,9 +52,9 @@ describe('StatsRange', () => {
       min: {hp: 360, atk: 367, def: 250, spa: 203, spd: 203, spe: 180},
       max: {hp: 375, atk: 367, def: 260, spa: 205, spd: 205, spe: 187},
     });
-    expect(Stats.fromString('360-375 HP / 367 Atk / 250-260 Def / 180-187 Spe / 203-205 Spc'))
+    expect(StatsRange.fromString('360-375 HP / 367 Atk / 250-260 Def / 180-187 Spe / 203-205 Spc'))
       .toEqual(rby);
-    expect(Stats.fromString('360-375 /367 / 250-260/203-205 / 180-187')).toEqual(rby);
+    expect(StatsRange.fromString('360-375 /367 / 250-260/203-205 / 180-187')).toEqual(rby);
   });
 
   test('fromBase', () => {

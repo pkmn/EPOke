@@ -7,6 +7,7 @@ import {
   isRange,
   parseRange,
   Range,
+  statOrder,
 } from './common';
 import {STATS, Generation, GEN} from './data';
 import {Stats} from './stats';
@@ -79,18 +80,30 @@ export class StatsRange implements Range<StatsTable> {
   static fromString(s: string) {
     const min: Partial<StatsTable> = {};
     const max: Partial<StatsTable> = {};
-    const stats = [...STATS]; // XXX
-    const compact = !s.endsWith('e');
 
-    const split = s.split(compact ? '/' : ' / ');
-    if (split.length !== 6) return undefined;
-    for (const [i, range] of split.entries()) {
-      const val = parseRange(compact ? range : range.split(' ')[0]);
+    const split = s.split('/');
+    if (split.length < 5 || split.length > 6) return undefined;
+
+    const order = statOrder(split.length === 5 ? 1 : 8);
+    for (const [i, v] of split.entries()) {
+      const [range, name] = v.trim().split(/\s+/);
+      const val = parseRange(range);
       if (!val) return undefined;
-      const stat = stats[i];
+
+      const stat = (name && STATS.get(name)) || order[i];
       min[stat] = val.min;
       max[stat] = val.max;
     }
+
+    if (split.length === 5) {
+      min.spd = min.spa;
+      max.spd = max.spa;
+    }
+
+    for (const stat of STATS) {
+      if (min[stat] === undefined || max[stat] === undefined) return undefined;
+    }
+
     return new StatsRange(min as StatsTable, max as StatsTable);
   }
 

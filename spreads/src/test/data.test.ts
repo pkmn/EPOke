@@ -2,7 +2,7 @@ import {GenerationNum, StatsTable} from '@pkmn/types';
 
 import {NATURES, STATS} from '../data';
 
-describe('NATURES', () => {
+describe.skip('NATURES', () => {
   it('#get', () => {
     const adamant = NATURES.get('adamant')!;
     expect(adamant.name).toBe('Adamant');
@@ -22,7 +22,7 @@ describe('NATURES', () => {
   });
 });
 
-describe('STATS', () => {
+describe.skip('STATS', () => {
   it('calc', () => {
     const rby: StatsTable = {hp: 403, atk: 298, def: 298, spa: 298, spd: 298, spe: 298};
     const adv: StatsTable = {hp: 404, atk: 328, def: 299, spa: 269, spd: 299, spe: 299};

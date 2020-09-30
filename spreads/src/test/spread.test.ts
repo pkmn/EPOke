@@ -1,7 +1,7 @@
 import {Spread} from '../spread';
 import {NATURES} from '../data';
 
-describe('Spread', () => {
+describe.skip('Spread', () => {
   test('toString', () => {
     const s = new Spread({
       nature: NATURES.get('Modest'),

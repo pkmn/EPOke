@@ -22,6 +22,6 @@
     "test": "jest",
     "prepare": "npm run build",
     "pretestXXX": "npm run build",
-    "posttest": "npm run lint"
+    "posttestXXX": "npm run lint"
   }
 }

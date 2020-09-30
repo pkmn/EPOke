@@ -1,4 +1,4 @@
-describe('SpreadRange', () => {
+describe.skip('SpreadRange', () => {
   test('toString', () => {
   });
 
