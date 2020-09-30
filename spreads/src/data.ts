@@ -127,10 +127,12 @@ export const STATS = new class {
     stat: StatName,
     base: number,
     iv = 31,
-    ev = 252,
+    ev?: number,
     level = 100,
     nature?: Nature
   ) {
+    const g = GEN(gen);
+    if (ev === undefined) ev = g < 3 ? 252 : 0;
     if (GEN(gen) < 3) {
       iv = this.toDV(iv) * 2;
       nature = undefined;
