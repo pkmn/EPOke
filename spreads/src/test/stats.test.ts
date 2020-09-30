@@ -116,23 +116,24 @@ describe('Stats', () => {
       }
       expect(total).toBeGreaterThanOrEqual(0);
 
-      const s = Stats.toSpread(stats as StatsTable, base as StatsTable, gen, level);
+      const s = Stats.toSpread(stats as StatsTable, base as StatsTable, gen, level)!;
       expect(s).toBeDefined();
+      if (gen < 3) expect(s?.nature).toBeUndefined();
 
       total = 0;
       const calced: Partial<StatsTable> = {};
       for (const stat of STATS) {
-        if (s!.ivs[stat]) {
-          expect(s!.ivs[stat]).toBeGreaterThanOrEqual(0);
-          expect(s!.ivs[stat]).toBeLessThanOrEqual(31);
+        if (s.ivs[stat]) {
+          expect(s.ivs[stat]).toBeGreaterThanOrEqual(0);
+          expect(s.ivs[stat]).toBeLessThanOrEqual(31);
         }
-        if (s!.evs[stat]) {
-          expect(s!.evs[stat]).toBeGreaterThanOrEqual(0);
-          expect(s!.evs[stat]).toBeLessThanOrEqual(255);
-          total += s!.evs[stat]!;
+        if (s.evs[stat]) {
+          expect(s.evs[stat]).toBeGreaterThanOrEqual(0);
+          expect(s.evs[stat]).toBeLessThanOrEqual(255);
+          total += s.evs[stat]!;
         }
         calced[stat] =
-          STATS.calc(gen, stat, base[stat]!, s!.ivs[stat], s!.evs[stat], level, s!.nature);
+          STATS.calc(gen, stat, base[stat]!, s.ivs[stat], s.evs[stat], level, s.nature);
       }
       expect(total).toBeLessThanOrEqual(510);
       expect(calced).toEqual(stats);
