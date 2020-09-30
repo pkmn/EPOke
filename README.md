@@ -15,7 +15,7 @@ of a Pokemon AI.
 - [`@pkmn/epoke`](epoke): a wrapper around
   [`@pkmn/client`](https://github.com/pkmn/ps/tree/master/client) which ties together `@pkmn/gmd`,
   `@pkmn/predictor` and `@pkmn/spreads` to produce an enhanced client representation of a battle
-- [`@pkmn/gmd`](gmd): a reverse damage calculator build on top of
+- [`@pkmn/gmd`](gmd): a reverse damage calculator built on top of
   [`@pkmn/dmg`](https://github.com/pkmn/dmg) to deduce information about a Pokémon's moveset based
   on the damage it deals or receives in battle
 - [`@pkmn/predictor`](predictor): logic which combines usage stats information from

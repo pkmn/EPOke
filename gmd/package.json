@@ -4,7 +4,7 @@
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "unpkg": "build/index.umd.js",
-  "description": "TODO",
+  "description": "Reverse Pokémon damage calculator",
   "repository": "github:pkmn/EPOke",
   "license": "MIT",
   "publishConfig": {
