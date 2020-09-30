@@ -48,9 +48,9 @@ export class Stats implements StatsTable {
   }
 
   static fromString(s: string) {
-    const ranges = StatsRange.fromString(s);
-    if (!ranges) return undefined;
-    return ranges.toStats();
+    const range = StatsRange.fromString(s);
+    if (!range) return undefined;
+    return range.toStats();
   }
 
   static toRange(stats: StatsTable) {

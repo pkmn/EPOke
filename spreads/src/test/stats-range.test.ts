@@ -2,33 +2,34 @@
 import {Stats} from '../stats';
 import {StatsRange} from '../stats-range';
 
+const RANGE = new StatsRange({
+  min: {hp: 360, atk: 367, def: 250, spa: 203, spd: 235, spe: 180},
+  max: {hp: 375, atk: 367, def: 260, spa: 205, spd: 239, spe: 187},
+});
+
+const RBY = new StatsRange({
+  min: {hp: 360, atk: 367, def: 250, spa: 203, spd: 203, spe: 180},
+  max: {hp: 375, atk: 367, def: 260, spa: 205, spd: 205, spe: 187},
+});
+
 describe('StatsRange', () => {
   test('includes', () => {
-    const s = new StatsRange({
-      min: {hp: 360, atk: 367, def: 250, spa: 203, spd: 235, spe: 180},
-      max: {hp: 375, atk: 367, def: 260, spa: 205, spd: 239, spe: 187},
-    });
-    expect(s.includes(s.min)).toBe(true);
-    expect(s.includes(s.max)).toBe(true);
-    expect(s.includes({hp: 365, atk: 367, def: 255, spa: 204, spd: 237, spe: 185})).toBe(true);
-    expect(s.includes({hp: 365, atk: 368, def: 255, spa: 204, spd: 237, spe: 185})).toBe(false);
+    expect(RANGE.includes(RANGE.min)).toBe(true);
+    expect(RANGE.includes(RANGE.max)).toBe(true);
+    expect(RANGE.includes({hp: 365, atk: 367, def: 255, spa: 204, spd: 237, spe: 185})).toBe(true);
+    expect(RANGE.includes({hp: 365, atk: 10, def: 255, spa: 204, spd: 237, spe: 185})).toBe(false);
   });
 
   test('toString', () => {
-    const s = new StatsRange({
-      min: {hp: 360, atk: 367, def: 250, spa: 203, spd: 235, spe: 180},
-      max: {hp: 375, atk: 367, def: 260, spa: 205, spd: 239, spe: 187},
-    });
-
-    expect(StatsRange.display(s)).toEqual(
+    expect(StatsRange.display(RANGE)).toEqual(
       '360-375 HP / 367 Atk / 250-260 Def / 203-205 SpA / 235-239 SpD / 180-187 Spe'
     );
-    expect(StatsRange.display(s, true)).toEqual('360-375/367/250-260/203-205/235-239/180-187');
+    expect(StatsRange.display(RANGE, true)).toEqual('360-375/367/250-260/203-205/235-239/180-187');
 
-    expect(StatsRange.display(s, false, {num: 1})).toEqual(
+    expect(StatsRange.display(RANGE, false, {num: 1})).toEqual(
       '360-375 HP / 367 Atk / 250-260 Def / 203-205 Spc / 180-187 Spe'
     );
-    expect(StatsRange.display(s, true, 1)).toEqual(
+    expect(StatsRange.display(RANGE, true, 1)).toEqual(
       '360-375/367/250-260/203-205/180-187'
     );
   });
@@ -38,23 +39,19 @@ describe('StatsRange', () => {
       '360-375 HP / 367 Atk / 203-205 SpA / 235-239 SpD / 180-187 Spe'
     )).toBeUndefined();
 
-    const s = new StatsRange({
-      min: {hp: 360, atk: 367, def: 250, spa: 203, spd: 235, spe: 180},
-      max: {hp: 375, atk: 367, def: 260, spa: 205, spd: 239, spe: 187},
-    });
-    expect(StatsRange.fromString(s.toString())).toEqual(s);
+    expect(StatsRange.fromString(RANGE.toString())).toEqual(RANGE);
     expect(StatsRange.fromString(
       '367 Atk / 360-375 HP / 250-260 Def / 203-205 SpAtk / 180-187 Speed / 235-239 SpD'
-    )).toEqual(s);
-    expect(StatsRange.fromString('360-375/367/250-260/203-205/235-239/180-187')).toEqual(s);
+    )).toEqual(RANGE);
+    expect(StatsRange.fromString('360-375/367/250-260/203-205/235-239/180-187')).toEqual(RANGE);
 
-    const rby = new StatsRange({
-      min: {hp: 360, atk: 367, def: 250, spa: 203, spd: 203, spe: 180},
-      max: {hp: 375, atk: 367, def: 260, spa: 205, spd: 205, spe: 187},
-    });
     expect(StatsRange.fromString('360-375 HP / 367 Atk / 250-260 Def / 180-187 Spe / 203-205 Spc'))
-      .toEqual(rby);
-    expect(StatsRange.fromString('360-375 /367 / 250-260/203-205 / 180-187')).toEqual(rby);
+      .toEqual(RBY);
+    expect(StatsRange.fromString('360-375 /367 / 250-260/203-205 / 180-187')).toEqual(RBY);
+
+    expect(StatsRange.fromString('360-375/367/???/203-205/235-239/180-187')).toBeUndefined();
+    expect(StatsRange.fromString('360-375/367/250-260/203-205/235-239/<187')).toBeUndefined();
+    expect(StatsRange.fromString('360-375/367/250-260/>203/235-239/180-187')).toBeUndefined();
   });
 
   test('fromBase', () => {
@@ -79,10 +76,7 @@ describe('StatsRange', () => {
   });
 
   test('toStats', () => {
-    expect(StatsRange.toStats({
-      min: {hp: 360, atk: 367, def: 250, spa: 203, spd: 235, spe: 180},
-      max: {hp: 375, atk: 367, def: 260, spa: 205, spd: 239, spe: 187},
-    })).toBeUndefined();
+    expect(StatsRange.toStats(RANGE)).toBeUndefined();
     const s = new Stats({hp: 373, atk: 367, def: 256, spa: 203, spd: 237, spe: 187});
     expect(s.toRange().toStats()).toEqual(s);
   });

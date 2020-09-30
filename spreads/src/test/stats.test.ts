@@ -2,7 +2,7 @@
 import {GenerationNum, StatsTable} from '@pkmn/types';
 
 import {Stats} from '../stats';
-import {NATURES, STATS} from '../data';
+import * as data from '../data';
 
 const N = 10000;
 
@@ -50,6 +50,9 @@ class Random {
   }
 }
 
+const STATS = new Stats({hp: 373, atk: 367, def: 256, spa: 203, spd: 237, spe: 187});
+const RBY = {hp: 373, atk: 367, def: 256, spa: 203, spd: 203, spe: 187};
+
 describe('Stats', () => {
   test('equal', () => {
     expect(Stats.equal({hp: 5}, {atk: 5})).toBe(false);
@@ -58,38 +61,33 @@ describe('Stats', () => {
     expect(Stats.equal({hp: 5, def: 1}, {hp: 5, atk: 1})).toBe(false);
     expect(Stats.equal({hp: 5, atk: 1}, {hp: 5, atk: 1})).toBe(true);
 
-    const s = new Stats({hp: 373, atk: 367, def: 256, spa: 203, spd: 237, spe: 187});
-    expect(Stats.equal(s, s)).toBe(true);
+    expect(Stats.equal(STATS, STATS)).toBe(true);
   });
 
   test('toString', () => {
-    const s = new Stats({hp: 373, atk: 367, def: 256, spa: 203, spd: 237, spe: 187});
+    expect(Stats.display(STATS)).toEqual('373 HP / 367 Atk / 256 Def / 203 SpA / 237 SpD / 187 Spe');
+    expect(Stats.display(STATS, true)).toEqual('373/367/256/203/237/187');
 
-    expect(Stats.display(s)).toEqual('373 HP / 367 Atk / 256 Def / 203 SpA / 237 SpD / 187 Spe');
-    expect(Stats.display(s, true)).toEqual('373/367/256/203/237/187');
-
-    expect(Stats.display(s, false, 1)).toEqual('373 HP / 367 Atk / 256 Def / 203 Spc / 187 Spe');
-    expect(Stats.display(s, true, {num: 1})).toEqual('373/367/256/203/187');
+    expect(Stats.display(STATS, false, 1)).toEqual('373 HP / 367 Atk / 256 Def / 203 Spc / 187 Spe');
+    expect(Stats.display(STATS, true, {num: 1})).toEqual('373/367/256/203/187');
   });
 
   test('fromString', () => {
     expect(Stats.fromString('373 HP / 367 Atk / 256 Def / 203 SpA')).toBeUndefined();
 
-    const s = new Stats({hp: 373, atk: 367, def: 256, spa: 203, spd: 237, spe: 187});
-    expect(Stats.fromString(s.toString())).toEqual(s);
-    expect(Stats.fromString('367 Atk /373 HP /256 Def/ 187 Spd/203 SAtk / 237 SpDef ')).toEqual(s);
-    expect(Stats.fromString('373/367/256/203/237/187')).toEqual(s);
+    expect(Stats.fromString(STATS.toString())).toEqual(STATS);
+    expect(Stats.fromString('367 Atk /373 HP /256 Def/ 187 Spd/203 SAtk / 237 SpDef ')).toEqual(STATS);
+    expect(Stats.fromString('373/367/256/203/237/187')).toEqual(STATS);
 
-    const rby = {hp: 373, atk: 367, def: 256, spa: 203, spd: 203, spe: 187};
-    expect(Stats.fromString('373 HP / 367 Atk / 256 Def / 203 Spc / 187 Spe')).toEqual(rby);
-    expect(Stats.fromString('373/367/256/203/187')).toEqual(rby);
+
+    expect(Stats.fromString('373 HP / 367 Atk / 256 Def / 203 Spc / 187 Spe')).toEqual(RBY);
+    expect(Stats.fromString('373/367/256/203/187')).toEqual(RBY);
   });
 
   test('toRange', () => {
-    const s = new Stats({hp: 373, atk: 367, def: 256, spa: 203, spd: 237, spe: 187});
-    const r = s.toRange();
-    expect(r.min).toEqual(s);
-    expect(r.max).toEqual(s);
+    const r = STATS.toRange();
+    expect(r.min).toEqual(STATS);
+    expect(r.max).toEqual(STATS);
   });
 
   test.skip('toSpread', () => {
@@ -104,15 +102,15 @@ describe('Stats', () => {
       const ivs: Partial<StatsTable> = {};
       const evs: Partial<StatsTable> = {};
       const stats: Partial<StatsTable> = {};
-      const nature = gen >= 3 ? random.sample([...NATURES]) : undefined;
+      const nature = gen >= 3 ? random.sample([...data.NATURES]) : undefined;
 
       let total = 510;
-      for (const stat of STATS) {
+      for (const stat of data.STATS) {
         base[stat] = random.next(5, 255);
         ivs[stat] = random.next(0, 31);
         evs[stat] = random.next(0, Math.min(total, 252));
         total -= evs[stat]!;
-        stats[stat] = STATS.calc(gen, stat, base[stat]!, ivs[stat], evs[stat], level, nature);
+        stats[stat] = data.STATS.calc(gen, stat, base[stat]!, ivs[stat], evs[stat], level, nature);
       }
       expect(total).toBeGreaterThanOrEqual(0);
 
@@ -122,7 +120,7 @@ describe('Stats', () => {
 
       total = 0;
       const calced: Partial<StatsTable> = {};
-      for (const stat of STATS) {
+      for (const stat of data.STATS) {
         if (s.ivs[stat]) {
           expect(s.ivs[stat]).toBeGreaterThanOrEqual(0);
           expect(s.ivs[stat]).toBeLessThanOrEqual(31);
@@ -133,7 +131,7 @@ describe('Stats', () => {
           total += s.evs[stat]!;
         }
         calced[stat] =
-          STATS.calc(gen, stat, base[stat]!, s.ivs[stat], s.evs[stat], level, s.nature);
+          data.STATS.calc(gen, stat, base[stat]!, s.ivs[stat], s.evs[stat], level, s.nature);
       }
       expect(total).toBeLessThanOrEqual(510);
       expect(calced).toEqual(stats);

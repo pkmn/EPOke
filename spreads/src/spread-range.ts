@@ -1,7 +1,7 @@
 import {StatsTable} from '@pkmn/types';
 
 import {isRange, Range} from './common';
-import {Generation} from './data';
+import {Generation, GEN, STATS} from './data';
 import {Stats} from './stats';
 import {Spread, SpreadTable} from './spread';
 import {StatsRange} from './stats-range';
@@ -51,6 +51,31 @@ export class SpreadRange implements Range<SpreadTable> {
   }
 
   static toStatsRange(spread: Range<SpreadTable>, base: StatsTable, gen?: Generation, level = 100) {
-    return null! as StatsRange; // TODO
+    const mins: Partial<StatsTable> = {};
+    const maxes: Partial<StatsTable> = {};
+
+    const g = GEN(gen);
+    for (const stat of STATS) {
+      mins[stat] = STATS.calc(
+        g,
+        stat,
+        base[stat],
+        spread.min?.ivs?.[stat],
+        spread.min?.evs?.[stat],
+        level,
+        spread.min.nature,
+      );
+      maxes[stat] = STATS.calc(
+        g,
+        stat,
+        base[stat],
+        spread.max?.ivs?.[stat],
+        spread.max?.evs?.[stat],
+        level,
+        spread.max.nature,
+      );
+    }
+
+    return new StatsRange(mins as StatsTable, maxes as StatsTable);
   }
 }

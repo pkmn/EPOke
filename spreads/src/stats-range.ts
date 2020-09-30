@@ -101,7 +101,8 @@ export class StatsRange implements Range<StatsTable> {
     }
 
     for (const stat of STATS) {
-      if (min[stat] === undefined || max[stat] === undefined) return undefined;
+      // Stats cannot be 0, so its not necessary to check for === undefined
+      if (!min[stat] || !max[stat] || max[stat] === Infinity) return undefined;
     }
 
     return new StatsRange(min as StatsTable, max as StatsTable);

@@ -33,7 +33,7 @@ export function statOrder(gen?: Generation) {
   return GEN(gen) === 1 ? RBY_STAT_ORDER : STAT_ORDER;
 }
 
-export function displayIVsEVs(
+function displayIVsEVs(
   display: (stat: StatName, type: 'iv' | 'ev') => string,
   compact?: boolean,
   gen?: Generation

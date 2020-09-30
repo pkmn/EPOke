@@ -49,8 +49,10 @@ export class Spread implements SpreadTable {
     return null!; // TODO
   }
 
-  static fromString(s: string): Spread {
-    return null!; // TODO
+  static fromString(s: string): Spread | undefined {
+    const range = SpreadRange.fromString(s);
+    if (!range) return undefined;
+    return range.toSpread();
   }
 
   static toRange(spread: SpreadTable): SpreadRange {
@@ -59,12 +61,14 @@ export class Spread implements SpreadTable {
 
   static toStats(spread: SpreadTable, base: StatsTable, gen?: Generation, level = 100): Stats {
     const stats: Partial<StatsTable> = {};
+
     const g = GEN(gen);
     for (const stat of STATS) {
       stats[stat] = STATS.calc(
         g, stat, base[stat], spread.ivs?.[stat], spread.evs?.[stat], level, spread.nature
       );
     }
+
     return new Stats(stats as StatsTable);
   }
 }
