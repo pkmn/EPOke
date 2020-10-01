@@ -79,9 +79,9 @@ describe('Spread', () => {
 
   test('#toStats', () => {
     expect(SPREAD.toStats({hp: 60, atk: 65, def: 60, spa: 130, spd: 75, spe: 110}, 3))
-      .toEqual({hp: 275, atk: 178, def: 156, spa: 394, spd: 185, spe: 306});
+      .toEqual({hp: 275, atk: 121, def: 156, spa: 394, spd: 185, spe: 306});
 
     expect(Spread.toStats({}, {hp: 60, atk: 65, def: 60, spa: 130, spd: 75, spe: 110}, 1))
-      .toEqual({hp: 323, atk: 198, def: 218, spa: 358, spd: 358, spe: 318});
+      .toEqual({hp: 323, atk: 228, def: 218, spa: 358, spd: 248, spe: 318});
   });
 });
