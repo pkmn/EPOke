@@ -1,28 +1,28 @@
-import {StatsTable} from '@pkmn/types';
+import {StatsTable, NatureName} from '@pkmn/types';
 
-import {STATS, Generation, GEN, Nature} from './data';
+import {STATS, NATURES, GEN, Generation} from './data';
 import {Stats} from './stats';
 import {SpreadRange} from './spread-range';
 
 export interface SpreadTable<T = number> {
-  nature?: Nature;
+  nature?: NatureName;
   ivs?: Partial<StatsTable<T>>;
   evs?: Partial<StatsTable<T>>;
 }
 
 export class Spread implements SpreadTable {
-  nature?: Nature;
+  nature?: NatureName;
   ivs: Partial<StatsTable>;
   evs: Partial<StatsTable>;
 
   constructor(spread: SpreadTable);
-  constructor(nature: Nature | undefined, ivs: Partial<StatsTable>, evs: Partial<StatsTable>);
+  constructor(nature: NatureName | undefined, ivs: Partial<StatsTable>, evs: Partial<StatsTable>);
   constructor(
-    spread: SpreadTable | Nature | undefined,
+    spread: SpreadTable | NatureName | undefined,
     ivs?: Partial<StatsTable>,
     evs?: Partial<StatsTable>
   ) {
-    if (spread && !('name' in spread)) {
+    if (spread && typeof spread !== 'string') {
       this.nature = spread.nature;
       this.ivs = {...spread.ivs};
       this.evs = {...spread.evs};
@@ -64,9 +64,10 @@ export class Spread implements SpreadTable {
     const stats: Partial<StatsTable> = {};
 
     const g = GEN(gen);
+    const nature = spread.nature && NATURES.get(spread.nature);
     for (const stat of STATS) {
       stats[stat] = STATS.calc(
-        g, stat, base[stat], spread.ivs?.[stat], spread.evs?.[stat], level, spread.nature
+        g, stat, base[stat], spread.ivs?.[stat], spread.evs?.[stat], level, nature
       );
     }
 

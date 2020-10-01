@@ -1,14 +1,14 @@
-import {NATURES} from '../data';
+import {NatureName} from '@pkmn/types';
 import {SpreadRange} from '../spread-range';
 
 const RANGE = new SpreadRange({
   min: {
-    nature: NATURES.get('Docile'),
+    nature: 'Docile',
     evs: {spa: 252, hp: 20, spd: 0, spe: 200},
     ivs: {spd: 20, spa: 31, atk: 0, spe: 0},
   },
   max: {
-    nature: NATURES.get('Modest'),
+    nature: 'Modest',
     evs: {spa: 255, hp: 80, spd: 252, spe: 252},
     ivs: {spd: 31, spa: 31, atk: 10, spe: 31},
   },
@@ -43,7 +43,7 @@ describe('SpreadRange', () => {
   test('#toSpread', () => {
     expect(SpreadRange.toSpread(RANGE)).toBeUndefined();
     const s = {
-      nature: NATURES.get('Modest'),
+      nature: 'Modest' as NatureName,
       evs: {spa: 252, hp: 56, spe: 200},
       ivs: {spd: 30, atk: 0},
     };

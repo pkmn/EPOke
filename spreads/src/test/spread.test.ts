@@ -1,13 +1,12 @@
 import {Spread} from '../spread';
-import {NATURES} from '../data';
 
 const SPREAD = new Spread({
-  nature: NATURES.get('Modest'),
+  nature: 'Modest',
   evs: {spa: 252, hp: 56, spe: 200},
   ivs: {spd: 30, atk: 0},
 });
 
-const SPREAD2 = new Spread({nature: NATURES.get('Jolly'), evs: {atk: 252, def: 4, spe: 252}});
+const SPREAD2 = new Spread({nature: 'Jolly', evs: {atk: 252, def: 4, spe: 252}});
 
 const RBY = new Spread({ivs: {spd: 16, spa: 30, atk: 7}});
 

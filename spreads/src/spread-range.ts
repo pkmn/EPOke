@@ -1,7 +1,7 @@
-import {StatsTable, StatName} from '@pkmn/types';
+import {StatsTable} from '@pkmn/types';
 
 import {isRange, Range, displayRange, statOrder} from './common';
-import {Generation, GEN, STATS} from './data';
+import {GEN, STATS, NATURES, Generation} from './data';
 import {Stats} from './stats';
 import {Spread, SpreadTable} from './spread';
 import {StatsRange} from './stats-range';
@@ -42,11 +42,11 @@ export class SpreadRange implements Range<SpreadTable> {
     if (!range.min.nature || !range.max.nature) {
       nature = '???';
       if (!compact) nature += ' Nature';
-    } else if (range.min.nature?.name === range.max.nature?.name) {
-      const n = range.min.nature;
-      nature = `${n.name}`;
+    } else if (range.min.nature === range.max.nature) {
+      nature = `${range.min.nature}`;
       if (!compact) {
         nature += ' Nature';
+        const n = NATURES.get(range.min.nature);
         if (n.plus && n.minus) nature += ` (+${STATS.display(n.plus)}, -${STATS.display(n.minus)})`;
       }
     } else {
@@ -159,6 +159,8 @@ export class SpreadRange implements Range<SpreadTable> {
     const maxes: Partial<StatsTable> = {};
 
     const g = GEN(gen);
+    const minNature = spread.min.nature && NATURES.get(spread.min.nature);
+    const maxNature = spread.max.nature && NATURES.get(spread.max.nature);
     for (const stat of STATS) {
       mins[stat] = STATS.calc(
         g,
@@ -167,7 +169,7 @@ export class SpreadRange implements Range<SpreadTable> {
         spread.min?.ivs?.[stat],
         spread.min?.evs?.[stat],
         level,
-        spread.min.nature,
+        minNature,
       );
       maxes[stat] = STATS.calc(
         g,
@@ -176,7 +178,7 @@ export class SpreadRange implements Range<SpreadTable> {
         spread.max?.ivs?.[stat],
         spread.max?.evs?.[stat],
         level,
-        spread.max.nature,
+        maxNature,
       );
     }
 
@@ -188,7 +190,7 @@ const NONE = Object.create(null);
 
 function collapse(range: Range<SpreadTable>, skipIVs = false) {
   if (range.min === range.max) return range.min;
-  if (range.min.nature?.name !== range.max.nature?.name) return undefined;
+  if (range.min.nature !== range.max.nature) return undefined;
   if (!Stats.equal(range.min.evs || NONE, range.max.evs || NONE)) return undefined;
   if (skipIVs) return range.min;
   return Stats.equal(range.min.ivs || NONE, range.max.ivs || NONE) ? range.min : undefined;

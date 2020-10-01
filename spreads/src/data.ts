@@ -7,25 +7,14 @@ export function toID(text: any): ID {
   return ('' + text).toLowerCase().replace(/[^a-z0-9]+/g, '') as ID;
 }
 
-export interface NatureData {
+export interface Nature {
   name: NatureName;
   plus?: Exclude<StatName, 'hp'>;
   minus?: Exclude<StatName, 'hp'>;
 }
 
-export interface Nature extends NatureData {
-  readonly effectType: 'Nature';
-  readonly kind: 'Nature';
-  readonly id: ID;
-  readonly name: NatureName;
-  readonly gen: GenerationNum;
-  readonly exists?: boolean;
-
-  cached?: boolean;
-}
-
 // NOTE: We are depending on ES2015 ordering guarantees
-const DATA: { [k: string]: NatureData } = {
+const DATA: { [k: string]: Nature } = {
   hardy: {name: 'Hardy'},
   lonely: {name: 'Lonely', plus: 'atk', minus: 'def'},
   adamant: {name: 'Adamant', plus: 'atk', minus: 'spa'},
@@ -61,40 +50,15 @@ export type Generation = {num: GenerationNum} | GenerationNum;
 
 export const NATURES = new class {
   get(name: string) {
-    const nature = getNature(name);
-    return nature.exists ? nature : undefined;
+    return DATA[toID(name)]
   }
 
   *[Symbol.iterator]() {
     for (const nature in DATA) {
-      const n = this.get(nature);
-      if (n) yield n;
+      yield this.get(nature)!;
     }
   }
 };
-
-type Writable<T> = { -readonly [P in keyof T]: T[P] };
-
-function getNature(name?: string | Nature): Nature {
-  if (name && typeof name !== 'string') return name;
-
-  name = (name || '').trim();
-  const id = toID(name);
-  let nature = {} as Writable<Partial<Nature>>;
-  if (id && id !== 'constructor' && DATA[id]) {
-    nature = DATA[id];
-    if (nature.cached) return nature as Nature;
-    nature.cached = true;
-    nature.exists = true;
-  }
-  if (!nature.id) nature.id = id;
-  if (!nature.name) nature.name = name as NatureName;
-  if (!nature.effectType) nature.effectType = 'Nature';
-  if (!nature.kind) nature.kind = 'Nature';
-  if (!nature.gen) nature.gen = 3;
-
-  return nature as Nature;
-}
 
 const STAT_NAMES = ['hp', 'atk', 'def', 'spe', 'spa', 'spd'] as const;
 

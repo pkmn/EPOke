@@ -121,7 +121,19 @@ describe('Stats', () => {
 
       const s = Stats.toSpread(stats as StatsTable, base as StatsTable, gen, level)!;
       expect(s).toBeDefined();
-      if (gen < 3) expect(s?.nature).toBeUndefined();
+      let n: data.Nature | undefined;
+      if (gen < 3) {
+        expect(s.nature).toBeUndefined();
+      } else {
+        expect(s.nature).toBeDefined();
+        n = data.NATURES.get(s.nature!)!;
+        if (!nature!.plus && !nature!.minus) {
+          // Ensure we also use a neutral Nature if the generated stats came from a spread
+          // with a neutral Nature - EPOké want to have the flexibility to optimize later
+          expect(n.plus).toBeUndefined();
+          expect(n.minus).toBeUndefined();
+        }
+      }
 
       total = 0;
       const calced: Partial<StatsTable> = {};
@@ -136,7 +148,7 @@ describe('Stats', () => {
           total += s.evs[stat]!;
         }
         calced[stat] =
-          data.STATS.calc(gen, stat, base[stat]!, s.ivs[stat], s.evs[stat], level, s.nature);
+          data.STATS.calc(gen, stat, base[stat]!, s.ivs[stat], s.evs[stat], level, n);
       }
       expect(total).toBeLessThanOrEqual(510);
       expect(calced).toEqual(stats);
