@@ -162,7 +162,7 @@ function finishSpread(
   for (const stat of STATS) {
     if (stat === 'hp' || (gen === 1 && stat === 'spd')) continue;
 
-    const ev = statToEV(gen, stat, stats[stat], base[stat], ivs[stat], level, nature);
+    const ev = statToEV(gen, stat, stats[stat], base[stat], ivs[stat], level, nature, 4);
     if (ev > 252) return undefined;
     if (ev < 0) {
       const iv = findIV(gen, stat, stats[stat], base[stat], level, nature);
@@ -190,7 +190,7 @@ function finishSpread(
     if (actual < expected) return undefined;
     if (actual > expected) {
       ivs.hp = STATS.toIV(expected);
-      const ev = statToEV(gen, 'hp', stats.hp, base.hp, ivs.hp, level);
+      const ev = statToEV(gen, 'hp', stats.hp, base.hp, ivs.hp, level, nature, 4);
       if (ev < 0 || ev > 252) return undefined;
       total = total - evs.hp + ev;
       evs.hp = ev;
@@ -210,7 +210,7 @@ function finishSpread(
   //
   // This results in some edge case display issues, but the returned spread should still result
   // in the same *stats*.
-  return new Spread(nature, ivs, evs);
+  return new Spread(nature?.name, ivs, evs);
 }
 
 // Assuming a Pokémon can have a stat of up to 255, fully maxed out at level 100 this can be as
@@ -229,12 +229,13 @@ export function statToEV(
   base: number,
   iv: number,
   level: number,
-  nature?: Nature
+  nature?: Nature,
+  slop = SLOP,
 ) {
   if (stat === 'hp' && base === 1) return 0;
 
   // TODO: a closed form equation here would be signficantly easier than binary searching...
-  let [l, m, u] = [-SLOP, 252 / 2, 252 + SLOP];
+  let [l, m, u] = [-slop, 252 / 2, 252 + slop];
   while (l <= u) {
     m = 4 * Math.floor((l + u) / 8);
     const v = STATS.calc(gen, stat, base, iv, m, level, nature);

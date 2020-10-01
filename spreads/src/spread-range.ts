@@ -38,20 +38,24 @@ export class SpreadRange implements Range<SpreadTable> {
   static display(range: Range<SpreadTable>, compact?: boolean, gen?: Generation) {
     const g = GEN(gen);
 
-    let nature: string; // FIXME don't display if RBY/GSC!
-    if (!range.min.nature || !range.max.nature) {
-      nature = '???';
-      if (!compact) nature += ' Nature';
-    } else if (range.min.nature === range.max.nature) {
-      nature = `${range.min.nature}`;
-      if (!compact) {
-        nature += ' Nature';
-        const n = NATURES.get(range.min.nature);
-        if (n.plus && n.minus) nature += ` (+${STATS.display(n.plus)}, -${STATS.display(n.minus)})`;
+    let nature = '';
+    if (g >= 3) {
+      if (!range.min.nature || !range.max.nature) {
+        nature = '???';
+        if (!compact) nature += ' Nature';
+      } else if (range.min.nature === range.max.nature) {
+        nature = `${range.min.nature}`;
+        if (!compact) {
+          nature += ' Nature';
+          const n = NATURES.get(range.min.nature);
+          if (n.plus && n.minus) {
+            nature += ` (+${STATS.display(n.plus)}, -${STATS.display(n.minus)})`;
+          }
+        }
+      } else {
+        nature = `${range.min.nature}-${range.max.nature}`;
+        if (!compact) nature += ' Nature';
       }
-    } else {
-      nature = `${range.min.nature}-${range.max.nature}`;
-      if (!compact) nature += ' Nature';
     }
 
     const ivs = [];
