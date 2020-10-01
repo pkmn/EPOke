@@ -29,7 +29,7 @@ export function displayStats(
   return s.join(compact ? '/' : ' / ');
 }
 
-export function statOrder(gen?: Generation) {
+export function statOrder(gen?: Generation): readonly StatName[] {
   return GEN(gen) === 1 ? RBY_STAT_ORDER : STAT_ORDER;
 }
 

@@ -1,4 +1,4 @@
-import {StatsTable} from '@pkmn/types';
+import {StatsTable, GenerationNum} from '@pkmn/types';
 
 import {isRange, Range, displayRange, statOrder} from './common';
 import {GEN, STATS, NATURES, Generation} from './data';
@@ -67,86 +67,69 @@ export class SpreadRange implements Range<SpreadTable> {
 
       let min = range.min.ivs?.[stat];
       let max = range.max.ivs?.[stat];
+
       if (min === undefined) min = 31;
       if (max === undefined) max = 31;
-      // FIXME RBY needs DVS
-      const iv = displayRange({min, max}, 31);
+
+      if (g < 3) {
+        min = STATS.toDV(min);
+        max = STATS.toDV(max);
+      }
+
+      let d = g < 3 ? 15 : 31;
+      const iv = displayRange({min, max}, d);
       if (compact) {
         ivs.push(iv);
       } else {
-        if (iv !== '31') ivs.push(`${iv} ${s}`);
+        if (iv !== `${d}`) ivs.push(`${iv} ${s}`);
       }
 
-      // min = range.min.evs?.[stat];
-      // max = range.max.evs?.[stat];
-      // if (min === undefined) min = 0; // FIXME RBY needs default 252
-      // if (max === undefined) max = 0;
-      // const v = displayRange({ min, max }, 252);
-      // return !compact && v === '0' ? '' : v;
-      // if (compact) {
-      //   evs.push(ev);
-      // } else {
-      //   if (ev) evs.push(`${ev} ${s}`);
-      // }
-    }
+      min = range.min.evs?.[stat];
+      max = range.max.evs?.[stat];
 
-/*
-    const nature = displayNature({
-      min: range.min.nature,
-      max: range.max.nature,
-    });
-    const {evs, ivs} = displayIVsEVs((s, t) => {
-      if (t === 'iv') {
-        let min = range.min.ivs[s];
-        let max = range.max.ivs[s];
-        if (min === undefined) min = 31;
-        if (max === undefined) max = 31;
-        const v = displayRange({ min, max }, 31);
-        return !compact && v === '31' ? '' : v;
+      d = g < 3 ? 252 : 0;
+      if (min === undefined) min = d;
+      if (max === undefined) max = d;
+      const ev = displayRange({ min, max }, 252);
+      if (compact) {
+        evs.push(ev);
       } else {
-        let min = range.min.evs[s];
-        let max = range.max.evs[s];
-        if (min === undefined) min = 0;
-        if (max === undefined) max = 0;
-        const v = displayRange({ min, max }, 252);
-        return !compact && v === '0' ? '' : v;
+        if (ev !== `${d}`) evs.push(`${ev} ${s}`);
       }
-    }, compact);
-
-    if (compact) {
-      const s = `${nature} ${evs.join('/')}`;
-      const i = ivs.join('/');
-      return i === '31/31/31/31/31/31' ? s : `${s}\nIVs: ${i}`;
     }
 
-    let s = '';
-    if (evs.length) s += 'EVs: ' + evs.join(' / ') + '\n';
-    s += `${nature} Nature`;
-    if (ivs.length) s += '\nIVs: ' + ivs.join(' / ');
-    return s; */
-
-
-    /*
-
     if (compact) {
-      FIXME only do if can collapse(range, true)
-      if (spread.nature?.plus && spread.nature?.minus) {
-        const order = statOrder(gen) as readonly StatName[];
-        const plus = order.indexOf(spread.nature.plus);
-        const minus = order.indexOf(spread.nature.minus);
-        evs[plus] = `${evs[plus]}+`;
-        evs[minus] = `${evs[minus]}-`;
+      const s = collapse(range, true);
+      if (s && s.nature) {
+        const n = NATURES.get(s.nature);
+        if (n.plus && n.minus) {
+          const plus = order.indexOf(n.plus);
+          const minus = order.indexOf(n.minus);
+          evs[plus] = `${evs[plus]}+`;
+          evs[minus] = `${evs[minus]}-`;
+        }
       }
-      const s = `${spread.nature} ${evs.join('/')}`;
+
+      let buf = nature;
+      const e = evs.join('/');
+      if (e && e != defaults(g, 'ev')) {
+        buf = (buf ? buf + ' ' : buf) + `${e}`;
+      }
+
       const i = ivs.join('/');
-      return i === '31/31/31/31/31/31' ? s : `${s}\nIVs: ${i}`; // FIXME DVs and 15/15 etc
+      if (i && i !== defaults(g, 'iv')) {
+        buf = (buf ? buf + '\n' : buf) + (g < 3 ? `DVs: ${i}` : `IVs: ${i}`);
+      }
+      return buf;
     }
 
-    if (evs.length) s += 'EVs: ' + evs.join(' / ') + '\n';
+    let buf = nature;
+    const e = evs.join(' / ') || (g >= 3 ? '???' : '');
+    if (e) buf = (buf ? buf + '\n' : buf) + `EVs: ${e}`;
+    const i = ivs.join(' / ');
+    if (i) buf = (buf ? buf + '\n' : buf) + (g < 3 ? `DVs: ${i}` : `IVs: ${i}`);
 
-    if (ivs.length) s += '\nIVs: ' + ivs.join(' / '); // FIXME DVs
-    return s; */
-    return '';
+    return buf;
   }
 
   static fromString(s: string) {
@@ -198,4 +181,18 @@ function collapse(range: Range<SpreadTable>, skipIVs = false) {
   if (!Stats.equal(range.min.evs || NONE, range.max.evs || NONE)) return undefined;
   if (skipIVs) return range.min;
   return Stats.equal(range.min.ivs || NONE, range.max.ivs || NONE) ? range.min : undefined;
+}
+
+const RBY = {iv: '15/15/15/15/15', ev: '252/252/252/252/252'};
+const GSC = {iv: '15/15/15/15/15/15', ev: '252/252/252/252/252/252'};
+const ADV = {iv: '31/31/31/31/31/31'};
+
+function defaults(gen: GenerationNum, type: 'iv' | 'ev') {
+  if (gen === 1) {
+    return RBY[type];
+  } else if (gen === 2) {
+    return GSC[type];
+  } else {
+    return type === 'iv' ? ADV.iv : undefined;
+  }
 }

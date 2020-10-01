@@ -17,8 +17,8 @@ const RANGE = new SpreadRange({
 describe('SpreadRange', () => {
   test('#toString', () => {
     expect(RANGE.toString()).toEqual(
-      `EVs: 20-80 HP / 252 SpA / ??? SpD / >200 Spe\n` +
       `Docile-Modest Nature\n` +
+      `EVs: 20-80 HP / 252 SpA / ??? SpD / >200 Spe\n` +
       `IVs: <10 Atk / >20 SpD / ??? Spe`
     );
     expect(SpreadRange.display(RANGE, true)).toEqual(

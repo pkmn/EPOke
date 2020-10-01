@@ -33,12 +33,12 @@ describe('Spread', () => {
       'EVs: ???\n' +
       'IVs: 7 Atk / 30 SpA / 16 SpD'
     );
-    expect(Spread.display(RBY, false, 1)).toEqual('DVs: 3/15/15/15/15');
+    expect(Spread.display(RBY, false, 1)).toEqual('DVs: 3 Atk');
     expect(Spread.display(RBY, true)).toEqual(
-      '??? ???/???/???/???/???/???\n' +
+      '??? 0/0/0/0/0/0\n' +
       'IVs: 31/7/31/30/16/31'
     );
-    expect(Spread.display(RBY, true, 1)).toEqual('DVs: 3/15/15/15/15');
+    expect(Spread.display(RBY, true, 1)).toEqual('DVs: 15/3/15/15/15');
   });
 
   test('#fromString', () => {
