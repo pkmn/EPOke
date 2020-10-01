@@ -98,6 +98,7 @@ export class Stats implements StatsTable {
         if (ev < 0) {
           const iv = findIV(g, stat, stats[stat], base[stat], level);
           if (iv === undefined) return undefined;
+          if (STATS.calc(g, stat, base[stat], iv, 0, level) !== stats[stat]) return undefined;
           evs.hp = 0;
           ivs.hp = iv;
         } else {
@@ -123,85 +124,105 @@ export class Stats implements StatsTable {
       plus = max!;
     }
 
-    let nature: Nature | undefined;
+    const finish = (nature?: Nature) => finishSpread(g, stats, base, level, nature, ivs, evs);
     if (plus === 'hp') {
       if (minus === 'hp') {
-        nature = g < 3 ? undefined : NATURES.get('Serious');
+        return finish(g < 3 ? undefined : NATURES.get('Serious'));
       } else {
-        // possible to just subtract ivs instead of switching to non-neutral?
-        // FIXME be careful about gen 1 / 2
-
-        // TODO we need a negative nature, we do plus = max! for the positive nature.
+        // Even though minus is set we can't be sure that we need a negative Nature, its possible
+        // we can still finish the spread simply by reducing the IVs. We first try to make a
+        // neutral spread work, if not we fall back and just assume the stat which requires the most
+        // EVS is the buffed one.
+        const neutral = finish(g < 3 ? undefined : NATURES.get('Serious'));
+        return (neutral || g < 3) ? neutral : finish(getNatureFromPlusMinus(max!, minus));
       }
     } else {
       // We know gen >= 3 here because we would have aborted before this if we had required a Nature
       if (minus === 'hp') {
         // We need a positive Nature for plus but don't require a negative one for minus, so we
         // simply need to go with a Nature that is determinental to the stat with the least EVs.
-        nature = getNatureFromPlusMinus(plus, min!);
+        return finish(getNatureFromPlusMinus(plus, min!));
       } else {
-        nature = getNatureFromPlusMinus(plus, minus);
+        return finish(getNatureFromPlusMinus(plus, minus));
       }
     }
-
-    let total = 0;
-    for (const stat of STATS) {
-      if (stat === 'hp' || (g === 1 && stat === 'spd')) continue;
-
-      const ev = statToEV(g, stat, stats[stat], base[stat], ivs[stat], level, nature);
-      if (ev > 252) return undefined;
-      if (ev < 0) {
-        const iv = findIV(g, stat, stats[stat], base[stat], level, nature);
-        if (iv === undefined) return undefined;
-        evs[stat] = 0;
-        ivs[stat] = iv;
-      } else {
-        total += ev;
-      }
-    }
-
-    if (g < 3) {
-      if (gen === 1) {
-        evs.spd = evs.spa;
-        ivs.spd = ivs.spa;
-      }
-      // The HP DV in RBY/GSC is computed based on the DVs of the other stats - at this point the
-      // algorithm will have instead subtracted from EVs before touching the IVs. If the actual
-      // HP DV does not match the computed expected DV we will attempt to correct by redoing the
-      // HP EVs to compensate.
-      const actual = STATS.toDV(ivs.hp);
-      const expected = STATS.getHPDV(ivs);
-      // If the HP DV has already been reduced it means we already have 0 EVs and can't subtract
-      if (actual < expected) return undefined;
-      if (actual > expected) {
-        ivs.hp = STATS.toIV(expected);
-        const ev = statToEV(g, 'hp', stats.hp, base.hp, ivs.hp, level);
-        if (ev < 0 || ev > 252) return undefined;
-        total = total - evs.hp + ev;
-        evs.hp = ev;
-      }
-    } else {
-      if (total > 510) return undefined;
-    }
-
-    // Because of favoring subtracting from EVs instead of IVs and due to lack of complete set
-    // information the spread returned may still not necessarily be 'correct', as information that
-    // should be reflected in the IVs will instead show up in the EVs:
-    //
-    //   - The IVs will are unlikely to reflect the Pokémon's Hidden Power
-    //   - The Atk IVs in Gen 2 do not account for gender
-    //   - Spreads will often be sub-maximal (< 508 EVs) when in reality it is more likely that EVs
-    //     were maxed out and IVs were sub-maximal instead
-    //
-    // This results in some edge case display issues, but the returned spread should still result
-    // in the same *stats*.
-    return new Spread(nature, ivs, evs);
   }
 }
 
-const rud = (a: number, b: number) => Math.trunc(a / b) + (a % b === 0 ? 0 : 1);
+function finishSpread(
+  gen: GenerationNum,
+  stats: StatsTable,
+  base: StatsTable,
+  level: number,
+  nature: Nature | undefined,
+  ivs: StatsTable,
+  evs: StatsTable
+) {
+  let total = 0;
+  for (const stat of STATS) {
+    if (stat === 'hp' || (gen === 1 && stat === 'spd')) continue;
 
-function statToEV(
+    const ev = statToEV(gen, stat, stats[stat], base[stat], ivs[stat], level, nature);
+    if (ev > 252) return undefined;
+    if (ev < 0) {
+      const iv = findIV(gen, stat, stats[stat], base[stat], level, nature);
+      if (iv === undefined) return undefined;
+      if (STATS.calc(gen, stat, base[stat], iv, 0, level, nature) !== stats[stat]) return undefined;
+      evs[stat] = 0;
+      ivs[stat] = iv;
+    } else {
+      total += ev;
+    }
+  }
+
+  if (gen < 3) {
+    if (gen === 1) {
+      evs.spd = evs.spa;
+      ivs.spd = ivs.spa;
+    }
+    // The HP DV in RBY/GSC is computed based on the DVs of the other stats - at this point the
+    // algorithm will have instead subtracted from EVs before touching the IVs. If the actual
+    // HP DV does not match the computed expected DV we will attempt to correct by redoing the
+    // HP EVs to compensate.
+    const actual = STATS.toDV(ivs.hp);
+    const expected = STATS.getHPDV(ivs);
+    // If the HP DV has already been reduced it means we already have 0 EVs and can't subtract
+    if (actual < expected) return undefined;
+    if (actual > expected) {
+      ivs.hp = STATS.toIV(expected);
+      const ev = statToEV(gen, 'hp', stats.hp, base.hp, ivs.hp, level);
+      if (ev < 0 || ev > 252) return undefined;
+      total = total - evs.hp + ev;
+      evs.hp = ev;
+    }
+  } else {
+    if (total > 510) return undefined;
+  }
+
+  // Because of favoring subtracting from EVs instead of IVs and due to lack of complete set
+  // information the spread returned may still not necessarily be 'correct', as information that
+  // should be reflected in the IVs will instead show up in the EVs:
+  //
+  //   - The IVs will are unlikely to reflect the Pokémon's Hidden Power
+  //   - The Atk IVs in Gen 2 do not account for gender
+  //   - Spreads will often be sub-maximal (< 508 EVs) when in reality it is more likely that EVs
+  //     were maxed out and IVs were sub-maximal instead
+  //
+  // This results in some edge case display issues, but the returned spread should still result
+  // in the same *stats*.
+  return new Spread(nature, ivs, evs);
+}
+
+// Assuming a Pokémon can have a stat of up to 255, fully maxed out at level 100 this can be as
+// high as 609 with a neutral Nature and 669 with a boosting Nature. This amount to 60 stat points
+// which requires 240 EVs, so 252 ensures we have enough room to attempt to cover this case. In
+// practice this could likely be trimmed down dramatically for performance reasons.
+const SLOP = 252;
+
+// Return the minimum number of EVs required to hit a particular val. NOTE: This method will return
+// illegal EVs (up to SLOP more or less than would normally be allowed) as the magnitude of EVs that
+// would theoretically be required is important for the design of the algorithm.
+export function statToEV(
   gen: GenerationNum,
   stat: StatName,
   val: number,
@@ -210,21 +231,34 @@ function statToEV(
   level: number,
   nature?: Nature
 ) {
-  let ev;
-  if (stat === 'hp') {
-    ev = base === 1 ? 0 : Math.max(0, (rud((val - level - 10) * 100, level) - 2 * base - iv) * 4);
-  } else {
-    const n = !nature ? 1 : nature.plus === stat ? 1.1 : nature.minus === stat ? 0.9 : 1;
-    ev = Math.max(0, (rud((rud(val, n) - 5) * 100, level) - 2 * base - iv) * 4);
+  if (stat === 'hp' && base === 1) return 0;
+
+  // TODO: a closed form equation here would be signficantly easier than binary searching...
+  let [l, m, u] = [-SLOP, 252 / 2, 252 + SLOP];
+  while (l <= u) {
+    m = 4 * Math.floor((l + u) / 8);
+    const v = STATS.calc(gen, stat, base, iv, m, level, nature);
+    if (v < val) {
+      l = m + 1;
+    } else if (v === val) {
+      // We've found an EV that will work, but we want the lowest EV that still works
+      let ev = m;
+      for (; ev > -SLOP; ev -= 4) {
+        if (STATS.calc(gen, stat, base, iv, ev - 4, level, nature) < val) return ev;
+      }
+      return ev;
+    } else {
+      u = m - 1;
+    }
   }
-  // TODO: can we actually compute the EV without needing to search?
-  for (; ev > 0; ev -= 4) {
-    if (STATS.calc(gen, stat, base, iv, ev - 4, level, nature) !== val) break;
-  }
-  return ev;
+
+  // If we arrive here we effectively gave up searching - the value returned is inaccurate but
+  // the rest of the algorithm will end up failing elsewhere so its safe to return garbage.
+  return m;
 }
 
-function findIV(
+// Finds the maximum number of IVs such that with 0 EVs the stat comes out to a particular val.
+export function findIV(
   gen: GenerationNum,
   stat: StatName,
   val: number,
@@ -232,15 +266,26 @@ function findIV(
   level: number,
   nature?: Nature
 ) {
-  // TODO: use an equation instead of a loop?
-  let iv = 30;
-  let found = false;
-  const step = +(gen === 1) + 1;
-  for (; iv >= 0; iv -= step) {
-    if (STATS.calc(gen, stat, base, iv, 0, level, nature) === val) {
-      found = true;
-      break;
+  if (stat === 'hp' && base === 1) return 31;
+
+  // TODO: a closed form equation here would be signficantly easier than binary searching...
+  let [l, m, u] = [0, 15, 31];
+  while (l <= u) {
+    m = Math.floor((l + u) / 2);
+    const v = STATS.calc(gen, stat, base, m, 0, level, nature);
+    if (v < val) {
+      l = m + 1;
+    } else if (v === val) {
+      // We've found an IV that will work, but we want the highest IV that still works
+      let iv = m;
+      for (; iv < 31; iv++) {
+        if (STATS.calc(gen, stat, base, iv + 1, 0, level, nature) > val) return iv;
+      }
+      return iv;
+    } else {
+      u = m - 1;
     }
   }
-  return found ? iv : undefined;
+
+  return undefined;
 }

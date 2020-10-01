@@ -13,14 +13,14 @@ const RBY = new StatsRange({
 });
 
 describe('StatsRange', () => {
-  test('includes', () => {
+  test('#includes', () => {
     expect(RANGE.includes(RANGE.min)).toBe(true);
     expect(RANGE.includes(RANGE.max)).toBe(true);
     expect(RANGE.includes({hp: 365, atk: 367, def: 255, spa: 204, spd: 237, spe: 185})).toBe(true);
     expect(RANGE.includes({hp: 365, atk: 10, def: 255, spa: 204, spd: 237, spe: 185})).toBe(false);
   });
 
-  test('toString', () => {
+  test('#toString', () => {
     expect(StatsRange.display(RANGE)).toEqual(
       '360-375 HP / 367 Atk / 250-260 Def / 203-205 SpA / 235-239 SpD / 180-187 Spe'
     );
@@ -34,7 +34,7 @@ describe('StatsRange', () => {
     );
   });
 
-  test('fromString', () => {
+  test('#fromString', () => {
     expect(StatsRange.fromString(
       '360-375 HP / 367 Atk / 203-205 SpA / 235-239 SpD / 180-187 Spe'
     )).toBeUndefined();
@@ -54,7 +54,7 @@ describe('StatsRange', () => {
     expect(StatsRange.fromString('360-375/367/250-260/>203/235-239/180-187')).toBeUndefined();
   });
 
-  test('fromBase', () => {
+  test('#fromBase', () => {
     expect(StatsRange.fromBase({hp: 60, atk: 65, def: 60, spa: 130, spd: 75, spe: 110})).toEqual({
       min: {hp: 230, atk: 121, def: 112, spa: 238, spd: 139, spe: 202},
       max: {hp: 324, atk: 251, def: 240, spa: 394, spd: 273, spe: 350},
@@ -75,11 +75,13 @@ describe('StatsRange', () => {
     });
   });
 
-  test('toStats', () => {
+  test('#toStats', () => {
     expect(StatsRange.toStats(RANGE)).toBeUndefined();
     const s = new Stats({hp: 373, atk: 367, def: 256, spa: 203, spd: 237, spe: 187});
     expect(s.toRange().toStats()).toEqual(s);
   });
 
-  test.todo('toSpreadRange'); // TODO normal expects - some should be impossible = undefined
+  test.skip('#toSpreadRange', () => {
+    // TODO normal expects - some should be impossible = undefined
+  });
 });

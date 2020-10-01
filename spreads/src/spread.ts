@@ -24,42 +24,43 @@ export class Spread implements SpreadTable {
   ) {
     if (spread && !('name' in spread)) {
       this.nature = spread.nature;
-      this.ivs = spread.ivs || {};
-      this.evs = spread.evs || {};
+      this.ivs = {...spread.ivs};
+      this.evs = {...spread.evs};
     } else {
       this.nature = spread;
-      this.ivs = ivs!;
-      this.evs = evs!;
+      this.ivs = {...ivs};
+      this.evs = {...evs};
     }
   }
 
-  toString(): string {
+  toString() {
     return Spread.display(this);
   }
 
-  toRange(): SpreadRange {
+  toRange() {
     return Spread.toRange(this);
   }
 
-  toStats(base: StatsTable, gen?: Generation, level = 100): Stats {
+  toStats(base: StatsTable, gen?: Generation, level = 100) {
     return Spread.toStats(this, base, gen, level);
   }
 
-  static display(spread: SpreadTable, compact?: boolean, gen?: Generation): string {
-    return null!; // TODO
+  static display(spread: SpreadTable, compact?: boolean, gen?: Generation) {
+    // NOTE: we are deliberately not calling toRange to avoid unnecessary copying
+    return SpreadRange.display({min: spread, max: spread}, compact, gen);
   }
 
-  static fromString(s: string): Spread | undefined {
+  static fromString(s: string) {
     const range = SpreadRange.fromString(s);
     if (!range) return undefined;
     return range.toSpread();
   }
 
-  static toRange(spread: SpreadTable): SpreadRange {
+  static toRange(spread: SpreadTable) {
     return new SpreadRange(spread, spread);
   }
 
-  static toStats(spread: SpreadTable, base: StatsTable, gen?: Generation, level = 100): Stats {
+  static toStats(spread: SpreadTable, base: StatsTable, gen?: Generation, level = 100) {
     const stats: Partial<StatsTable> = {};
 
     const g = GEN(gen);

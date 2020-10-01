@@ -33,34 +33,6 @@ export function statOrder(gen?: Generation) {
   return GEN(gen) === 1 ? RBY_STAT_ORDER : STAT_ORDER;
 }
 
-function displayIVsEVs(
-  display: (stat: StatName, type: 'iv' | 'ev') => string,
-  compact?: boolean,
-  gen?: Generation
-) {
-  const ivs = [];
-  const evs = [];
-
-  const order = statOrder(gen);
-  for (const stat of order) {
-    const s = STATS.display(stat, gen);
-    const iv = display(stat, 'iv');
-    if (compact) {
-      ivs.push(iv);
-    } else {
-      if (iv) ivs.push(`${iv} ${s}`);
-    }
-    const ev = display(stat, 'ev');
-    if (compact) {
-      evs.push(ev);
-    } else {
-      if (ev) evs.push(`${ev} ${s}`);
-    }
-  }
-
-  return {evs, ivs};
-}
-
 export function displayRange(range: Range<number>, max = Infinity) {
   if (range.min === range.max || range.min === max) return `${range.min}`;
   if (range.min === 0 && range.max >= max) return '???';

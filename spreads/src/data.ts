@@ -1,4 +1,4 @@
-
+// This code is cribbed from @pkmn/data and @pkmn/dex: https://github.com/pkmn/ps
 import {StatsTable, NatureName, StatName, GenerationNum, ID} from '@pkmn/types';
 
 export function toID(text: any): ID {
@@ -165,13 +165,6 @@ export const STATS = new class {
     if (s === undefined) return str;
     if (GEN(gen) === 1 && s === 'spa') s = 'spc';
     return DISPLAY[s][+full];
-  }
-
-  fill<T>(stats: Partial<StatsTable<T>>, val: T): StatsTable<T> {
-    for (const stat of STAT_NAMES) {
-      if (!(stat in stats)) stats[stat] = val;
-    }
-    return stats as StatsTable<T>;
   }
 
   getHPDV(ivs: Partial<StatsTable>): number {

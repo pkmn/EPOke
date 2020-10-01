@@ -23,7 +23,7 @@ describe('NATURES', () => {
 });
 
 describe('STATS', () => {
-  it('calc', () => {
+  it('#calc', () => {
     const rby: StatsTable = {hp: 403, atk: 298, def: 298, spa: 298, spd: 298, spe: 298};
     const adv: StatsTable = {hp: 404, atk: 328, def: 299, spa: 269, spd: 299, spe: 299};
 
@@ -42,7 +42,7 @@ describe('STATS', () => {
     expect(STATS.calc(8, 'atk', 100, 31, 252, 100)).toBe(299);
   });
 
-  it('get', () => {
+  it('#get', () => {
     expect(STATS.get('foo')).not.toBeDefined();
     expect(STATS.get('Atk')).toBe('atk');
     expect(STATS.get('Spc')).toBe('spa');
@@ -50,7 +50,7 @@ describe('STATS', () => {
     expect(STATS.get('SAtk')).toBe('spa');
   });
 
-  it('display', () => {
+  it('#display', () => {
     expect(STATS.display('foo')).toBe('foo');
     expect(STATS.display('Atk')).toBe('Atk');
     expect(STATS.display('Spc')).toBe('SpA');
@@ -59,14 +59,7 @@ describe('STATS', () => {
     expect(STATS.display('SAtk', 1, true)).toBe('Special');
   });
 
-  it('fill', () => {
-    expect(STATS.fill({atk: 10, def: 12, spd: 15}, 31))
-      .toEqual({hp: 31, atk: 10, def: 12, spe: 31, spa: 31, spd: 15});
-    expect(STATS.fill({spa: 200, spe: 252}, 0))
-      .toEqual({hp: 0, atk: 0, def: 0, spe: 252, spa: 200, spd: 0});
-  });
-
-  it('getHPDV', () => {
+  it('#getHPDV', () => {
     expect(STATS.getHPDV({spa: STATS.toIV(15), spe: STATS.toIV(15)})).toBe(15);
     expect(
       STATS.getHPDV({

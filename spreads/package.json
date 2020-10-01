@@ -4,7 +4,7 @@
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "unpkg": "build/index.umd.js",
-  "description": "Library for manipulating and displaying Pokémoon stats, spreads, and ranges",
+  "description": "Library for manipulating and displaying Pokémon stats, spreads, and ranges",
   "repository": "github:pkmn/EPOke",
   "license": "MIT",
   "publishConfig": {

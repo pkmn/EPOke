@@ -15,7 +15,7 @@ const RANGE = new SpreadRange({
 });
 
 describe('SpreadRange', () => {
-  test('toString', () => {
+  test('#toString', () => {
     expect(RANGE.toString()).toEqual(
       `EVs: 20-80 HP / 252 SpA / ??? SpD / >200 Spe\n` +
       `Docile-Modest Nature\n` +
@@ -27,7 +27,7 @@ describe('SpreadRange', () => {
     );
   });
 
-  test('fromString', () => {
+  test('#fromString', () => {
     expect(SpreadRange.fromString(RANGE.toString())).toEqual(RANGE);
     expect(SpreadRange.fromString(
       `Docile - Modest Nature\n` +
@@ -40,17 +40,17 @@ describe('SpreadRange', () => {
     )).toEqual(RANGE);
   });
 
-  test('toSpread', () => {
+  test('#toSpread', () => {
     expect(SpreadRange.toSpread(RANGE)).toBeUndefined();
     const s = {
       nature: NATURES.get('Modest'),
       evs: {spa: 252, hp: 56, spe: 200},
       ivs: {spd: 30, atk: 0},
     };
-    expect(SpreadRange.toSpread({min: s, max: s})).toBe(s);
+    expect(SpreadRange.toSpread({min: s, max: s})).toEqual(s);
   });
 
-  test('toStatsRange', () => {
+  test('#toStatsRange', () => {
     expect(RANGE.toStatsRange({hp: 60, atk: 65, def: 60, spa: 130, spd: 75, spe: 110})).toEqual({
       min: {hp: 266, atk: 135, def: 156, spa: 359, spd: 175, spe: 275},
       max: {hp: 281, atk: 130, def: 156, spa: 394, spd: 249, spe: 319},

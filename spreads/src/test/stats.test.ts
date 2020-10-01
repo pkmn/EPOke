@@ -1,7 +1,7 @@
 /* eslint-disable jest/no-conditional-expect */
 import {GenerationNum, StatsTable} from '@pkmn/types';
 
-import {Stats} from '../stats';
+import {Stats, statToEV, findIV} from '../stats';
 import * as data from '../data';
 
 const N = 10000;
@@ -54,7 +54,7 @@ const STATS = new Stats({hp: 373, atk: 367, def: 256, spa: 203, spd: 237, spe: 1
 const RBY = {hp: 373, atk: 367, def: 256, spa: 203, spd: 203, spe: 187};
 
 describe('Stats', () => {
-  test('equal', () => {
+  test('#equal', () => {
     expect(Stats.equal({hp: 5}, {atk: 5})).toBe(false);
     expect(Stats.equal({hp: 5}, {hp: 5})).toBe(true);
     expect(Stats.equal({hp: 5}, {hp: 5, atk: 1})).toBe(false);
@@ -64,7 +64,7 @@ describe('Stats', () => {
     expect(Stats.equal(STATS, STATS)).toBe(true);
   });
 
-  test('toString', () => {
+  test('#toString', () => {
     expect(Stats.display(STATS)).toEqual('373 HP / 367 Atk / 256 Def / 203 SpA / 237 SpD / 187 Spe');
     expect(Stats.display(STATS, true)).toEqual('373/367/256/203/237/187');
 
@@ -72,7 +72,7 @@ describe('Stats', () => {
     expect(Stats.display(STATS, true, {num: 1})).toEqual('373/367/256/203/187');
   });
 
-  test('fromString', () => {
+  test('#fromString', () => {
     expect(Stats.fromString('373 HP / 367 Atk / 256 Def / 203 SpA')).toBeUndefined();
 
     expect(Stats.fromString(STATS.toString())).toEqual(STATS);
@@ -84,13 +84,13 @@ describe('Stats', () => {
     expect(Stats.fromString('373/367/256/203/187')).toEqual(RBY);
   });
 
-  test('toRange', () => {
+  test('#toRange', () => {
     const r = STATS.toRange();
     expect(r.min).toEqual(STATS);
     expect(r.max).toEqual(STATS);
   });
 
-  test.skip('toSpread', () => {
+  test.skip('#toSpread', () => {
     // TODO normal expects - some should be impossible = undefined
 
     const random = new Random();
@@ -105,9 +105,14 @@ describe('Stats', () => {
       const nature = gen >= 3 ? random.sample([...data.NATURES]) : undefined;
 
       let total = 510;
-      for (const stat of data.STATS) {
+      // NOTE: we iterate to ensure HP gets handled last after all of the other IVs have been
+      // rolled so that if we need to compute the expected HP DV in RBY/GSC we are able to
+      const order = [...data.STATS].reverse();
+      for (const stat of order) {
         base[stat] = random.next(5, 255);
-        ivs[stat] = random.next(0, 31);
+        ivs[stat] = stat === 'hp' && gen < 3
+          ? data.STATS.toIV(data.STATS.getHPDV(ivs))
+          : random.next(0, 31);
         evs[stat] = random.next(0, Math.min(total, 252));
         total -= evs[stat]!;
         stats[stat] = data.STATS.calc(gen, stat, base[stat]!, ivs[stat], evs[stat], level, nature);
@@ -136,5 +141,45 @@ describe('Stats', () => {
       expect(total).toBeLessThanOrEqual(510);
       expect(calced).toEqual(stats);
     }
+  });
+
+  test('statToEV', () => {
+    expect(statToEV(1, 'hp', 108, 100, 31, 25)).toEqual(248);
+    expect(statToEV(1, 'hp', 107, 100, 31, 25)).toEqual(232);
+    expect(statToEV(1, 'hp', 106, 100, 31, 25)).toEqual(216);
+
+    expect(statToEV(3, 'def', 113, 100, 31, 37)).toEqual(244);
+    expect(statToEV(3, 'def', 112, 100, 31, 37)).toEqual(236);
+    expect(statToEV(3, 'def', 111, 100, 31, 37)).toEqual(224);
+
+    const plus = data.NATURES.get('Modest');
+    expect(statToEV(8, 'spa', 232, 100, 20, 73, plus)).toEqual(252);
+    expect(statToEV(8, 'spa', 231, 100, 20, 73, plus)).toEqual(244);
+    expect(statToEV(8, 'spa', 229, 100, 20, 73, plus)).toEqual(240);
+
+    const minus = data.NATURES.get('Adamant');
+    expect(statToEV(8, 'spa', 16, 100, 13, 5, minus)).toEqual(188);
+    expect(statToEV(8, 'spa', 15, 100, 13, 5, minus)).toEqual(108);
+    expect(statToEV(8, 'spa', 14, 100, 13, 5, minus)).toEqual(28);
+  });
+
+  test('findIV', () => {
+    expect(findIV(1, 'hp', 76, 100, 20)).toEqual(31);
+    expect(findIV(1, 'hp', 75, 100, 20)).toEqual(29);
+    expect(findIV(1, 'hp', 73, 100, 20)).toEqual(19);
+
+    expect(findIV(8, 'atk', 51, 100, 20)).toEqual(31);
+    expect(findIV(8, 'atk', 50, 100, 20)).toEqual(29);
+    expect(findIV(8, 'atk', 49, 100, 20)).toEqual(24);
+
+    const plus = data.NATURES.get('Modest');
+    expect(findIV(8, 'spa', 132, 100, 50, plus)).toEqual(31);
+    expect(findIV(8, 'spa', 130, 100, 50, plus)).toEqual(29);
+    expect(findIV(8, 'spa', 129, 100, 50, plus)).toEqual(27);
+
+    const minus = data.NATURES.get('Adamant');
+    expect(findIV(8, 'spa', 108, 100, 50, minus)).toEqual(31);
+    expect(findIV(8, 'spa', 107, 100, 50, minus)).toEqual(29);
+    expect(findIV(8, 'spa', 106, 100, 50, minus)).toEqual(27);
   });
 });

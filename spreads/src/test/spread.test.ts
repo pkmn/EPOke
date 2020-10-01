@@ -12,7 +12,7 @@ const SPREAD2 = new Spread({nature: NATURES.get('Jolly'), evs: {atk: 252, def: 4
 const RBY = new Spread({ivs: {spd: 16, spa: 30, atk: 7}});
 
 describe('Spread', () => {
-  test('toString', () => {
+  test('#toString', () => {
     expect(SPREAD.toString()).toEqual(
       'Modest Nature (+SpA, -Atk)\n' +
       'EVs: 56 HP / 252 SpA / 200 Spe\n' +
@@ -42,7 +42,7 @@ describe('Spread', () => {
     expect(Spread.display(RBY, true, 1)).toEqual('DVs: 3/15/15/15/15');
   });
 
-  test('fromString', () => {
+  test('#fromString', () => {
     expect(Spread.fromString(SPREAD.toString())).toEqual(SPREAD);
     expect(Spread.fromString(
       'IVs: 0 Atk / 30 SpDef\n' +
@@ -72,13 +72,13 @@ describe('Spread', () => {
     expect(Spread.fromString('DVs: 3/15/15/15/15')).toEqual(RBY);
   });
 
-  test('toRange', () => {
+  test('#toRange', () => {
     const r = SPREAD.toRange();
     expect(r.min).toEqual(SPREAD);
     expect(r.max).toEqual(SPREAD);
   });
 
-  test('toStats', () => {
+  test('#toStats', () => {
     expect(SPREAD.toStats({hp: 60, atk: 65, def: 60, spa: 130, spd: 75, spe: 110}, 3))
       .toEqual({hp: 275, atk: 178, def: 156, spa: 394, spd: 185, spe: 306});
 
