@@ -14,7 +14,20 @@ const RBY2 = new Spread({evs: {atk: 0}, ivs: {spd: 16, spa: 30, atk: 7}});
 
 describe('Spread', () => {
   test('#equals', () => {
-    // XXX
+    expect(SPREAD.equals(SPREAD)).toBe(true);
+    expect(SPREAD.equals(SPREAD2)).toBe(false);
+
+    expect(Spread.equals({}, {})).toBe(true);
+    expect(Spread.equals({}, {nature: 'Serious'})).toBe(false);
+
+    expect(Spread.equals({nature: undefined}, {ivs: {}, evs: undefined})).toBe(true);
+    expect(Spread.equals({nature: undefined}, {ivs: {}, evs: {atk: 4}})).toBe(false);
+
+    expect(Spread.equals({evs: {atk: 0, def: 0}}, {ivs: {atk: 31}})).toBe(true);
+    expect(Spread.equals({evs: {atk: 0, def: 0}}, {ivs: {atk: 30}})).toBe(false);
+
+    expect(Spread.equals({evs: {atk: 252}}, {evs: {atk: 252}})).toBe(true);
+    expect(Spread.equals({evs: {atk: 252}}, {evs: {atk: 255}})).toBe(false);
   });
 
   test('#toString', () => {

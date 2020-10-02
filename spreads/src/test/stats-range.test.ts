@@ -14,7 +14,8 @@ const RBY = new StatsRange({
 
 describe('StatsRange', () => {
   test('#equals', () => {
-    // XXX
+    expect(RANGE.equals(RANGE)).toBe(true);
+    expect(RANGE.equals(RBY)).toBe(false);
   });
 
   test('#includes', () => {

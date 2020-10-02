@@ -16,7 +16,35 @@ const RANGE = new SpreadRange({
 
 describe('SpreadRange', () => {
   test('#equals', () => {
-    // XXX
+    expect(RANGE.equals(RANGE)).toBe(true);
+    const other = new SpreadRange(RANGE);
+    expect(RANGE.equals(other)).toBe(true);
+    other.min.nature = 'Gentle';
+    expect(RANGE.equals(other)).toBe(false);
+    other.min.nature = 'Docile';
+    other.max.evs.atk = 4;
+    expect(RANGE.equals(other)).toBe(false);
+    other.max.evs.atk = 0;
+    expect(RANGE.equals(other)).toBe(true);
+
+    expect(SpreadRange.equals({
+      min: {
+        ivs: {spa: 31},
+      },
+      max: {
+        nature: undefined,
+        evs: undefined,
+      },
+    },
+    {
+      min: {
+        nature: undefined,
+        evs: {atk: 0},
+      },
+      max: {
+        ivs: {spe: 31},
+      },
+    }));
   });
 
   test('#toString', () => {
