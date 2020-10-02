@@ -50,7 +50,7 @@ export type Generation = {num: GenerationNum} | GenerationNum;
 
 export const NATURES = new class {
   get(name: string) {
-    return DATA[toID(name)]
+    return DATA[toID(name)];
   }
 
   *[Symbol.iterator]() {

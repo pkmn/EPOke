@@ -51,7 +51,7 @@ export class StatsRange implements Range<StatsTable> {
   }
 
   static equals(a: Range<StatsTable>, b: Range<StatsTable>) {
-    return a === b || Stats.equals(a.min, b.min) && Stats.equals(a.max, b.max)
+    return a === b || Stats.equals(a.min, b.min) && Stats.equals(a.max, b.max);
   }
 
   static display(range: Range<StatsTable>, compact?: boolean, gen?: Generation) {

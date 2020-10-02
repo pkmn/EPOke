@@ -65,10 +65,12 @@ describe('Stats', () => {
   });
 
   test('#toString', () => {
-    expect(Stats.display(STATS)).toEqual('373 HP / 367 Atk / 256 Def / 203 SpA / 237 SpD / 187 Spe');
+    expect(Stats.display(STATS))
+      .toEqual('373 HP / 367 Atk / 256 Def / 203 SpA / 237 SpD / 187 Spe');
     expect(Stats.display(STATS, true)).toEqual('373/367/256/203/237/187');
 
-    expect(Stats.display(STATS, false, 1)).toEqual('373 HP / 367 Atk / 256 Def / 203 Spc / 187 Spe');
+    expect(Stats.display(STATS, false, 1))
+      .toEqual('373 HP / 367 Atk / 256 Def / 203 Spc / 187 Spe');
     expect(Stats.display(STATS, true, {num: 1})).toEqual('373/367/256/203/187');
   });
 
@@ -76,7 +78,8 @@ describe('Stats', () => {
     expect(Stats.fromString('373 HP / 367 Atk / 256 Def / 203 SpA')).toBeUndefined();
 
     expect(Stats.fromString(STATS.toString())).toEqual(STATS);
-    expect(Stats.fromString('367 Atk /373 HP /256 Def/ 187 Spd/203 SAtk / 237 SpDef ')).toEqual(STATS);
+    expect(Stats.fromString('367 Atk /373 HP /256 Def/ 187 Spd/203 SAtk / 237 SpDef '))
+      .toEqual(STATS);
     expect(Stats.fromString('373/367/256/203/237/187')).toEqual(STATS);
 
 

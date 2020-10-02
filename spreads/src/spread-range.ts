@@ -1,14 +1,20 @@
 import {StatsTable, GenerationNum, NatureName, StatName} from '@pkmn/types';
 
-import {isRange, Range, displayRange, statOrder, parseRange, getNatureFromPlusMinus} from './common';
+import {
+  displayRange,
+  getNatureFromPlusMinus,
+  isRange,
+  parseRange,
+  Range,
+  statOrder,
+} from './common';
 import {GEN, STATS, NATURES, Generation} from './data';
-import {Stats} from './stats';
 import {Spread, SpreadTable} from './spread';
 import {StatsRange} from './stats-range';
 
-const NATURE =
-  /^([?\w]+(?:\s*-\s*[?\w]+)?)\s+(?:(?:(?:Nature)?\s*(?:\(\s*\+\s*[?\w]+\s*,\s*-\s*[?\w]+\s*\))?)|(.*))$/i;
-const COMPACT = /^[-+?><\d\s\/]+$/;
+// eslint-disable-next-line max-len
+const NATURE = /^([?\w]+(?:\s*-\s*[?\w]+)?)\s+(?:(?:(?:Nature)?\s*(?:\(\s*\+\s*[?\w]+\s*,\s*-\s*[?\w]+\s*\))?)|(.*))$/i;
+const COMPACT = /^[-+?><\d\s/]+$/;
 
 export class SpreadRange implements Range<SpreadTable> {
   min: Spread;
@@ -35,7 +41,7 @@ export class SpreadRange implements Range<SpreadTable> {
     return SpreadRange.display(this);
   }
 
-  toSpread(){
+  toSpread() {
     return SpreadRange.toSpread(this);
   }
 
@@ -44,7 +50,7 @@ export class SpreadRange implements Range<SpreadTable> {
   }
 
   static equals(a: Range<SpreadTable>, b: Range<SpreadTable>) {
-    return a === b || Spread.equals(a.min, b.min) && Spread.equals(a.max, b.max)
+    return a === b || Spread.equals(a.min, b.min) && Spread.equals(a.max, b.max);
   }
 
   static display(range: Range<SpreadTable>, compact?: boolean, gen?: Generation) {
@@ -113,7 +119,7 @@ export class SpreadRange implements Range<SpreadTable> {
 
     if (compact) {
       const s = collapse(range);
-      if (s && s.nature) {
+      if (s?.nature) {
         const n = NATURES.get(s.nature);
         if (n.plus && n.minus) {
           const plus = order.indexOf(n.plus);
@@ -125,7 +131,7 @@ export class SpreadRange implements Range<SpreadTable> {
 
       let buf = nature;
       const e = evs.join('/');
-      if (e && e != defaults(g, 'ev')) {
+      if (e && e !== defaults(g, 'ev')) {
         buf += `${buf ? ' ' : 'EVs: '}${e}`;
       }
 
@@ -150,8 +156,8 @@ export class SpreadRange implements Range<SpreadTable> {
     let evs: Range<Partial<StatsTable>> | undefined;
     let ivs: Range<Partial<StatsTable>> | undefined;
 
-    const parseEVs = (s: string) => {
-      const r = parseSpreadValues(s, 'ev');
+    const parseEVs = (t: string) => {
+      const r = parseSpreadValues(t, 'ev');
       if (!r) return false;
       evs = r.spread;
       if (r.nature) {
@@ -242,7 +248,7 @@ function collapse(range: Range<SpreadTable>) {
   if (range.min === range.max) return range.min;
   if (range.min.nature !== range.max.nature) return undefined;
   for (const stat of STATS) {
-    if ((range.min.evs?.[stat] || 0) !== (range.min.evs?.[stat] || 0)) return undefined;
+    if ((range.min.evs?.[stat] || 0) !== (range.max.evs?.[stat] || 0)) return undefined;
   }
   return range.min;
 }
@@ -292,7 +298,7 @@ function parseSpreadValues(s: string, type: 'iv' | 'ev' | 'dv') {
       if (range.endsWith('+')) {
         range = range.slice(0, -1);
         plus = stat;
-      } else  if (range.endsWith('-')) {
+      } else if (range.endsWith('-')) {
         range = range.slice(0, -1);
         minus = stat;
       }
@@ -328,6 +334,6 @@ function parseSpreadValues(s: string, type: 'iv' | 'ev' | 'dv') {
   } else if ((plus && !minus) || (!plus && minus)) {
     return undefined;
   } else {
-    return {spread}
+    return {spread};
   }
 }
