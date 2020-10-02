@@ -44,7 +44,7 @@ describe('SpreadRange', () => {
       max: {
         ivs: {spe: 31},
       },
-    }));
+    })).toBe(true);
   });
 
   test('#toString', () => {

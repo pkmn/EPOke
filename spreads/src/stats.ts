@@ -105,7 +105,7 @@ export class Stats implements StatsTable {
       if (stat === 'hp') {
         if (ev > 252) return undefined;
         if (ev < 0) {
-          const iv = findIV(g, stat, stats[stat], base[stat], level);
+          const iv = findIV(g, stat, stats[stat], base[stat], 0, level);
           if (iv === undefined) return undefined;
           if (STATS.calc(g, stat, base[stat], iv, 0, level) !== stats[stat]) return undefined;
           evs.hp = 0;
@@ -113,6 +113,8 @@ export class Stats implements StatsTable {
         } else {
           evs.hp = ev;
         }
+      } else if (g < 3) {
+        if (ev > 252) return undefined;
       } else {
         const other = stat === 'spe' ? 'atk' : 'spe';
         const nature = ev < 0
@@ -120,7 +122,7 @@ export class Stats implements StatsTable {
           : getNatureFromPlusMinus(stat, other);
         const diff = ev - statToEV(g, stat, stats[stat], base[stat], ivs[stat], level, nature);
         if (ev > 252) {
-          if (plus !== 'hp' || g < 3) return undefined;
+          if (plus !== 'hp') return undefined;
           plus = stat;
         } else if (ev < 0) {
           if (minus === 'hp' || evs[minus] > diff) minus = stat;
@@ -172,21 +174,21 @@ function finishSpread(
   ivs: StatsTable,
   evs: StatsTable
 ) {
+  // console.log({gen, stats, base, level, nature, ivs, evs});
   let total = 0;
   for (const stat of STATS) {
     if (stat === 'hp' || (gen === 1 && stat === 'spd')) continue;
 
-    const ev = statToEV(gen, stat, stats[stat], base[stat], ivs[stat], level, nature);
+    const ev = Math.max(0, statToEV(gen, stat, stats[stat], base[stat], ivs[stat], level, nature));
     if (ev > 252) return undefined;
-    if (ev < 0) {
-      const iv = findIV(gen, stat, stats[stat], base[stat], level, nature);
-      if (iv === undefined) return undefined;
-      if (STATS.calc(gen, stat, base[stat], iv, 0, level, nature) !== stats[stat]) return undefined;
-      evs[stat] = 0;
-      ivs[stat] = iv;
-    } else {
-      total += ev;
-    }
+
+    const iv = findIV(gen, stat, stats[stat], base[stat], level, ev, nature);
+    if (iv === undefined) return undefined;
+    if (STATS.calc(gen, stat, base[stat], iv, ev, level, nature) !== stats[stat]) return undefined;
+    evs[stat] = ev;
+    ivs[stat] = iv;
+
+    total += ev;
   }
 
   if (gen < 3) {
@@ -264,6 +266,7 @@ export function findIV(
   stat: StatName,
   val: number,
   base: number,
+  ev: number,
   level: number,
   nature?: Nature
 ) {
@@ -274,14 +277,14 @@ export function findIV(
     // val - level - 10 = ⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋
     // ⌈((val - level - 10) * 100) / level⌉ = 2 * base + iv + ⌊ev/4⌋
     // ⌈((val - level - 10) * 100) / level⌉ - 2 * base - ⌊ev/4⌋ = iv
-    iv = Math.ceil(((val - level - 10) * 100) / level) - 2 * base;
+    iv = Math.ceil(((val - level - 10) * 100) / level) - 2 * base - Math.floor(ev / 4);
   } else {
     // val = ⌊(⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋ + 5) * nature⌋
     // ⌈(val / nature)⌉ - 5 = ⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋
     // ⌈(⌈(val / nature)⌉ - 5) * 100) / level⌉ = 2 * base + iv + ⌊ev/4⌋
     // ⌈(⌈(val / nature)⌉ - 5) * 100) / level⌉ - 2 * base - ⌊ev/4⌋ = iv
     const n = !nature ? 1 : nature.plus === stat ? 1.1 : nature.minus === stat ? 0.9 : 1;
-    iv = Math.ceil(((Math.ceil(val / n) - 5) * 100) / level) - 2 * base;
+    iv = Math.ceil(((Math.ceil(val / n) - 5) * 100) / level) - 2 * base - Math.floor(ev / 4);
   }
   if (iv < 0 || iv > 31) return undefined;
   // We've found an IV that will work, but we want the highest IV that still works. Technically we

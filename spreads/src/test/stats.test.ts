@@ -2,21 +2,16 @@
 import {GenerationNum, StatsTable} from '@pkmn/types';
 
 import {Stats, statToEV, findIV} from '../stats';
+import {Spread} from '../spread';
 import * as data from '../data';
 
 const N = 10000;
 
 class Random {
-  private seed: number;
+  seed: number;
 
-  constructor(n = 4 /* https://xkcd.com/221/ */) {
-    // Hash: https://burtleburtle.net/bob/hash/integer.html
-    n = n ^ 61 ^ (n >>> 16);
-    n = n + (n << 3);
-    n = n ^ (n >>> 4);
-    n = Math.imul(n, 0x27d4eb2d);
-    n = n ^ (n >>> 15);
-    this.seed = n >>> 0;
+  constructor(seed = 0x27d4eb2d) {
+    this.seed = seed;
   }
 
   // Mulberry32: https://gist.github.com/tommyettinger/46a874533244883189143505d203312c
@@ -93,11 +88,12 @@ describe('Stats', () => {
     expect(r.max).toEqual(STATS);
   });
 
-  test.skip('#toSpread', () => {
+  test('#toSpread', () => {
     // TODO normal expects - some should be impossible = undefined
 
     const random = new Random();
     for (let i = 0; i < N; i++) {
+      const seed = random.seed;
       const level = random.next(1, 100);
       const gen = random.next(1, 8) as GenerationNum;
 
@@ -107,54 +103,77 @@ describe('Stats', () => {
       const stats: Partial<StatsTable> = {};
       const nature = gen >= 3 ? random.sample([...data.NATURES]) : undefined;
 
-      let total = 510;
-      // NOTE: we iterate to ensure HP gets handled last after all of the other IVs have been
-      // rolled so that if we need to compute the expected HP DV in RBY/GSC we are able to
-      const order = [...data.STATS].reverse();
-      for (const stat of order) {
-        base[stat] = random.next(5, 255);
-        ivs[stat] = stat === 'hp' && gen < 3
-          ? data.STATS.toIV(data.STATS.getHPDV(ivs))
-          : random.next(0, 31);
-        evs[stat] = random.next(0, Math.min(total, 252));
-        total -= evs[stat]!;
-        stats[stat] = data.STATS.calc(gen, stat, base[stat]!, ivs[stat], evs[stat], level, nature);
-      }
-      expect(total).toBeGreaterThanOrEqual(0);
+      let spread: Spread | undefined;
+      let calced: Partial<StatsTable> | undefined;
 
-      const s = Stats.toSpread(stats as StatsTable, base as StatsTable, gen, level)!;
-      expect(s).toBeDefined();
-      let n: data.Nature | undefined;
-      if (gen < 3) {
-        expect(s.nature).toBeUndefined();
-      } else {
-        expect(s.nature).toBeDefined();
-        n = data.NATURES.get(s.nature!)!;
-        if (!nature!.plus && !nature!.minus) {
-          // Ensure we also use a neutral Nature if the generated stats came from a spread
-          // with a neutral Nature - EPOké want to have the flexibility to optimize later
-          expect(n.plus).toBeUndefined();
-          expect(n.minus).toBeUndefined();
+      try {
+        let total = 510;
+        // NOTE: we iterate to ensure HP gets handled last after all of the other IVs have been
+        // rolled so that if we need to compute the expected HP DV in RBY/GSC we are able to
+        const order = [...data.STATS].reverse();
+        for (const stat of order) {
+          base[stat] = random.next(5, 255);
+          ivs[stat] = stat === 'hp' && gen < 3
+            ? data.STATS.toIV(data.STATS.getHPDV(ivs))
+            : random.next(0, 31);
+          evs[stat] = random.next(0, Math.min(total, 252));
+          total -= evs[stat]!;
+          stats[stat] =
+            data.STATS.calc(gen, stat, base[stat]!, ivs[stat], evs[stat], level, nature);
         }
-      }
+        expect(total).toBeGreaterThanOrEqual(0);
 
-      total = 0;
-      const calced: Partial<StatsTable> = {};
-      for (const stat of data.STATS) {
-        if (s.ivs[stat]) {
-          expect(s.ivs[stat]).toBeGreaterThanOrEqual(0);
-          expect(s.ivs[stat]).toBeLessThanOrEqual(31);
+        spread = Stats.toSpread(stats as StatsTable, base as StatsTable, gen, level)!;
+        expect(spread).toBeDefined();
+        const s = spread;
+        let n: data.Nature | undefined;
+        if (gen < 3) {
+          expect(s.nature).toBeUndefined();
+        } else {
+          expect(s.nature).toBeDefined();
+          n = data.NATURES.get(s.nature!)!;
+          if (!nature!.plus && !nature!.minus) {
+            // Ensure we also use a neutral Nature if the generated stats came from a spread
+            // with a neutral Nature - EPOké want to have the flexibility to optimize later
+            expect(n.plus).toBeUndefined();
+            expect(n.minus).toBeUndefined();
+          }
         }
-        if (s.evs[stat]) {
-          expect(s.evs[stat]).toBeGreaterThanOrEqual(0);
-          expect(s.evs[stat]).toBeLessThanOrEqual(255);
-          total += s.evs[stat]!;
+
+        total = 0;
+        calced = {};
+        for (const stat of data.STATS) {
+          if (s.ivs[stat]) {
+            expect(s.ivs[stat]).toBeGreaterThanOrEqual(0);
+            expect(s.ivs[stat]).toBeLessThanOrEqual(31);
+          }
+          if (s.evs[stat]) {
+            expect(s.evs[stat]).toBeGreaterThanOrEqual(0);
+            expect(s.evs[stat]).toBeLessThanOrEqual(255);
+            total += s.evs[stat]!;
+          }
+          calced[stat] =
+            data.STATS.calc(gen, stat, base[stat]!, s.ivs[stat], s.evs[stat], level, n);
         }
-        calced[stat] =
-          data.STATS.calc(gen, stat, base[stat]!, s.ivs[stat], s.evs[stat], level, n);
+        expect(total).toBeLessThanOrEqual(510);
+
+        expect(calced).toEqual(stats);
+      } catch (err) {
+        const t = {nature: nature?.name, ivs, evs};
+        console.log(
+          `Seed: ${seed} (${i + 1}/${N})\n` +
+          `Generation: ${gen}\n` +
+          `Level: ${level}\n` +
+          `Base Stats: ${Stats.display(base as StatsTable, true, gen)}\n` +
+          '------------------------------\n' +
+          `Original: ${Spread.display(t, true, gen).replace('\n', ' ')}\n` +
+          `Computed: ${spread ? Spread.display(spread, true, gen).replace('\n', ' ') : 'N/A'}\n` +
+          '------------------------------\n' +
+          `Original: ${Stats.display(stats as StatsTable, true, gen)}\n` +
+          `Computed: ${calced ? Stats.display(calced as StatsTable, true, gen) : 'N/A'}\n`
+        );
+        throw err;
       }
-      expect(total).toBeLessThanOrEqual(510);
-      expect(calced).toEqual(stats);
     }
   });
 
@@ -179,22 +198,22 @@ describe('Stats', () => {
   });
 
   test('findIV', () => {
-    expect(findIV(1, 'hp', 76, 100, 20)).toEqual(31);
-    expect(findIV(1, 'hp', 75, 100, 20)).toEqual(29);
-    expect(findIV(1, 'hp', 73, 100, 20)).toEqual(19);
+    expect(findIV(1, 'hp', 76, 100, 0, 20)).toEqual(31);
+    expect(findIV(1, 'hp', 75, 100, 0, 20)).toEqual(29);
+    expect(findIV(1, 'hp', 73, 100, 0, 20)).toEqual(19);
 
-    expect(findIV(8, 'atk', 51, 100, 20)).toEqual(31);
-    expect(findIV(8, 'atk', 50, 100, 20)).toEqual(29);
-    expect(findIV(8, 'atk', 49, 100, 20)).toEqual(24);
+    expect(findIV(8, 'atk', 51, 100, 0, 20)).toEqual(31);
+    expect(findIV(8, 'atk', 50, 100, 0, 20)).toEqual(29);
+    expect(findIV(8, 'atk', 49, 100, 0, 20)).toEqual(24);
 
     const plus = data.NATURES.get('Modest');
-    expect(findIV(8, 'spa', 132, 100, 50, plus)).toEqual(31);
-    expect(findIV(8, 'spa', 130, 100, 50, plus)).toEqual(29);
-    expect(findIV(8, 'spa', 129, 100, 50, plus)).toEqual(27);
+    expect(findIV(8, 'spa', 132, 100, 0, 50, plus)).toEqual(31);
+    expect(findIV(8, 'spa', 130, 100, 0, 50, plus)).toEqual(29);
+    expect(findIV(8, 'spa', 129, 100, 0, 50, plus)).toEqual(27);
 
     const minus = data.NATURES.get('Adamant');
-    expect(findIV(8, 'spa', 108, 100, 50, minus)).toEqual(31);
-    expect(findIV(8, 'spa', 107, 100, 50, minus)).toEqual(29);
-    expect(findIV(8, 'spa', 106, 100, 50, minus)).toEqual(27);
+    expect(findIV(8, 'spa', 108, 100, 0, 50, minus)).toEqual(31);
+    expect(findIV(8, 'spa', 107, 100, 0, 50, minus)).toEqual(29);
+    expect(findIV(8, 'spa', 106, 100, 0, 50, minus)).toEqual(27);
   });
 });
