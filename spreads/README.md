@@ -20,29 +20,39 @@ Alternatively, as [detailed below](#browser), if you are using `@pkmn/spreads` i
 
 ## Usage
 
-#### `Stats` / `StatsRange`
-
-FIXME
+This library provides utilities for dealing with a Pokémon's **`Spread`** (Nature/EVs/IVs) and the
+computed **`Stats`** that result from combining a spread with a Pokémon's base stats data.
+Additionally, `@pkmn/spreads` contains logic for dealing with a **`Range`** of `Stats`
+(**`StatsRange`**) or `Spread` (**`SpreadRange`**). Typically, an opponent Pokémon's exact stats are
+unknown, but the range of possible values it could be can be tracked and gradually winnowed down. It
+is generally recommend that programs work with `Stats` and `StatsRange`, but humans tend to
+understand `Spread` and `SpreadRange` better. which makes the latter pair more suitable for display
+purposes. `Stats` must also be converted into a `Spread` in order to fill in a `PokemonSet`.
 
 ```ts
 import {Stats, StatsRange} from '@pkmn/spreads';
 
-...
+const base = Stats.fromString('60/65/60/130/75/110');
+const range = StatsRange.fromBase(base, 3);
+const spread = Spread.fromString('EVs: 172/0-/0/148/0/188+');
+const stats = spread.toStats(base, 3);
+
+// range.includes(stat) === true
+
+range.max = stats;
+console.log(range.toSpreadRange());
 ```
 
 FIXME
 
-#### `Spread` / `SpreadRange`
-
-FIXME
-
-```ts
-import {Spread, SpreadRange} from '@pkmn/spreads';
-
-...
+```txt
+Docile-Modest Nature
+EVs: 20-80 HP / 252 SpA / ??? SpD / >200 Spe
+IVs: <10 Atk / >20 SpD / ??? Spe
 ```
 
-FIXME
+[`@pkmn/gmd`](../gmd) and [`@pkmn/predictor`](../predictor) make extensive use of this package and
+can provide helpful examples for how these classes are intended to be used.
 
 ### Browser
 

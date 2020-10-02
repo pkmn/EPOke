@@ -10,7 +10,13 @@ const SPREAD2 = new Spread({nature: 'Jolly', evs: {atk: 252, def: 4, spe: 252}})
 
 const RBY = new Spread({ivs: {spd: 16, spa: 30, atk: 7}});
 
+const RBY2 = new Spread({evs: {atk: 0}, ivs: {spd: 16, spa: 30, atk: 7}});
+
 describe('Spread', () => {
+  test('#equals', () => {
+    // XXX
+  });
+
   test('#toString', () => {
     expect(SPREAD.toString()).toEqual(
       'Modest Nature (+SpA, -Atk)\n' +
@@ -33,42 +39,67 @@ describe('Spread', () => {
       'EVs: ???\n' +
       'IVs: 7 Atk / 30 SpA / 16 SpD'
     );
-    expect(Spread.display(RBY, false, 1)).toEqual('DVs: 3 Atk');
+    expect(Spread.display(RBY, false, 1)).toEqual(
+      'EVs: 0 HP / 0 Atk / 0 Def / 0 Spc / 0 Spe\n' +
+      'DVs: 3 Atk'
+    );
     expect(Spread.display(RBY, true)).toEqual(
       '??? 0/0/0/0/0/0\n' +
       'IVs: 31/7/31/30/16/31'
     );
-    expect(Spread.display(RBY, true, 1)).toEqual('DVs: 15/3/15/15/15');
+    expect(Spread.display(RBY, true, 1)).toEqual(
+      'EVs: 0/0/0/0/0\n' +
+      'DVs: 15/3/15/15/15'
+    );
+
+    expect(RBY2.toString()).toEqual(
+      '??? Nature\n' +
+      'EVs: ???\n' +
+      'IVs: 7 Atk / 30 SpA / 16 SpD'
+    );
+    expect(Spread.display(RBY2, false, 1)).toEqual(
+      'EVs: 0 HP / 0 Atk / 0 Def / 0 Spc / 0 Spe\n' +
+      'DVs: 3 Atk'
+    );
+    expect(Spread.display(RBY2, true)).toEqual(
+      '??? 0/0/0/0/0/0\n' +
+      'IVs: 31/7/31/30/16/31'
+    );
+    expect(Spread.display(RBY2, true, 1)).toEqual(
+      'EVs: 0/0/0/0/0\n' +
+      'DVs: 15/3/15/15/15'
+    );
   });
 
   test('#fromString', () => {
-    expect(Spread.fromString(SPREAD.toString())).toEqual(SPREAD);
+    expect(Spread.fromString(SPREAD.toString())!.equals(SPREAD)).toBe(true);
     expect(Spread.fromString(
       'IVs: 0 Atk / 30 SpDef\n' +
       'Modest Nature\n' +
       'EVs: 56 HP /  200 Speed / 252 SpAtk\n'
-    )).toEqual(SPREAD);
+    )!.equals(SPREAD)).toBe(true);
     expect(Spread.fromString(
       'IVs: 31/0/31/31/30/31\n' +
-      '56/0-/0/252+/0/200'
-    )).toEqual(SPREAD);
+      'EVs: 56/0-/0/252+/0/200'
+    )!.equals(SPREAD)).toBe(true);
 
     expect(Spread.fromString(
       'Jolly (+Atk, -SpA)\n' +
       'EVs: 252 Atk / 4 Def / 252 Spe'
-    )).toEqual(SPREAD2);
-    expect(Spread.fromString('Jolly 0/252/4/0/0/252')).toEqual(SPREAD2);
+    )!.equals(SPREAD2)).toBe(true);
+    expect(Spread.fromString('Jolly 0/252/4/0/0/252')!.equals(SPREAD2)).toBe(true);
 
     expect(Spread.fromString(
       '??? Nature\n' +
       'EVs: ???\n' +
       'IVs: 7 Atk / 30 SpA / 16 SpD'
-    )).toEqual(RBY);
-    expect(Spread.fromString(
-      '??? ???/???/???/???/???/???\n' +
-      'IVs: 31/7/31/30/16/31'
-    )).toEqual(RBY);
-    expect(Spread.fromString('DVs: 3/15/15/15/15')).toEqual(RBY);
+    )!.equals(RBY)).toBe(true);
+    expect(Spread.fromString('IVs: 31/7/31/30/16/31')!.equals(RBY)).toBe(true);
+
+    const copy = new Spread(RBY);
+    copy.ivs.spa = 31;
+    copy.ivs.spd = 31;
+    expect(Spread.fromString('DVs: 15/3/15/15/15')!.equals(copy)).toBe(true);
   });
 
   test('#toRange', () => {

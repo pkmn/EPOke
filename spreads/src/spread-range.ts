@@ -1,10 +1,14 @@
-import {StatsTable, GenerationNum} from '@pkmn/types';
+import {StatsTable, GenerationNum, NatureName, StatName} from '@pkmn/types';
 
-import {isRange, Range, displayRange, statOrder} from './common';
+import {isRange, Range, displayRange, statOrder, parseRange, getNatureFromPlusMinus} from './common';
 import {GEN, STATS, NATURES, Generation} from './data';
 import {Stats} from './stats';
 import {Spread, SpreadTable} from './spread';
 import {StatsRange} from './stats-range';
+
+const NATURE =
+  /^([?\w]+(?:\s*-\s*[?\w]+)?)\s+(?:(?:(?:Nature)?\s*(?:\(\s*\+\s*[?\w]+\s*,\s*-\s*[?\w]+\s*\))?)|(.*))$/i;
+const COMPACT = /^[-+?><\d\s\/]+$/;
 
 export class SpreadRange implements Range<SpreadTable> {
   min: Spread;
@@ -23,6 +27,10 @@ export class SpreadRange implements Range<SpreadTable> {
     }
   }
 
+  equals(other: Range<SpreadTable>) {
+    return SpreadRange.equals(this, other);
+  }
+
   toString() {
     return SpreadRange.display(this);
   }
@@ -33,6 +41,10 @@ export class SpreadRange implements Range<SpreadTable> {
 
   toStatsRange(base: StatsTable, gen?: Generation, level = 100) {
     return SpreadRange.toStatsRange(this, base, gen, level);
+  }
+
+  static equals(a: Range<SpreadTable>, b: Range<SpreadTable>) {
+    return a === b || Spread.equals(a.min, b.min) && Spread.equals(a.max, b.max)
   }
 
   static display(range: Range<SpreadTable>, compact?: boolean, gen?: Generation) {
@@ -61,6 +73,9 @@ export class SpreadRange implements Range<SpreadTable> {
     const ivs = [];
     const evs = [];
 
+    const dIV = g < 3 ? 15 : 31;
+    const dEV = g < 3 ? 252 : 0;
+
     const order = statOrder(gen);
     for (const stat of order) {
       const s = STATS.display(stat, gen);
@@ -76,30 +91,28 @@ export class SpreadRange implements Range<SpreadTable> {
         max = STATS.toDV(max);
       }
 
-      let d = g < 3 ? 15 : 31;
-      const iv = displayRange({min, max}, d);
+      const iv = displayRange({min, max}, dIV);
       if (compact) {
         ivs.push(iv);
       } else {
-        if (iv !== `${d}`) ivs.push(`${iv} ${s}`);
+        if (iv !== `${dIV}`) ivs.push(`${iv} ${s}`);
       }
 
       min = range.min.evs?.[stat];
       max = range.max.evs?.[stat];
 
-      d = g < 3 ? 252 : 0;
-      if (min === undefined) min = d;
-      if (max === undefined) max = d;
-      const ev = displayRange({ min, max }, 252);
+      if (min === undefined) min = 0;
+      if (max === undefined) max = 0;
+      const ev = displayRange({min, max}, 252);
       if (compact) {
         evs.push(ev);
       } else {
-        if (ev !== `${d}`) evs.push(`${ev} ${s}`);
+        if (ev !== `${dEV}`) evs.push(`${ev} ${s}`);
       }
     }
 
     if (compact) {
-      const s = collapse(range, true);
+      const s = collapse(range);
       if (s && s.nature) {
         const n = NATURES.get(s.nature);
         if (n.plus && n.minus) {
@@ -113,12 +126,12 @@ export class SpreadRange implements Range<SpreadTable> {
       let buf = nature;
       const e = evs.join('/');
       if (e && e != defaults(g, 'ev')) {
-        buf = (buf ? buf + ' ' : buf) + `${e}`;
+        buf += `${buf ? ' ' : 'EVs: '}${e}`;
       }
 
       const i = ivs.join('/');
       if (i && i !== defaults(g, 'iv')) {
-        buf = (buf ? buf + '\n' : buf) + (g < 3 ? `DVs: ${i}` : `IVs: ${i}`);
+        buf += (buf ? '\n' : '') + (g < 3 ? `DVs: ${i}` : `IVs: ${i}`);
       }
       return buf;
     }
@@ -133,12 +146,64 @@ export class SpreadRange implements Range<SpreadTable> {
   }
 
   static fromString(s: string) {
-    return null! as SpreadRange; // TODO
+    let nature: Range<NatureName> | undefined;
+    let evs: Range<Partial<StatsTable>> | undefined;
+    let ivs: Range<Partial<StatsTable>> | undefined;
+
+    const parseEVs = (s: string) => {
+      const r = parseSpreadValues(s, 'ev');
+      if (!r) return false;
+      evs = r.spread;
+      if (r.nature) {
+        if (!nature) {
+          nature = {min: r.nature, max: r.nature};
+        } else if (nature.min !== nature.max || nature.min !== r.nature) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    for (let line of s.trim().split('\n')) {
+      line = line.trim();
+      if (line.startsWith('IVs:')) {
+        const r = parseSpreadValues(line.slice(4), 'iv');
+        if (!r) return undefined;
+        ivs = r.spread;
+      } else if (line.startsWith('DVs:')) {
+        const r = parseSpreadValues(line.slice(4), 'dv');
+        if (!r) return undefined;
+        ivs = r.spread;
+      } else if (line.startsWith('EVs:')) {
+        if (!parseEVs(line.slice(4))) return undefined;
+      } else {
+        const m = NATURE.exec(line);
+        if (!m) return undefined;
+        const n = parseNature(m[1]);
+        if (n) {
+          if (!nature) {
+            nature = n;
+          } else if (nature.min !== n.min || nature.max !== n.max) {
+            return undefined;
+          }
+        }
+        if (m[2] && !parseEVs(m[2])) return undefined;
+      }
+    }
+
+    return new SpreadRange({
+      nature: nature?.min,
+      evs: evs?.min,
+      ivs: ivs?.min,
+    }, {
+      nature: nature?.max,
+      evs: evs?.max,
+      ivs: ivs?.max,
+    });
   }
 
   static toSpread(range: Range<SpreadTable>) {
-    const s = collapse(range);
-    return s && new Spread(s);
+    return Spread.equals(range.min, range.max) ? new Spread(range.min) : undefined;
   }
 
   static toStatsRange(spread: Range<SpreadTable>, base: StatsTable, gen?: Generation, level = 100) {
@@ -173,14 +238,13 @@ export class SpreadRange implements Range<SpreadTable> {
   }
 }
 
-const NONE = Object.create(null);
-
-function collapse(range: Range<SpreadTable>, skipIVs = false) {
+function collapse(range: Range<SpreadTable>) {
   if (range.min === range.max) return range.min;
   if (range.min.nature !== range.max.nature) return undefined;
-  if (!Stats.equal(range.min.evs || NONE, range.max.evs || NONE)) return undefined;
-  if (skipIVs) return range.min;
-  return Stats.equal(range.min.ivs || NONE, range.max.ivs || NONE) ? range.min : undefined;
+  for (const stat of STATS) {
+    if ((range.min.evs?.[stat] || 0) !== (range.min.evs?.[stat] || 0)) return undefined;
+  }
+  return range.min;
 }
 
 const RBY = {iv: '15/15/15/15/15', ev: '252/252/252/252/252'};
@@ -194,5 +258,76 @@ function defaults(gen: GenerationNum, type: 'iv' | 'ev') {
     return GSC[type];
   } else {
     return type === 'iv' ? ADV.iv : undefined;
+  }
+}
+
+function parseNature(s: string) {
+  const [lo, hi] = s.split('-');
+  const min = NATURES.get(lo)?.name;
+  if (min === undefined) return undefined;
+  if (hi === undefined) return {min, max: min};
+
+  const max = NATURES.get(hi)?.name;
+  return max === undefined ? undefined : {min, max};
+}
+
+function parseSpreadValues(s: string, type: 'iv' | 'ev' | 'dv') {
+  const min: Partial<StatsTable> = {};
+  const max: Partial<StatsTable> = {};
+
+  if (s.trim() === '???') return {min, max};
+
+  let plus: StatName | undefined;
+  let minus: StatName | undefined;
+
+  const compact = COMPACT.test(s);
+  const split = s.split('/');
+  if (compact && (split.length < 5 || split.length > 6)) return undefined;
+  const order = statOrder(split.length === 5 ? 1 : 8);
+  for (const [i, v] of split.entries()) {
+    let [range, name] = v.trim().split(/\s+/);
+    const stat = (name && STATS.get(name)) || (compact ? order[i] : undefined);
+    if (!stat) return undefined;
+    if (type === 'ev') {
+      if (range.endsWith('+')) {
+        range = range.slice(0, -1);
+        plus = stat;
+      } else  if (range.endsWith('-')) {
+        range = range.slice(0, -1);
+        minus = stat;
+      }
+    }
+    const val = parseRange(range, type === 'dv' ? 15 : type === 'iv' ? 31 : 252);
+    if (!val) return undefined;
+
+    if (type === 'dv') {
+      min[stat] = STATS.toIV(val.min);
+      max[stat] = STATS.toIV(val.max);
+    } else {
+      min[stat] = val.min;
+      max[stat] = val.max;
+    }
+  }
+
+  if (split.length === 5) {
+    min.spd = min.spa;
+    max.spd = max.spa;
+  }
+
+  for (const stat of STATS) {
+    if (stat in min && min[stat] === undefined ||
+        stat in max && max[stat] === undefined ||
+        max[stat] === Infinity) {
+      return undefined;
+    }
+  }
+
+  const spread = {min, max};
+  if (plus && minus) {
+    return {spread, nature: getNatureFromPlusMinus(plus, minus)?.name};
+  } else if ((plus && !minus) || (!plus && minus)) {
+    return undefined;
+  } else {
+    return {spread}
   }
 }

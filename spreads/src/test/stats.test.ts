@@ -54,14 +54,14 @@ const STATS = new Stats({hp: 373, atk: 367, def: 256, spa: 203, spd: 237, spe: 1
 const RBY = {hp: 373, atk: 367, def: 256, spa: 203, spd: 203, spe: 187};
 
 describe('Stats', () => {
-  test('#equal', () => {
-    expect(Stats.equal({hp: 5}, {atk: 5})).toBe(false);
-    expect(Stats.equal({hp: 5}, {hp: 5})).toBe(true);
-    expect(Stats.equal({hp: 5}, {hp: 5, atk: 1})).toBe(false);
-    expect(Stats.equal({hp: 5, def: 1}, {hp: 5, atk: 1})).toBe(false);
-    expect(Stats.equal({hp: 5, atk: 1}, {hp: 5, atk: 1})).toBe(true);
+  test('#equals', () => {
+    expect(Stats.equals({hp: 5}, {atk: 5})).toBe(false);
+    expect(Stats.equals({hp: 5}, {hp: 5})).toBe(true);
+    expect(Stats.equals({hp: 5}, {hp: 5, atk: 1})).toBe(false);
+    expect(Stats.equals({hp: 5, def: 1}, {hp: 5, atk: 1})).toBe(false);
+    expect(Stats.equals({hp: 5, atk: 1}, {hp: 5, atk: 1})).toBe(true);
 
-    expect(Stats.equal(STATS, STATS)).toBe(true);
+    expect(STATS.equals(STATS)).toBe(true);
   });
 
   test('#toString', () => {

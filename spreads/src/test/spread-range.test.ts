@@ -15,6 +15,10 @@ const RANGE = new SpreadRange({
 });
 
 describe('SpreadRange', () => {
+  test('#equals', () => {
+    // XXX
+  });
+
   test('#toString', () => {
     expect(RANGE.toString()).toEqual(
       `Docile-Modest Nature\n` +
@@ -28,16 +32,18 @@ describe('SpreadRange', () => {
   });
 
   test('#fromString', () => {
-    expect(SpreadRange.fromString(RANGE.toString())).toEqual(RANGE);
+    const comparable = new SpreadRange(RANGE);
+    comparable.max.evs.spa = 252;
+    expect(SpreadRange.fromString(RANGE.toString())!.equals(comparable)).toBe(true);
     expect(SpreadRange.fromString(
       `Docile - Modest Nature\n` +
       `IVs: >20 SpD /<10 Atk /  ??? Spe\n` +
       `EVs: 252 SpA /20-80 HP / ??? SpD/>200 Spe\n`
-    )).toEqual(RANGE);
+    )!.equals(comparable)).toBe(true);
     expect(SpreadRange.fromString(
       `IVs:  31/<10/31 /31/>20/???\n` +
       `Docile- Modest  20-80/ 0/0/252/???/>200\n`
-    )).toEqual(RANGE);
+    )!.equals(comparable)).toBe(true);
   });
 
   test('#toSpread', () => {

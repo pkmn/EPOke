@@ -22,6 +22,10 @@ export class Stats implements StatsTable {
     this.spe = stats.spe;
   }
 
+  equals(other: Partial<StatsTable>) {
+    return Stats.equals(this, other);
+  }
+
   toString() {
     return Stats.display(this);
   }
@@ -34,7 +38,7 @@ export class Stats implements StatsTable {
     return Stats.toSpread(this, base, gen, level);
   }
 
-  static equal(a: Partial<StatsTable>, b: Partial<StatsTable>) {
+  static equals(a: Partial<StatsTable>, b: Partial<StatsTable>) {
     if (a === b) return true;
     if (Object.keys(a).length !== Object.keys(b).length) return false;
     for (const stat of STATS) {
@@ -78,13 +82,18 @@ export class Stats implements StatsTable {
     // another stat requires more than 252 EVs already we can return immediately. If less than 0 EVs
     // are required the story is a little different because it could be either than the stat
     // requires a negative Nature *or* less than perfect IVs *or* both - we can't figure this out
-    // yet, instead we simply track the *most* negative stat as that is what will require the
-    // negative Nature if thats an option.
+    // yet, instead we simply track the stat which benefits most from being a negative Nature as
+    // that is what will get assigned the negative Nature if that's an option.
     //
     // We also need to track the total positive EVs - if this is greater than 510 EVs in ADV+ we
-    // know that a Nature is required, which we can assign to the max non-HP stat. The min non-HP
-    // stat is also tracked - this might not be the same as minus as if no stats require negative
-    // EVs, minus will still be 'hp' but min will be the stat with the least EVs.
+    // know that a Nature is required, which we can assign to the non-HP stat which would benefit
+    // most from the postive nature (the stat where the difference in EVs required from a boosting
+    // vs. neutral Nature is greatest - this isn't the same as the stat which requires the most EVs
+    // for a neutral Nature because differences in base stats can influence which stat will benefit
+    // most from a particular Nature). The non-HP stat which benefits the most from a negative
+    // Nature is also tracked - this might not be the same as minus as if no stats require negative
+    // EVs, minus will still be 'hp' but min will be the stat which if sees the largest benefit in
+    // terms of EVs required from having a negative Nature.
     let positive = 0;
     let max: StatName | undefined;
     let min: StatName | undefined;
@@ -105,15 +114,20 @@ export class Stats implements StatsTable {
           evs.hp = ev;
         }
       } else {
+        const other = stat === 'spe' ? 'atk' : 'spe';
+        const nature = ev < 0
+          ? getNatureFromPlusMinus(other, stat)
+          : getNatureFromPlusMinus(stat, other);
+        const diff = ev - statToEV(g, stat, stats[stat], base[stat], ivs[stat], level, nature);
         if (ev > 252) {
           if (plus !== 'hp' || g < 3) return undefined;
           plus = stat;
         } else if (ev < 0) {
-          if (minus === 'hp' || evs[minus] > ev) minus = stat;
+          if (minus === 'hp' || evs[minus] > diff) minus = stat;
         }
-        evs[stat] = ev;
-        if (max === undefined || evs[max] < ev) max = stat;
-        if (min === undefined || evs[min] > ev) min = stat;
+        evs[stat] = diff;
+        if (max === undefined || evs[max] < diff) max = stat;
+        if (min === undefined || evs[min] > diff) min = stat;
       }
     }
 
@@ -162,7 +176,7 @@ function finishSpread(
   for (const stat of STATS) {
     if (stat === 'hp' || (gen === 1 && stat === 'spd')) continue;
 
-    const ev = statToEV(gen, stat, stats[stat], base[stat], ivs[stat], level, nature, 4);
+    const ev = statToEV(gen, stat, stats[stat], base[stat], ivs[stat], level, nature);
     if (ev > 252) return undefined;
     if (ev < 0) {
       const iv = findIV(gen, stat, stats[stat], base[stat], level, nature);
@@ -190,7 +204,7 @@ function finishSpread(
     if (actual < expected) return undefined;
     if (actual > expected) {
       ivs.hp = STATS.toIV(expected);
-      const ev = statToEV(gen, 'hp', stats.hp, base.hp, ivs.hp, level, nature, 4);
+      const ev = statToEV(gen, 'hp', stats.hp, base.hp, ivs.hp, level, nature);
       if (ev < 0 || ev > 252) return undefined;
       total = total - evs.hp + ev;
       evs.hp = ev;
@@ -213,14 +227,8 @@ function finishSpread(
   return new Spread(nature?.name, ivs, evs);
 }
 
-// Assuming a Pokémon can have a stat of up to 255, fully maxed out at level 100 this can be as
-// high as 609 with a neutral Nature and 669 with a boosting Nature. This amount to 60 stat points
-// which requires 240 EVs, so 252 ensures we have enough room to attempt to cover this case. In
-// practice this could likely be trimmed down dramatically for performance reasons.
-const SLOP = 252;
-
 // Return the minimum number of EVs required to hit a particular val. NOTE: This method will return
-// illegal EVs (up to SLOP more or less than would normally be allowed) as the magnitude of EVs that
+// illegal EVs (up to slop more or less than would normally be allowed) as the magnitude of EVs that
 // would theoretically be required is important for the design of the algorithm.
 export function statToEV(
   gen: GenerationNum,
@@ -230,32 +238,24 @@ export function statToEV(
   iv: number,
   level: number,
   nature?: Nature,
-  slop = SLOP,
 ) {
-  if (stat === 'hp' && base === 1) return 0;
-
-  // TODO: a closed form equation here would be signficantly easier than binary searching...
-  let [l, m, u] = [-slop, 252 / 2, 252 + slop];
-  while (l <= u) {
-    m = 4 * Math.floor((l + u) / 8);
-    const v = STATS.calc(gen, stat, base, iv, m, level, nature);
-    if (v < val) {
-      l = m + 1;
-    } else if (v === val) {
-      // We've found an EV that will work, but we want the lowest EV that still works
-      let ev = m;
-      for (; ev > -SLOP; ev -= 4) {
-        if (STATS.calc(gen, stat, base, iv, ev - 4, level, nature) < val) return ev;
-      }
-      return ev;
-    } else {
-      u = m - 1;
-    }
+  if (gen < 3) iv = STATS.toDV(iv) * 2;
+  if (stat === 'hp') {
+    // val = ⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋ + level + 10
+    // val - level - 10 = ⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋
+    // ⌈((val - level - 10) * 100) / level⌉ = 2 * base + iv + ⌊ev/4⌋
+    // ⌈((val - level - 10) * 100) / level⌉ - 2 * base - iv = ⌊ev/4⌋
+    // (⌈((val - level - 10) * 100) / level⌉ - 2 * base - iv) * 4 = ev
+    return base === 1 ? 0 : (Math.ceil(((val - level - 10) * 100) / level) - 2 * base - iv) * 4;
+  } else {
+    // val = ⌊(⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋ + 5) * nature⌋
+    // ⌈(val / nature)⌉ - 5 = ⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋
+    // ⌈(⌈(val / nature)⌉ - 5) * 100) / level⌉ = (2 * base + iv + ⌊ev/4⌋
+    // ⌈(⌈(val / nature)⌉ - 5) * 100) / level⌉ - 2 * base - iv = ⌊ev/4⌋
+    // (⌈(⌈(val / nature)⌉ - 5) * 100) / level⌉ - 2 * base - iv) * 4 = ev
+    const n = !nature ? 1 : nature.plus === stat ? 1.1 : nature.minus === stat ? 0.9 : 1;
+    return (Math.ceil(((Math.ceil(val / n) - 5) * 100) / level) - 2 * base - iv) * 4;
   }
-
-  // If we arrive here we effectively gave up searching - the value returned is inaccurate but
-  // the rest of the algorithm will end up failing elsewhere so its safe to return garbage.
-  return m;
 }
 
 // Finds the maximum number of IVs such that with 0 EVs the stat comes out to a particular val.
@@ -267,26 +267,30 @@ export function findIV(
   level: number,
   nature?: Nature
 ) {
-  if (stat === 'hp' && base === 1) return 31;
-
-  // TODO: a closed form equation here would be signficantly easier than binary searching...
-  let [l, m, u] = [0, 15, 31];
-  while (l <= u) {
-    m = Math.floor((l + u) / 2);
-    const v = STATS.calc(gen, stat, base, m, 0, level, nature);
-    if (v < val) {
-      l = m + 1;
-    } else if (v === val) {
-      // We've found an IV that will work, but we want the highest IV that still works
-      let iv = m;
-      for (; iv < 31; iv++) {
-        if (STATS.calc(gen, stat, base, iv + 1, 0, level, nature) > val) return iv;
-      }
-      return iv;
-    } else {
-      u = m - 1;
-    }
+  let iv = 0;
+  if (stat === 'hp') {
+    if (base === 1) return 31;
+    // val = ⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋ + level + 10
+    // val - level - 10 = ⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋
+    // ⌈((val - level - 10) * 100) / level⌉ = 2 * base + iv + ⌊ev/4⌋
+    // ⌈((val - level - 10) * 100) / level⌉ - 2 * base - ⌊ev/4⌋ = iv
+    iv = Math.ceil(((val - level - 10) * 100) / level) - 2 * base;
+  } else {
+    // val = ⌊(⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋ + 5) * nature⌋
+    // ⌈(val / nature)⌉ - 5 = ⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋
+    // ⌈(⌈(val / nature)⌉ - 5) * 100) / level⌉ = 2 * base + iv + ⌊ev/4⌋
+    // ⌈(⌈(val / nature)⌉ - 5) * 100) / level⌉ - 2 * base - ⌊ev/4⌋ = iv
+    const n = !nature ? 1 : nature.plus === stat ? 1.1 : nature.minus === stat ? 0.9 : 1;
+    iv = Math.ceil(((Math.ceil(val / n) - 5) * 100) / level) - 2 * base;
+  }
+  if (iv < 0 || iv > 31) return undefined;
+  // We've found an IV that will work, but we want the highest IV that still works. Technically we
+  // could use binary search here but the equation should have gotten us pretty close already and
+  // its probably not worth it.
+  // TODO: can we find a closed form for max-IV instead of min-IV to remove the need to search?
+  for (; iv < 31; iv++) {
+    if (STATS.calc(gen, stat, base, iv + 1, 0, level, nature) > val) return iv;
   }
 
-  return undefined;
+  return iv;
 }

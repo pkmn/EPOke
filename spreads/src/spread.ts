@@ -33,6 +33,10 @@ export class Spread implements SpreadTable {
     }
   }
 
+  equals(other: SpreadTable) {
+    return Spread.equals(this, other);
+  }
+
   toString() {
     return Spread.display(this);
   }
@@ -43,6 +47,16 @@ export class Spread implements SpreadTable {
 
   toStats(base: StatsTable, gen?: Generation, level = 100) {
     return Spread.toStats(this, base, gen, level);
+  }
+
+  static equals(a: SpreadTable, b: SpreadTable) {
+    if (a === b) return true;
+    if (a.nature !== b.nature) return false;
+    for (const stat of STATS) {
+      if ((a.ivs?.[stat] || 31) !== (b.ivs?.[stat] || 31)) return false;
+      if ((a.evs?.[stat] || 0) !== (b.evs?.[stat] || 0)) return false;
+    }
+    return true;
   }
 
   static display(spread: SpreadTable, compact?: boolean, gen?: Generation) {

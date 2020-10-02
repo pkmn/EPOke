@@ -13,6 +13,10 @@ const RBY = new StatsRange({
 });
 
 describe('StatsRange', () => {
+  test('#equals', () => {
+    // XXX
+  });
+
   test('#includes', () => {
     expect(RANGE.includes(RANGE.min)).toBe(true);
     expect(RANGE.includes(RANGE.max)).toBe(true);

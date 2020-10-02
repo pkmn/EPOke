@@ -30,6 +30,10 @@ export class StatsRange implements Range<StatsTable> {
     }
   }
 
+  equals(other: Range<StatsTable>) {
+    return StatsRange.equals(this, other);
+  }
+
   toString() {
     return StatsRange.display(this);
   }
@@ -44,6 +48,10 @@ export class StatsRange implements Range<StatsTable> {
 
   includes(stats: StatsTable | StatsRange) {
     return StatsRange.includes(this, stats);
+  }
+
+  static equals(a: Range<StatsTable>, b: Range<StatsTable>) {
+    return a === b || Stats.equals(a.min, b.min) && Stats.equals(a.max, b.max)
   }
 
   static display(range: Range<StatsTable>, compact?: boolean, gen?: Generation) {
@@ -109,7 +117,7 @@ export class StatsRange implements Range<StatsTable> {
   }
 
   static toStats(range: Range<StatsTable>) {
-    return Stats.equal(range.min, range.max) ? new Stats(range.min) : undefined;
+    return Stats.equals(range.min, range.max) ? new Stats(range.min) : undefined;
   }
 
   static toSpreadRange(range: Range<StatsTable>, base: StatsTable, gen?: Generation, level = 100) {
