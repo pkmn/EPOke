@@ -5,6 +5,8 @@ import {NATURES, STATS, GEN, Generation, Nature} from './data';
 import {Spread} from './spread';
 import {StatsRange} from './stats-range';
 
+const IV_EVS = 31 * 4;
+
 export class Stats implements StatsTable {
   hp: number;
   atk: number;
@@ -68,6 +70,8 @@ export class Stats implements StatsTable {
     let minus: StatName = 'hp';
 
     const ivs: StatsTable = {hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31};
+    // NOTE: In this method, for stats other than HP evs actually tracks the differences between the
+    // expected theoretical neutral EVs and those required with an optimal Nature.
     const evs: StatsTable = {hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0};
 
     // We start by assuming a neutral Nature and perfect IVs and determine how many EVs are required
@@ -75,93 +79,111 @@ export class Stats implements StatsTable {
     // by a beneficial Nature and thus can never be greater than perfect IVs and 252 EVs. On the
     // flip side, if we require less than 0 HP EVs we can immediately attempt to figure out how
     // many IVs are actually required, as there are no other variables that can effect HP. After
-    // this loop, we know the exact HP IVs and EVs.
+    // this loop, we know the exact HP IVs and EVs (minus rounding up / expected HP DV values).
     //
     // If more than 252 EVs are required for a non-HP stat, we know that stat must have a boosting
     // Nature, which we track with plus. However, if Nature does not exist (before ADV) or if
     // another stat requires more than 252 EVs already we can return immediately. If less than 0 EVs
     // are required the story is a little different because it could be either than the stat
-    // requires a negative Nature *or* less than perfect IVs *or* both - we can't figure this out
-    // yet, instead we simply track the stat which benefits most from being a negative Nature as
-    // that is what will get assigned the negative Nature if that's an option.
+    // requires a negative Nature *or* less than perfect IVs *or* both - we only know that a
+    // negative Nature is required if less than -IV_EVS (-124) are required, as this represents
+    // 0 IVs and 0 EVs and there no way to go lower.
     //
-    // We also need to track the total positive EVs - if this is greater than 510 EVs in ADV+ we
-    // know that a Nature is required, which we can assign to the non-HP stat which would benefit
-    // most from the postive nature (the stat where the difference in EVs required from a boosting
-    // vs. neutral Nature is greatest - this isn't the same as the stat which requires the most EVs
-    // for a neutral Nature because differences in base stats can influence which stat will benefit
-    // most from a particular Nature). The non-HP stat which benefits the most from a negative
-    // Nature is also tracked - this might not be the same as minus as if no stats require negative
-    // EVs, minus will still be 'hp' but min will be the stat which if sees the largest benefit in
-    // terms of EVs required from having a negative Nature.
+    // Sadly, other than in cases where a positive or negative Nature is required to hit a
+    // particular stat number, the Nature selection can be almost anything as certain stat values
+    // will only ever be possible via some obscure combination of Nature + IV + EV. However, we can
+    // still try to optimize our search by determining which stats benefit the most from particular
+    // Natures (the stat where the difference in EVs required from a boosting/unboosting vs. neutral
+    // Nature is greatest - this isn't the same as the stat which requires the most/least EVs for a
+    // neutral Nature because differences in base stats can influence which stat will benefit most
+    // from a particular Nature) and trying out Natures which will conserve the most EVs first.
+
+    // We track the total number of positive EVs because if we find we need more than 510 in ADV+
+    // we don't need to bother checking to see if a neutral Nature can work
     let positive = 0;
-    let max: StatName | undefined;
-    let min: StatName | undefined;
     for (const stat of STATS) {
+      // SpD doesn't exist in RBY
       if (g === 1 && stat === 'spd') continue;
       const ev = statToEV(g, stat, stats[stat], base[stat], ivs[stat], level);
       if (ev > 0) positive += ev;
 
+      // This computation could be moved down into finishSpread but we'd like to fail-fast and
+      // terminate as early as possible given that searching through Natures is expensive
       if (stat === 'hp') {
         if (ev > 252) return undefined;
         if (ev < 0) {
-          const iv = findIV(g, stat, stats[stat], base[stat], 0, level);
-          if (iv === undefined) return undefined;
-          if (STATS.calc(g, stat, base[stat], iv, 0, level) !== stats[stat]) return undefined;
-          evs.hp = 0;
-          ivs.hp = iv;
+          const iv = statToIV(stat, stats[stat], base[stat], 0, level);
+          if (iv < 0 || iv > 31) return undefined;
+
+          const trade = tradeIVsForEVs(g, stat, stats[stat], base[stat], iv, ev, level);
+          if (!trade) return undefined;
+
+          evs.hp = trade.ev;
+          ivs.hp = trade.iv;
         } else {
           evs.hp = ev;
         }
       } else if (g < 3) {
-        if (ev > 252) return undefined;
+        // These numbers are impossible to hit without a Nature and thus we can simply give up
+        if (ev < -IV_EVS || ev > 252) return undefined;
       } else {
+        if (ev > 252) {
+          if (plus !== 'hp') return undefined;
+          plus = stat;
+        } else if (ev < -IV_EVS) {
+          if (plus !== 'hp') return undefined;
+          minus = stat;
+        }
+        // Find the Nature that is optimal for conserving EVs
         const other = stat === 'spe' ? 'atk' : 'spe';
         const nature = ev < 0
           ? getNatureFromPlusMinus(other, stat)
           : getNatureFromPlusMinus(stat, other);
-        const diff = ev - statToEV(g, stat, stats[stat], base[stat], ivs[stat], level, nature);
-        if (ev > 252) {
-          if (plus !== 'hp') return undefined;
-          plus = stat;
-        } else if (ev < 0) {
-          if (minus === 'hp' || evs[minus] > diff) minus = stat;
-        }
-        evs[stat] = diff;
-        if (max === undefined || evs[max] < diff) max = stat;
-        if (min === undefined || evs[min] > diff) min = stat;
+        evs[stat] = ev - statToEV(g, stat, stats[stat], base[stat], ivs[stat], level, nature);
       }
-    }
-
-    // If no stat required more than 252 EVs but we still required more than 510 EVs in ADV+,
-    // *something* needs to be a boosting Nature to allow for this.
-    if (g >= 3 && positive > 510) {
-      if (plus !== 'hp' && plus !== max) return undefined;
-      plus = max!;
     }
 
     const finish = (nature?: Nature) => finishSpread(g, stats, base, level, nature, ivs, evs);
+    // Pre-ADV can't have Natures and should have already aborted if a plus or minus were required
+    if (g < 3) return finish(undefined);
+
     if (plus === 'hp') {
       if (minus === 'hp') {
-        return finish(g < 3 ? undefined : NATURES.get('Serious'));
+        // There's not really much we can do here other than iterate through all of the Natures.
+        // We can skip the neutral nature if we require > 510 positive EVs as there's no way to
+        // manage that without some sort of boost somewhere, and we can also choose to iterate
+        // through the Natures so that the optimal natures and ones most likely to be relevant are
+        // handled first, but ultimately we may need to check all of them in order to ensure every
+        // edge case is addressed.
+        for (const nature of getNatures(evs, positive <= 510)) {
+          const spread = finish(nature);
+          if (spread) return spread;
+        }
       } else {
-        // Even though minus is set we can't be sure that we need a negative Nature, its possible
-        // we can still finish the spread simply by reducing the IVs. We first try to make a
-        // neutral spread work, if not we fall back and just assume the stat which requires the most
-        // EVS is the buffed one.
-        const neutral = finish(g < 3 ? undefined : NATURES.get('Serious'));
-        return (neutral || g < 3) ? neutral : finish(getNatureFromPlusMinus(max!, minus));
+        // We need a negative Nature for minus but don't require a positive one for plus, so we
+        // iterate through the minus nerfing natures in an order which favors Natures that are
+        // beneficial to the stats which require the most EVs.
+        for (const nature of getNegativeNatures(minus, evs)) {
+          const spread = finish(nature);
+          if (spread) return spread;
+        }
       }
     } else {
-      // We know gen >= 3 here because we would have aborted before this if we had required a Nature
       if (minus === 'hp') {
         // We need a positive Nature for plus but don't require a negative one for minus, so we
-        // simply need to go with a Nature that is determinental to the stat with the least EVs.
-        return finish(getNatureFromPlusMinus(plus, min!));
+        // iterate through the plus boosting natures in an order which favors Natures that are
+        // detrimental to the stats which require the least EVs.
+        for (const nature of getPositiveNatures(plus, evs)) {
+          const spread = finish(nature);
+          if (spread) return spread;
+        }
       } else {
+        // The happy case where only a specific nature will work due to the constraints
         return finish(getNatureFromPlusMinus(plus, minus));
       }
     }
+
+    return undefined;
   }
 }
 
@@ -174,45 +196,45 @@ function finishSpread(
   ivs: StatsTable,
   evs: StatsTable
 ) {
-  // console.log({gen, stats, base, level, nature, ivs, evs});
   let total = 0;
   for (const stat of STATS) {
+    // HP is already computed and SpD doesn't exist in RBY
     if (stat === 'hp' || (gen === 1 && stat === 'spd')) continue;
 
     const ev = Math.max(0, statToEV(gen, stat, stats[stat], base[stat], ivs[stat], level, nature));
     if (ev > 252) return undefined;
+    const iv = statToIV(stat, stats[stat], base[stat], ev, level, nature);
+    if (iv < 0 || iv > 31) return undefined;
 
-    const iv = findIV(gen, stat, stats[stat], base[stat], level, ev, nature);
-    if (iv === undefined) return undefined;
-    if (STATS.calc(gen, stat, base[stat], iv, ev, level, nature) !== stats[stat]) return undefined;
-    evs[stat] = ev;
-    ivs[stat] = iv;
+    const trade = tradeIVsForEVs(gen, stat, stats[stat], base[stat], iv, ev, level, nature);
+    if (!trade) return undefined;
 
-    total += ev;
+    ivs[stat] = roundUpIV(gen, stat, stats[stat], base[stat], trade.iv, trade.ev, level, nature);
+    total += (evs[stat] = trade.ev);
   }
 
   if (gen < 3) {
+    // SpA is used to store Spc in RBY, make SpD match as well
     if (gen === 1) {
-      evs.spd = evs.spa;
       ivs.spd = ivs.spa;
+      evs.spd = evs.spa;
     }
+
     // The HP DV in RBY/GSC is computed based on the DVs of the other stats - at this point the
     // algorithm will have instead subtracted from EVs before touching the IVs. If the actual
     // HP DV does not match the computed expected DV we will attempt to correct by redoing the
     // HP EVs to compensate.
-    const actual = STATS.toDV(ivs.hp);
-    const expected = STATS.getHPDV(ivs);
-    // If the HP DV has already been reduced it means we already have 0 EVs and can't subtract
-    if (actual < expected) return undefined;
-    if (actual > expected) {
-      ivs.hp = STATS.toIV(expected);
-      const ev = statToEV(gen, 'hp', stats.hp, base.hp, ivs.hp, level, nature);
-      if (ev < 0 || ev > 252) return undefined;
-      total = total - evs.hp + ev;
-      evs.hp = ev;
+    const fix = maybeFixHPDV(gen, stats, base, ivs, evs, level);
+    if (fix) {
+      ivs.hp = fix.iv;
+      evs.hp = fix.ev;
+    } else {
+      // BUG: we should return undefined if we were not able to fix the DV as the spread is invalid
+      ivs.hp = roundUpIV(gen, 'hp', stats.hp, base.hp, ivs.hp, evs.hp, level);
     }
   } else {
     if (total > 510) return undefined;
+    ivs.hp = roundUpIV(gen, 'hp', stats.hp, base.hp, ivs.hp, evs.hp, level);
   }
 
   // Because of favoring subtracting from EVs instead of IVs and due to lack of complete set
@@ -223,16 +245,19 @@ function finishSpread(
   //   - The Atk IVs in Gen 2 do not account for gender
   //   - Spreads will often be sub-maximal (< 508 EVs) when in reality it is more likely that EVs
   //     were maxed out and IVs were sub-maximal instead
+  //   - The expected HP DV (Gen 1 & 2) may be invalid
   //
   // This results in some edge case display issues, but the returned spread should still result
   // in the same *stats*.
   return new Spread(nature?.name, ivs, evs);
 }
 
-// Return the minimum number of EVs required to hit a particular val. NOTE: This method will return
-// illegal EVs (up to slop more or less than would normally be allowed) as the magnitude of EVs that
-// would theoretically be required is important for the design of the algorithm.
-export function statToEV(
+// Return the minimum number of EVs required to get as close as possible to a particular val.
+// NOTE: This method is neither guaranteed to hit a specific val (some values may be impossible
+// purely through EVs with the parameters provided) nor is it guaranteed to only return a legal
+// amount of EVs (the magnitude of EVs that would theoretically be required is important for the
+// design of the higher-level algorithm).
+/* VisibleForTesting */ export function statToEV(
   gen: GenerationNum,
   stat: StatName,
   val: number,
@@ -260,9 +285,11 @@ export function statToEV(
   }
 }
 
-// Finds the maximum number of IVs such that with 0 EVs the stat comes out to a particular val.
-export function findIV(
-  gen: GenerationNum,
+// Return the minimum number of IVs required to get as close as possible to a particular val.
+// NOTE: This method is neither guaranteed to hit a specific val (some values may be impossible
+// purely through IVs with the parameters provided) nor is it guaranteed to only return a legal
+// amount of IVs.
+/* VisibleForTesting */ export function statToIV(
   stat: StatName,
   val: number,
   base: number,
@@ -270,30 +297,136 @@ export function findIV(
   level: number,
   nature?: Nature
 ) {
-  let iv = 0;
   if (stat === 'hp') {
     if (base === 1) return 31;
-    // val = ⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋ + level + 10
+    // val = ⌊( (2 * base + iv + ⌊ev/4⌋) * level) / 100⌋ + level + 10
     // val - level - 10 = ⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋
     // ⌈((val - level - 10) * 100) / level⌉ = 2 * base + iv + ⌊ev/4⌋
     // ⌈((val - level - 10) * 100) / level⌉ - 2 * base - ⌊ev/4⌋ = iv
-    iv = Math.ceil(((val - level - 10) * 100) / level) - 2 * base - Math.floor(ev / 4);
+    return Math.ceil(((val - level - 10) * 100) / level) - 2 * base - Math.floor(ev / 4);
   } else {
     // val = ⌊(⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋ + 5) * nature⌋
     // ⌈(val / nature)⌉ - 5 = ⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋
     // ⌈(⌈(val / nature)⌉ - 5) * 100) / level⌉ = 2 * base + iv + ⌊ev/4⌋
     // ⌈(⌈(val / nature)⌉ - 5) * 100) / level⌉ - 2 * base - ⌊ev/4⌋ = iv
     const n = !nature ? 1 : nature.plus === stat ? 1.1 : nature.minus === stat ? 0.9 : 1;
-    iv = Math.ceil(((Math.ceil(val / n) - 5) * 100) / level) - 2 * base - Math.floor(ev / 4);
+    return Math.ceil(((Math.ceil(val / n) - 5) * 100) / level) - 2 * base - Math.floor(ev / 4);
   }
-  if (iv < 0 || iv > 31) return undefined;
-  // We've found an IV that will work, but we want the highest IV that still works. Technically we
-  // could use binary search here but the equation should have gotten us pretty close already and
-  // its probably not worth it.
-  // TODO: can we find a closed form for max-IV instead of min-IV to remove the need to search?
-  for (; iv < 31; iv++) {
-    if (STATS.calc(gen, stat, base, iv + 1, 0, level, nature) > val) return iv;
+}
+
+const ASCENDING = (a: [string, number], b: [string, number]) => a[1] - b[1];
+const DESCENDING = (a: [string, number], b: [string, number]) => b[1] - a[1];
+
+// The (four) Natures which boost plus, in order of the weights
+function getPositiveNatures(plus: StatName, weights: StatsTable | Array<[StatName, number]>) {
+  const natures: Nature[] = [];
+
+  const order = Array.isArray(weights)
+    ? weights : Object.entries(weights).sort(ASCENDING) as Array<[StatName, number]>;
+  for (const [minus] of order) {
+    if (minus === 'hp' || minus === plus) continue;
+    natures.push(getNatureFromPlusMinus(plus, minus)!);
   }
 
+  return natures;
+}
+
+// The (four) Natures which nerf minus, in order of the weights
+function getNegativeNatures(minus: StatName, weights: StatsTable | Array<[StatName, number]>) {
+  const natures: Nature[] = [];
+
+  const order = Array.isArray(weights)
+    ? weights : Object.entries(weights).sort(DESCENDING) as Array<[StatName, number]>;
+  for (const [plus] of order) {
+    if (plus === 'hp' || plus === minus) continue;
+    natures.push(getNatureFromPlusMinus(plus, minus)!);
+  }
+
+  return natures;
+}
+
+// All Natures in sorted in order of weights, optionally including a neutral Nature to begin with
+function getNatures(weights: StatsTable, neutral = true) {
+  const natures: Nature[] = neutral ? [NATURES.get('Serious')!] : [];
+
+  const positive = Object.entries(weights).sort(DESCENDING) as Array<[StatName, number]>;
+  const negative = Object.entries(weights).sort(ASCENDING) as Array<[StatName, number]>;
+  for (const [plus] of positive) {
+    if (plus === 'hp') continue;
+    for (const nature of getPositiveNatures(plus, negative)) {
+      natures.push(nature);
+    }
+  }
+
+  return natures;
+}
+
+// The IV returned by statToIV is the lowest IV that will work, but for display purposes we're
+// interested in the highest IV that still works. Because we expect the highest IV that still works
+// to be relatively close to the original IV we just need to do a simple linear scan.
+// TODO: can we find a closed form for max-IV instead of min-IV to remove the need to search?
+function roundUpIV(
+  gen: GenerationNum,
+  stat: StatName,
+  val: number,
+  base: number,
+  iv: number,
+  ev: number,
+  level: number,
+  nature?: Nature
+) {
+  for (; iv < 31; iv++) {
+    if (STATS.calc(gen, stat, base, iv + 1, ev, level, nature) > val) return iv;
+  }
   return iv;
+}
+
+// The iv and ev parameters have been computed by statToIV and statToEV respectively to get as
+// close as possible to the desired val, but may still not add up exactly. This method verifies the
+// result, trading IVs in exchange for EVs to attempt hit the value exactly in the event that they
+// don't already.
+function tradeIVsForEVs(
+  gen: GenerationNum,
+  stat: StatName,
+  val: number,
+  base: number,
+  iv: number,
+  ev: number,
+  level: number,
+  nature?: Nature
+) {
+  for (; iv >= 0 && ev <= 252; iv--, ev += 4) {
+    if (STATS.calc(gen, stat, base, iv, ev, level, nature) === val) return {iv, ev};
+  }
+  return undefined;
+}
+
+// The HP DV in RBY/GSC is computed based on the DVs of the other stats - this method attempts to
+// correct the HP DV to match its expected value. However, this may not be possible - the other ivs
+// that feed into the expected HP DV value may be incorrect, and determining that exact combination
+// to end up with the precise HP is intractable (similar to finding the exact combination of
+// Hidden Power IVs).
+function maybeFixHPDV(
+  gen: GenerationNum,
+  stats: StatsTable,
+  base: StatsTable,
+  ivs: StatsTable,
+  evs: StatsTable,
+  level: number,
+) {
+  const actual = STATS.toDV(ivs.hp);
+  const expected = STATS.getHPDV(ivs);
+  if (actual === expected) return {iv: ivs.hp, ev: evs.hp};
+  // If the HP DV has already been reduced it means we already have 0 EVs and can't subtract
+  if (actual < expected) return undefined;
+
+  const iv = STATS.toIV(expected);
+  const ev = statToEV(gen, 'hp', stats.hp, base.hp, iv, level);
+  if (ev < 0 || ev > 252) return undefined;
+  // We can't trade off anything at this point, the HP IV is fixed to the expected value. Really
+  // we would need to try all other sorts of combinations of IVs for the other stats to change our
+  // expected HP DV, but that is pretty much intractable.
+  if (STATS.calc(gen, 'hp', base.hp, iv, ev, level) !== stats.hp) return undefined;
+
+  return {iv, ev};
 }

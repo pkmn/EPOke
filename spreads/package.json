@@ -19,7 +19,7 @@
     "compile": "tsc -p .",
     "bundle": "microbundle --name spreads --format umd --tsconfig bundle.json --strict",
     "build": "npm run compile && npm run bundle",
-    "test": "jest -t toSpread",
+    "test": "jest",
     "prepare": "npm run build",
     "pretestXXX": "npm run build",
     "posttestXXX": "npm run lint"
