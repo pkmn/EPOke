@@ -4,11 +4,14 @@
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "unpkg": "build/index.umd.js",
-  "description": "TODO",
+  "description": "Library for manipulating and displaying Pokémon stats, spreads, and ranges",
   "repository": "github:pkmn/EPOke",
   "license": "MIT",
   "publishConfig": {
     "access": "public"
+  },
+  "dependencies": {
+    "@pkmn/types": "^0.1.2"
   },
   "scripts": {
     "lint": "eslint --cache src --ext ts",
