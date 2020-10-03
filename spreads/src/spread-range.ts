@@ -9,7 +9,7 @@ import {
   statOrder,
 } from './common';
 import {GEN, STATS, NATURES, Generation} from './data';
-import {Spread, SpreadTable} from './spread';
+import {Spread, SpreadTable, SpreadDisplayOptions} from './spread';
 import {StatsRange} from './stats-range';
 
 // eslint-disable-next-line max-len
@@ -53,21 +53,45 @@ export class SpreadRange implements Range<SpreadTable> {
     return a === b || Spread.equals(a.min, b.min) && Spread.equals(a.max, b.max);
   }
 
-  static display(range: Range<SpreadTable>, compact?: boolean, gen?: Generation, sep = '\n') {
-    const g = GEN(gen);
+  static display(range: Range<SpreadTable>, options?: SpreadDisplayOptions): string;
+  static display(
+    range: Range<SpreadTable>,
+    gen: Generation,
+    options?: SpreadDisplayOptions): string;
+  static display(
+    range: Range<SpreadTable>,
+    gen?: Generation | SpreadDisplayOptions,
+    options?: SpreadDisplayOptions
+  ) {
+    let g: GenerationNum;
+    if (typeof gen === 'number') {
+      g = gen;
+    } else if (gen && 'num' in gen) {
+      g = gen.num;
+    } else {
+      g = 8;
+      options = gen;
+    }
+    options = options || {};
+    const compact = options.style === 'compact';
+    const pretty = !compact && options.style !== 'import';
 
     let nature = '';
     if (g >= 3) {
-      if (!range.min.nature || !range.max.nature) {
-        nature = '???';
-        if (!compact) nature += ' Nature';
+      if ((!range.min.nature || !range.max.nature)) {
+        if (compact || pretty) {
+          nature = '???';
+          if (!compact) nature += ' Nature';
+        }
       } else if (range.min.nature === range.max.nature) {
         nature = `${range.min.nature}`;
         if (!compact) {
           nature += ' Nature';
-          const n = NATURES.get(range.min.nature);
-          if (n.plus && n.minus) {
-            nature += ` (+${STATS.display(n.plus)}, -${STATS.display(n.minus)})`;
+          if (pretty) {
+            const n = NATURES.get(range.min.nature);
+            if (n.plus && n.minus) {
+              nature += ` (+${STATS.display(n.plus)}, -${STATS.display(n.minus)})`;
+            }
           }
         }
       } else {
@@ -82,9 +106,9 @@ export class SpreadRange implements Range<SpreadTable> {
     const dIV = g < 3 ? 15 : 31;
     const dEV = g < 3 ? 252 : 0;
 
-    const order = statOrder(gen);
+    const order = statOrder(g);
     for (const stat of order) {
-      const s = STATS.display(stat, gen);
+      const s = STATS.display(stat, g);
 
       let min = range.min.ivs?.[stat];
       let max = range.max.ivs?.[stat];
@@ -117,6 +141,15 @@ export class SpreadRange implements Range<SpreadTable> {
       }
     }
 
+    let isep = compact ? '/' : ' / ';
+    let lsep = '\n';
+    if (typeof options.separator === 'string') {
+      lsep = options.separator;
+    } else if (options.separator) {
+      isep = options.separator.internal || isep;
+      lsep = options.separator.line || lsep;
+    }
+
     if (compact) {
       const s = collapse(range);
       if (s?.nature) {
@@ -130,23 +163,29 @@ export class SpreadRange implements Range<SpreadTable> {
       }
 
       let buf = nature;
-      const e = evs.join('/');
-      if (e && e !== defaults(g, 'ev')) {
+      const e = evs.join(isep);
+      if (e && e !== defaults(g, 'ev', isep)) {
         buf += `${buf ? ' ' : 'EVs: '}${e}`;
       }
 
-      const i = ivs.join('/');
-      if (i && i !== defaults(g, 'iv')) {
-        buf += (buf ? sep : '') + (g < 3 ? `DVs: ${i}` : `IVs: ${i}`);
+      const i = ivs.join(isep);
+      if (i && i !== defaults(g, 'iv', isep)) {
+        buf += (buf ? lsep : '') + (g < 3 ? `DVs: ${i}` : `IVs: ${i}`);
       }
       return buf;
     }
 
-    let buf = nature;
-    const e = evs.join(' / ') || (g >= 3 ? '???' : '');
-    if (e) buf = (buf ? buf + sep : buf) + `EVs: ${e}`;
-    const i = ivs.join(' / ');
-    if (i) buf = (buf ? buf + sep : buf) + (g < 3 ? `DVs: ${i}` : `IVs: ${i}`);
+    const e = evs.join(isep) || (g >= 3 ? '???' : '');
+    let buf;
+    if (pretty) {
+      buf = nature;
+      if (e) buf += (buf ? lsep : '') + `EVs: ${e}`;
+    } else {
+      buf = e ? `EVs: ${e}` : '';
+      buf += (buf ? lsep : '') + nature;
+    }
+    const i = ivs.join(isep);
+    if (i) buf += (buf ? lsep : '') + (g < 3 ? `DVs: ${i}` : `IVs: ${i}`);
 
     return buf;
   }
@@ -257,14 +296,16 @@ const RBY = {iv: '15/15/15/15/15', ev: '252/252/252/252/252'};
 const GSC = {iv: '15/15/15/15/15/15', ev: '252/252/252/252/252/252'};
 const ADV = {iv: '31/31/31/31/31/31'};
 
-function defaults(gen: GenerationNum, type: 'iv' | 'ev') {
+function defaults(gen: GenerationNum, type: 'iv' | 'ev', sep: string) {
+  let s;
   if (gen === 1) {
-    return RBY[type];
+    s = RBY[type];
   } else if (gen === 2) {
-    return GSC[type];
+    s = GSC[type];
   } else {
-    return type === 'iv' ? ADV.iv : undefined;
+    s = type === 'iv' ? ADV.iv : undefined;
   }
+  return (s && sep !== '/') ? s.replace(/\//g, sep) : s;
 }
 
 function parseNature(s: string) {

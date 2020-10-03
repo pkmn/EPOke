@@ -39,7 +39,7 @@ describe('SpreadRange', () => {
       'EVs: 20-80 HP / 252 SpA / ??? SpD / >200 Spe\n' +
       'IVs: <10 Atk / >20 SpD / ??? Spe'
     );
-    expect(SpreadRange.display(RANGE, true)).toEqual(
+    expect(SpreadRange.display(RANGE, {style: 'compact'})).toEqual(
       'Docile-Modest 20-80/0/0/252/???/>200\n' +
       'IVs: 31/<10/31/31/>20/???'
     );

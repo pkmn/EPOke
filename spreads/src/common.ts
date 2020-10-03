@@ -13,10 +13,15 @@ export function isRange<T>(r: unknown | Range<T>): r is Range<T> {
   return 'min' in (r as Range<T>);
 }
 
+export interface StatsDisplayOptions {
+  style?: 'pretty' | 'compact';
+  separator?: string;
+}
+
 export function displayStats(
   display: (stat: StatName) => string,
-  gen?: Generation | {compact?: boolean; separator?: string},
-  options?: {compact?: boolean; separator?: string}
+  gen?: Generation | StatsDisplayOptions,
+  options?: StatsDisplayOptions
 ) {
   let g: GenerationNum;
   if (typeof gen === 'number') {
@@ -28,15 +33,16 @@ export function displayStats(
     options = gen;
   }
   options = options || {};
+  const compact = options.style === 'compact';
 
   const order = g === 1 ? RBY_STAT_ORDER : STAT_ORDER;
 
   const s = [];
   for (const stat of order) {
     const d = display(stat);
-    s.push(options.compact ? d : `${d} ${STATS.display(stat, g)}`);
+    s.push(compact ? d : `${d} ${STATS.display(stat, g)}`);
   }
-  return s.join(options.separator || (options.compact ? '/' : ' / '));
+  return s.join(options.separator || (compact ? '/' : ' / '));
 }
 
 export function statOrder(gen?: Generation): readonly StatName[] {

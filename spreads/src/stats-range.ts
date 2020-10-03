@@ -1,6 +1,7 @@
 import {StatsTable} from '@pkmn/types';
 
 import {
+  StatsDisplayOptions,
   displayRange,
   displayStats,
   getNatureFromPlusMinus,
@@ -54,17 +55,12 @@ export class StatsRange implements Range<StatsTable> {
     return a === b || Stats.equals(a.min, b.min) && Stats.equals(a.max, b.max);
   }
 
+  static display(range: Range<StatsTable>, options?: StatsDisplayOptions): string;
+  static display(range: Range<StatsTable>, gen: Generation, options?: StatsDisplayOptions): string;
   static display(
     range: Range<StatsTable>,
-    options?: {compact?: boolean; separator?: string}): string;
-  static display(
-    range: Range<StatsTable>,
-    gen: Generation,
-    options?: {compact?: boolean; separator?: string}): string;
-  static display(
-    range: Range<StatsTable>,
-    gen?: Generation | {compact?: boolean; separator?: string},
-    options?: {compact?: boolean; separator?: string}
+    gen?: Generation | StatsDisplayOptions,
+    options?: StatsDisplayOptions
   ) {
     return displayStats(s => displayRange({min: range.min[s], max: range.max[s]}), gen, options);
   }

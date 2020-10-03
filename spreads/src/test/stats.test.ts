@@ -21,11 +21,11 @@ describe('Stats', () => {
   test('#toString', () => {
     expect(Stats.display(STATS))
       .toEqual('373 HP / 367 Atk / 256 Def / 203 SpA / 237 SpD / 187 Spe');
-    expect(Stats.display(STATS, {compact: true})).toEqual('373/367/256/203/237/187');
+    expect(Stats.display(STATS, {style: 'compact'})).toEqual('373/367/256/203/237/187');
 
-    expect(Stats.display(STATS, 1, {compact: false, separator: ' | '}))
+    expect(Stats.display(STATS, 1, {style: 'pretty', separator: ' | '}))
       .toEqual('373 HP | 367 Atk | 256 Def | 203 Spc | 187 Spe');
-    expect(Stats.display(STATS, {num: 1}, {compact: true})).toEqual('373/367/256/203/187');
+    expect(Stats.display(STATS, {num: 1}, {style: 'compact'})).toEqual('373/367/256/203/187');
   });
 
   test('#fromString', () => {

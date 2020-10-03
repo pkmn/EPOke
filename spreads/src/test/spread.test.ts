@@ -36,7 +36,7 @@ describe('Spread', () => {
       'EVs: 56 HP / 252 SpA / 200 Spe\n' +
       'IVs: 0 Atk / 30 SpD'
     );
-    expect(Spread.display(SPREAD, true)).toEqual(
+    expect(Spread.display(SPREAD, {style: 'compact'})).toEqual(
       'Modest 56/0-/0/252+/0/200\n' +
       'IVs: 31/0/31/31/30/31'
     );
@@ -45,24 +45,24 @@ describe('Spread', () => {
       'Jolly Nature (+Spe, -SpA)\n' +
       'EVs: 252 Atk / 4 Def / 252 Spe'
     );
-    expect(Spread.display(SPREAD2, true)).toEqual('Jolly 0/252/4/0-/0/252+');
+    expect(Spread.display(SPREAD2, {style: 'compact', separator: {internal: '|'}}))
+      .toEqual('Jolly 0|252|4|0-|0|252+');
 
     expect(RBY.toString()).toEqual(
       '??? Nature\n' +
       'EVs: ???\n' +
       'IVs: 7 Atk / 30 SpA / 16 SpD'
     );
-    expect(Spread.display(RBY, false, 1)).toEqual(
+    expect(Spread.display(RBY, 1)).toEqual(
       'EVs: 0 HP / 0 Atk / 0 Def / 0 Spc / 0 Spe\n' +
       'DVs: 3 Atk'
     );
-    expect(Spread.display(RBY, true)).toEqual(
+    expect(Spread.display(RBY, {style: 'compact'})).toEqual(
       '??? 0/0/0/0/0/0\n' +
       'IVs: 31/7/31/30/16/31'
     );
-    expect(Spread.display(RBY, true, 1)).toEqual(
-      'EVs: 0/0/0/0/0\n' +
-      'DVs: 15/3/15/15/15'
+    expect(Spread.display(RBY, 1, {style: 'compact', separator: ' '})).toEqual(
+      'EVs: 0/0/0/0/0 DVs: 15/3/15/15/15'
     );
 
     expect(RBY2.toString()).toEqual(
@@ -70,15 +70,14 @@ describe('Spread', () => {
       'EVs: ???\n' +
       'IVs: 7 Atk / 30 SpA / 16 SpD'
     );
-    expect(Spread.display(RBY2, false, 1)).toEqual(
-      'EVs: 0 HP / 0 Atk / 0 Def / 0 Spc / 0 Spe\n' +
-      'DVs: 3 Atk'
+    expect(Spread.display(RBY2, 1, {style: 'pretty', separator: {line: '; '}})).toEqual(
+      'EVs: 0 HP / 0 Atk / 0 Def / 0 Spc / 0 Spe; DVs: 3 Atk'
     );
-    expect(Spread.display(RBY2, true)).toEqual(
+    expect(Spread.display(RBY2, {style: 'compact'})).toEqual(
       '??? 0/0/0/0/0/0\n' +
       'IVs: 31/7/31/30/16/31'
     );
-    expect(Spread.display(RBY2, true, 1)).toEqual(
+    expect(Spread.display(RBY2, 1, {style: 'compact'})).toEqual(
       'EVs: 0/0/0/0/0\n' +
       'DVs: 15/3/15/15/15'
     );

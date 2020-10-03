@@ -1,6 +1,6 @@
 import {StatsTable, StatName, GenerationNum} from '@pkmn/types';
 
-import {displayStats, getNatureFromPlusMinus} from './common';
+import {StatsDisplayOptions, displayStats, getNatureFromPlusMinus} from './common';
 import {NATURES, STATS, GEN, Generation, Nature} from './data';
 import {Spread} from './spread';
 import {StatsRange} from './stats-range';
@@ -49,17 +49,12 @@ export class Stats implements StatsTable {
     return true;
   }
 
+  static display(stats: StatsTable, options?: StatsDisplayOptions): string;
+  static display(stats: StatsTable, gen: Generation, options?: StatsDisplayOptions): string;
   static display(
     stats: StatsTable,
-    options?: {compact?: boolean; separator?: string}): string;
-  static display(
-    stats: StatsTable,
-    gen: Generation,
-    options?: {compact?: boolean; separator?: string}): string;
-  static display(
-    stats: StatsTable,
-    gen?: Generation | {compact?: boolean; separator?: string},
-    options?: {compact?: boolean; separator?: string}
+    gen?: Generation | StatsDisplayOptions,
+    options?: StatsDisplayOptions
   ) {
     return displayStats(s => `${stats[s]}`, gen, options);
   }
@@ -264,7 +259,7 @@ const LIMIT = 252;
 // amount of EVs (the magnitude of EVs that would theoretically be required is important for the
 // design of the higher-level algorithm).
 // TODO: can a close form equation (or multiple) be used here instead of binary searches?
-/* VisibleForTesting */ export function statToEV(
+export function statToEV(
   gen: GenerationNum,
   stat: StatName,
   val: number,
@@ -325,7 +320,7 @@ const LIMIT = 252;
 // purely through IVs with the parameters provided) nor is it guaranteed to only return a legal
 // amount of IVs.
 // TODO: can a close form equation be used here instead of binary search?
-/* VisibleForTesting */ export function statToIV(
+export function statToIV(
   gen: Generation,
   stat: StatName,
   val: number,

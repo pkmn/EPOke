@@ -121,17 +121,19 @@ export function run(N: number, initial?: number) {
       assert.deepStrictEqual(calced, stats);
     } catch (err) {
       const t = {nature: nature?.name, ivs, evs};
+      const compact = {style: 'compact' as const};
+      const options = {...compact, separator: ' '};
       console.log(
         `Seed: ${seed} (${i + 1}/${N})\n` +
         `Generation: ${gen}\n` +
         `Level: ${level}\n` +
-        `Base Stats: ${Stats.display(base as StatsTable, gen, {compact: true})}\n` +
+        `Base Stats: ${Stats.display(base as StatsTable, gen, compact)}\n` +
         '------------------------------\n' +
-        `Original: ${Spread.display(t, true, gen, ' ')}\n` +
-        `Computed: ${spread ? Spread.display(spread, true, gen, ' ') : 'N/A'}\n` +
+        `Original: ${Spread.display(t, gen, options)}\n` +
+        `Computed: ${spread ? Spread.display(spread, gen,) : 'N/A'}\n` +
         '------------------------------\n' +
-        `Original: ${Stats.display(stats as StatsTable, gen, {compact: true})}\n` +
-        `Computed: ${calced ? Stats.display(calced as StatsTable, gen, {compact: true}) : 'N/A'}\n`
+        `Original: ${Stats.display(stats as StatsTable, gen, options)}\n` +
+        `Computed: ${calced ? Stats.display(calced as StatsTable, gen, compact) : 'N/A'}\n`
       );
       throw err;
     }

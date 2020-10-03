@@ -10,6 +10,11 @@ export interface SpreadTable<T = number> {
   evs?: Partial<StatsTable<T>>;
 }
 
+export interface SpreadDisplayOptions {
+  style?: 'pretty' | 'compact' | 'import';
+  separator?: string | {line?: string; internal?: string};
+}
+
 export class Spread implements SpreadTable {
   nature?: NatureName;
   ivs: Partial<StatsTable>;
@@ -59,9 +64,15 @@ export class Spread implements SpreadTable {
     return true;
   }
 
-  static display(spread: SpreadTable, compact?: boolean, gen?: Generation, sep = '\n') {
+  static display(spread: SpreadTable, options?: SpreadDisplayOptions): string;
+  static display(spread: SpreadTable, gen: Generation, options?: SpreadDisplayOptions): string;
+  static display(
+    spread: SpreadTable,
+    gen?: Generation | SpreadDisplayOptions,
+    options?: SpreadDisplayOptions
+  ) {
     // NOTE: we are deliberately not calling toRange to avoid unnecessary copying
-    return SpreadRange.display({min: spread, max: spread}, compact, gen, sep);
+    return SpreadRange.display({min: spread, max: spread}, gen as Generation, options);
   }
 
   static fromString(s: string) {
