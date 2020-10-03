@@ -27,24 +27,10 @@ describe('SpreadRange', () => {
     other.max.evs.atk = 0;
     expect(RANGE.equals(other)).toBe(true);
 
-    expect(SpreadRange.equals({
-      min: {
-        ivs: {spa: 31},
-      },
-      max: {
-        nature: undefined,
-        evs: undefined,
-      },
-    },
-    {
-      min: {
-        nature: undefined,
-        evs: {atk: 0},
-      },
-      max: {
-        ivs: {spe: 31},
-      },
-    })).toBe(true);
+    expect(SpreadRange.equals(
+      {min: {ivs: {spa: 31}}, max: {nature: undefined, evs: undefined}},
+      {min: {nature: undefined, evs: {atk: 0}}, max: {ivs: {spe: 31}}}
+    )).toBe(true);
   });
 
   test('#toString', () => {

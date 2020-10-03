@@ -36,7 +36,6 @@ describe('Stats', () => {
       .toEqual(STATS);
     expect(Stats.fromString('373/367/256/203/237/187')).toEqual(STATS);
 
-
     expect(Stats.fromString('373 HP / 367 Atk / 256 Def / 203 Spc / 187 Spe')).toEqual(RBY);
     expect(Stats.fromString('373/367/256/203/187')).toEqual(RBY);
   });
@@ -48,8 +47,20 @@ describe('Stats', () => {
   });
 
   test('#toSpread', () => {
-    // TODO normal expects - some should be impossible = undefined
-    run(1E4);
+    expect(STATS.toSpread({hp: 1, atk: 1, def: 1, spa: 1, spd: 1, spe: 1})).toBeUndefined();
+    expect(STATS.toSpread({hp: 255, atk: 255, def: 255, spa: 255, spd: 255, spe: 255}))
+      .toBeUndefined();
+
+    expect(Stats.toSpread(
+      {hp: 275, atk: 121, def: 156, spa: 394, spd: 185, spe: 306},
+      {hp: 60, atk: 65, def: 60, spa: 130, spd: 75, spe: 110}
+    )!.equals({
+      nature: 'Modest',
+      evs: {spa: 252, hp: 56, spe: 200},
+      ivs: {spd: 30, atk: 0},
+    })).toBe(true);
+
+    run(1E4); // much more exhaustive generated test cases
   });
 
   test('statToEV', () => {

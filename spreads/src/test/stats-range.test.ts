@@ -1,6 +1,7 @@
 /* eslint-disable jest/prefer-to-contain */
 import {Stats} from '../stats';
 import {StatsRange} from '../stats-range';
+import {Spread} from '../spread';
 
 const RANGE = new StatsRange({
   min: {hp: 360, atk: 367, def: 250, spa: 203, spd: 235, spe: 180},
@@ -86,7 +87,16 @@ describe('StatsRange', () => {
     expect(s.toRange().toStats()).toEqual(s);
   });
 
-  test.skip('#toSpreadRange', () => {
-    // TODO normal expects - some should be impossible = undefined
+  test('#toSpreadRange', () => {
+    const base = Stats.fromString('60/65/60/130/75/110')!;
+    const range = new StatsRange(
+      Spread.fromString('EVs: 100/0/0/60/0/40\nIVs: 10 Def')!.toStats(base),
+      Spread.fromString('EVs: 172/0-/0/148/0/188+')!.toStats(base)
+    );
+    expect(range.toSpreadRange(base)?.toString()).toEqual(
+      'Serious-Timid Nature\n' +
+      'EVs: 100-172 HP / 60-148 SpA / 40-188 Spe\n' +
+      'IVs: >10 Def'
+    );
   });
 });

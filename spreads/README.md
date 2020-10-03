@@ -11,7 +11,8 @@ Library for parsing, displaying, and converting Pokémon stats, spreads, and ran
 $ npm install @pkmn/spreads
 ```
 
-Alternatively, as [detailed below](#browser), if you are using `@pkmn/spreads` in the browser and want a convenient way to get started, simply depend on a transpiled and minified version via
+Alternatively, as [detailed below](#browser), if you are using `@pkmn/spreads` in the browser and
+want a convenient way to get started, simply depend on a transpiled and minified version via
 [unpkg](https://unpkg.com/):
 
 ```html
@@ -45,7 +46,7 @@ range.max = stats;
 console.log(range.toSpreadRange(base, gen).toString());
 ```
 
-FIXME
+The above example code will display the following:
 
 ```txt
 Serious-Timid Nature
