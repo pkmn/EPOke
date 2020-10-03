@@ -104,7 +104,7 @@ export class Stats implements StatsTable {
     for (const stat of STATS) {
       // SpD doesn't exist in RBY
       if (g === 1 && stat === 'spd') continue;
-      const ev = statToEV(g, stat, stats[stat], base[stat], ivs[stat], level);
+      const ev = statToEV(g, stat, stats[stat], base[stat], 31, level, undefined, true);
       if (ev > 0) positive += ev;
 
       // This computation could be moved down into finishSpread but we'd like to fail-fast and
@@ -112,10 +112,8 @@ export class Stats implements StatsTable {
       if (stat === 'hp') {
         if (ev > 252) return undefined;
         if (ev < 0) {
-          const iv = statToIV(stat, stats[stat], base[stat], 0, level);
-          if (iv < 0 || iv > 31) return undefined;
-
-          const trade = tradeIVsForEVs(g, stat, stats[stat], base[stat], iv, ev, level);
+          const iv = statToIV(g, stat, stats[stat], base[stat], 0, level);
+          const trade = tradeIVsForEVs(g, stat, stats[stat], base[stat], iv, 0, level);
           if (!trade) return undefined;
 
           evs.hp = trade.ev;
@@ -131,7 +129,7 @@ export class Stats implements StatsTable {
           if (plus !== 'hp') return undefined;
           plus = stat;
         } else if (ev < -IV_EVS) {
-          if (plus !== 'hp') return undefined;
+          if (minus !== 'hp') return undefined;
           minus = stat;
         }
         // Find the Nature that is optimal for conserving EVs
@@ -139,7 +137,7 @@ export class Stats implements StatsTable {
         const nature = ev < 0
           ? getNatureFromPlusMinus(other, stat)
           : getNatureFromPlusMinus(stat, other);
-        evs[stat] = ev - statToEV(g, stat, stats[stat], base[stat], ivs[stat], level, nature);
+        evs[stat] = ev - statToEV(g, stat, stats[stat], base[stat], 31, level, nature, true);
       }
     }
 
@@ -196,20 +194,18 @@ function finishSpread(
   ivs: StatsTable,
   evs: StatsTable
 ) {
-  let total = 0;
+  let total = evs.hp;
   for (const stat of STATS) {
     // HP is already computed and SpD doesn't exist in RBY
     if (stat === 'hp' || (gen === 1 && stat === 'spd')) continue;
 
-    const ev = Math.max(0, statToEV(gen, stat, stats[stat], base[stat], ivs[stat], level, nature));
+    const ev = Math.max(0, statToEV(gen, stat, stats[stat], base[stat], 31, level, nature));
     if (ev > 252) return undefined;
-    const iv = statToIV(stat, stats[stat], base[stat], ev, level, nature);
-    if (iv < 0 || iv > 31) return undefined;
-
+    const iv = statToIV(gen, stat, stats[stat], base[stat], ev, level, nature);
     const trade = tradeIVsForEVs(gen, stat, stats[stat], base[stat], iv, ev, level, nature);
     if (!trade) return undefined;
 
-    ivs[stat] = roundUpIV(gen, stat, stats[stat], base[stat], trade.iv, trade.ev, level, nature);
+    ivs[stat] = trade.iv;
     total += (evs[stat] = trade.ev);
   }
 
@@ -225,16 +221,13 @@ function finishSpread(
     // HP DV does not match the computed expected DV we will attempt to correct by redoing the
     // HP EVs to compensate.
     const fix = maybeFixHPDV(gen, stats, base, ivs, evs, level);
+    // BUG: we should return undefined if we were not able to fix the DV as the spread is invalid
     if (fix) {
       ivs.hp = fix.iv;
       evs.hp = fix.ev;
-    } else {
-      // BUG: we should return undefined if we were not able to fix the DV as the spread is invalid
-      ivs.hp = roundUpIV(gen, 'hp', stats.hp, base.hp, ivs.hp, evs.hp, level);
     }
   } else {
     if (total > 510) return undefined;
-    ivs.hp = roundUpIV(gen, 'hp', stats.hp, base.hp, ivs.hp, evs.hp, level);
   }
 
   // Because of favoring subtracting from EVs instead of IVs and due to lack of complete set
@@ -252,11 +245,14 @@ function finishSpread(
   return new Spread(nature?.name, ivs, evs);
 }
 
+const LIMIT = 252;
+
 // Return the minimum number of EVs required to get as close as possible to a particular val.
 // NOTE: This method is neither guaranteed to hit a specific val (some values may be impossible
 // purely through EVs with the parameters provided) nor is it guaranteed to only return a legal
 // amount of EVs (the magnitude of EVs that would theoretically be required is important for the
 // design of the higher-level algorithm).
+// TODO: can a close form equation (or multiple) be used here instead of binary searches?
 /* VisibleForTesting */ export function statToEV(
   gen: GenerationNum,
   stat: StatName,
@@ -265,31 +261,60 @@ function finishSpread(
   iv: number,
   level: number,
   nature?: Nature,
+  minimize = false,
 ) {
-  if (gen < 3) iv = STATS.toDV(iv) * 2;
-  if (stat === 'hp') {
-    // val = ⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋ + level + 10
-    // val - level - 10 = ⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋
-    // ⌈((val - level - 10) * 100) / level⌉ = 2 * base + iv + ⌊ev/4⌋
-    // ⌈((val - level - 10) * 100) / level⌉ - 2 * base - iv = ⌊ev/4⌋
-    // (⌈((val - level - 10) * 100) / level⌉ - 2 * base - iv) * 4 = ev
-    return base === 1 ? 0 : (Math.ceil(((val - level - 10) * 100) / level) - 2 * base - iv) * 4;
-  } else {
-    // val = ⌊(⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋ + 5) * nature⌋
-    // ⌈(val / nature)⌉ - 5 = ⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋
-    // ⌈(⌈(val / nature)⌉ - 5) * 100) / level⌉ = (2 * base + iv + ⌊ev/4⌋
-    // ⌈(⌈(val / nature)⌉ - 5) * 100) / level⌉ - 2 * base - iv = ⌊ev/4⌋
-    // (⌈(⌈(val / nature)⌉ - 5) * 100) / level⌉ - 2 * base - iv) * 4 = ev
-    const n = !nature ? 1 : nature.plus === stat ? 1.1 : nature.minus === stat ? 0.9 : 1;
-    return (Math.ceil(((Math.ceil(val / n) - 5) * 100) / level) - 2 * base - iv) * 4;
+  if (stat === 'hp' && base === 1) return 0;
+
+  let m;
+
+  // The range is from (-LIMIT, 252 + LIMIT), but we need to shift everything by LIMIT to make
+  // it (0, 252 + LIMIT + LIMIT) and add 4 because we want h to start out of bounds. We then
+  // divide by 4 to compress the range - we expand it back when we're returning
+  const max = (252 + 4 + 2 * LIMIT) / 4;
+
+  let l = 0;
+  let h = max;
+
+  // minimum required
+  while (l < h) {
+    m = Math.trunc((l + h) / 2);
+    const v = STATS.calc(gen, stat, base, iv, m * 4 - LIMIT, level, nature);
+    if (v < val) {
+      l = m + 1;
+    } else {
+      h = m;
+    }
   }
+
+  const a = l * 4 - LIMIT;
+  if (!minimize) return a;
+
+  // maximum required
+  l = 0;
+  h = max;
+  while (l < h) {
+    m = Math.trunc((l + h) / 2);
+    const v = STATS.calc(gen, stat, base, iv, m * 4 - LIMIT, level, nature);
+    if (v > val) {
+      h = m;
+    } else {
+      l = m + 1;
+    }
+  }
+
+  const b = (h - 1) * 4 - LIMIT;
+
+  if (a <= 0 && b >= 0) return 0;
+  return a >= 0 ? a : b;
 }
 
-// Return the minimum number of IVs required to get as close as possible to a particular val.
+// Return the maximum number of IVs required to get as close as possible to a particular val.
 // NOTE: This method is neither guaranteed to hit a specific val (some values may be impossible
 // purely through IVs with the parameters provided) nor is it guaranteed to only return a legal
 // amount of IVs.
+// TODO: can a close form equation be used here instead of binary search?
 /* VisibleForTesting */ export function statToIV(
+  gen: Generation,
   stat: StatName,
   val: number,
   base: number,
@@ -297,21 +322,20 @@ function finishSpread(
   level: number,
   nature?: Nature
 ) {
-  if (stat === 'hp') {
-    if (base === 1) return 31;
-    // val = ⌊( (2 * base + iv + ⌊ev/4⌋) * level) / 100⌋ + level + 10
-    // val - level - 10 = ⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋
-    // ⌈((val - level - 10) * 100) / level⌉ = 2 * base + iv + ⌊ev/4⌋
-    // ⌈((val - level - 10) * 100) / level⌉ - 2 * base - ⌊ev/4⌋ = iv
-    return Math.ceil(((val - level - 10) * 100) / level) - 2 * base - Math.floor(ev / 4);
-  } else {
-    // val = ⌊(⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋ + 5) * nature⌋
-    // ⌈(val / nature)⌉ - 5 = ⌊((2 * base + iv + ⌊ev/4⌋) * level) / 100⌋
-    // ⌈(⌈(val / nature)⌉ - 5) * 100) / level⌉ = 2 * base + iv + ⌊ev/4⌋
-    // ⌈(⌈(val / nature)⌉ - 5) * 100) / level⌉ - 2 * base - ⌊ev/4⌋ = iv
-    const n = !nature ? 1 : nature.plus === stat ? 1.1 : nature.minus === stat ? 0.9 : 1;
-    return Math.ceil(((Math.ceil(val / n) - 5) * 100) / level) - 2 * base - Math.floor(ev / 4);
+  if (stat === 'hp' && base === 1) return 31;
+
+  let [l, m, h] = [0, 0, 31 + 1];
+  while (l < h) {
+    m = Math.trunc((l + h) / 2);
+    const v = STATS.calc(gen, stat, base, m, ev, level, nature);
+    if (v > val) {
+      h = m;
+    } else {
+      l = m + 1;
+    }
   }
+
+  return h - 1;
 }
 
 const ASCENDING = (a: [string, number], b: [string, number]) => a[1] - b[1];
@@ -359,26 +383,6 @@ function getNatures(weights: StatsTable, neutral = true) {
   }
 
   return natures;
-}
-
-// The IV returned by statToIV is the lowest IV that will work, but for display purposes we're
-// interested in the highest IV that still works. Because we expect the highest IV that still works
-// to be relatively close to the original IV we just need to do a simple linear scan.
-// TODO: can we find a closed form for max-IV instead of min-IV to remove the need to search?
-function roundUpIV(
-  gen: GenerationNum,
-  stat: StatName,
-  val: number,
-  base: number,
-  iv: number,
-  ev: number,
-  level: number,
-  nature?: Nature
-) {
-  for (; iv < 31; iv++) {
-    if (STATS.calc(gen, stat, base, iv + 1, ev, level, nature) > val) return iv;
-  }
-  return iv;
 }
 
 // The iv and ev parameters have been computed by statToIV and statToEV respectively to get as

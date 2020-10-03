@@ -53,7 +53,7 @@ export class SpreadRange implements Range<SpreadTable> {
     return a === b || Spread.equals(a.min, b.min) && Spread.equals(a.max, b.max);
   }
 
-  static display(range: Range<SpreadTable>, compact?: boolean, gen?: Generation) {
+  static display(range: Range<SpreadTable>, compact?: boolean, gen?: Generation, sep = '\n') {
     const g = GEN(gen);
 
     let nature = '';
@@ -137,16 +137,16 @@ export class SpreadRange implements Range<SpreadTable> {
 
       const i = ivs.join('/');
       if (i && i !== defaults(g, 'iv')) {
-        buf += (buf ? '\n' : '') + (g < 3 ? `DVs: ${i}` : `IVs: ${i}`);
+        buf += (buf ? sep : '') + (g < 3 ? `DVs: ${i}` : `IVs: ${i}`);
       }
       return buf;
     }
 
     let buf = nature;
     const e = evs.join(' / ') || (g >= 3 ? '???' : '');
-    if (e) buf = (buf ? buf + '\n' : buf) + `EVs: ${e}`;
+    if (e) buf = (buf ? buf + sep : buf) + `EVs: ${e}`;
     const i = ivs.join(' / ');
-    if (i) buf = (buf ? buf + '\n' : buf) + (g < 3 ? `DVs: ${i}` : `IVs: ${i}`);
+    if (i) buf = (buf ? buf + sep : buf) + (g < 3 ? `DVs: ${i}` : `IVs: ${i}`);
 
     return buf;
   }

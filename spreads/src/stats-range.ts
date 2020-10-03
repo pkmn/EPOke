@@ -121,8 +121,9 @@ export class StatsRange implements Range<StatsTable> {
   }
 
   static toSpreadRange(range: Range<StatsTable>, base: StatsTable, gen?: Generation, level = 100) {
+    console.log(range, base, gen, level);
     const min = Stats.toSpread(range.min, base, gen, level);
     const max = Stats.toSpread(range.max, base, gen, level);
-    return (!min || !max) ? undefined : new SpreadRange(min, max);
+    return (!min && !max) ? undefined : new SpreadRange(min || {}, max || {});
   }
 }

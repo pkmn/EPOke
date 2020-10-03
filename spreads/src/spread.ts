@@ -59,9 +59,9 @@ export class Spread implements SpreadTable {
     return true;
   }
 
-  static display(spread: SpreadTable, compact?: boolean, gen?: Generation) {
+  static display(spread: SpreadTable, compact?: boolean, gen?: Generation, sep = '\n') {
     // NOTE: we are deliberately not calling toRange to avoid unnecessary copying
-    return SpreadRange.display({min: spread, max: spread}, compact, gen);
+    return SpreadRange.display({min: spread, max: spread}, compact, gen, sep);
   }
 
   static fromString(s: string) {
