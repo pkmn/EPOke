@@ -10,6 +10,11 @@
   "publishConfig": {
     "access": "public"
   },
+  "dependencies": {
+    "@pkmn/client": "^0.0.5",
+    "@pkmn/dex-types": "^0.2.5",
+    "@pkmn/protocol": "^0.1.2"
+  },
   "scripts": {
     "lint": "eslint --cache src --ext ts",
     "fix": "eslint --fix src --ext ts",
