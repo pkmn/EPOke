@@ -125,13 +125,13 @@ export function run(N: number, initial?: number) {
         `Seed: ${seed} (${i + 1}/${N})\n` +
         `Generation: ${gen}\n` +
         `Level: ${level}\n` +
-        `Base Stats: ${Stats.display(base as StatsTable, true, gen)}\n` +
+        `Base Stats: ${Stats.display(base as StatsTable, gen, {compact: true})}\n` +
         '------------------------------\n' +
         `Original: ${Spread.display(t, true, gen, ' ')}\n` +
         `Computed: ${spread ? Spread.display(spread, true, gen, ' ') : 'N/A'}\n` +
         '------------------------------\n' +
-        `Original: ${Stats.display(stats as StatsTable, true, gen)}\n` +
-        `Computed: ${calced ? Stats.display(calced as StatsTable, true, gen) : 'N/A'}\n`
+        `Original: ${Stats.display(stats as StatsTable, gen, {compact: true})}\n` +
+        `Computed: ${calced ? Stats.display(calced as StatsTable, gen, {compact: true}) : 'N/A'}\n`
       );
       throw err;
     }

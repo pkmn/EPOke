@@ -1,4 +1,4 @@
-import {StatName} from '@pkmn/types';
+import {GenerationNum, StatName} from '@pkmn/types';
 import {STATS, NATURES, GEN, Generation} from './data';
 
 const STAT_ORDER = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
@@ -15,18 +15,28 @@ export function isRange<T>(r: unknown | Range<T>): r is Range<T> {
 
 export function displayStats(
   display: (stat: StatName) => string,
-  compact?: boolean,
-  gen?: Generation
+  gen?: Generation | {compact?: boolean; separator?: string},
+  options?: {compact?: boolean; separator?: string}
 ) {
-  const skip = GEN(gen) === 1;
+  let g: GenerationNum;
+  if (typeof gen === 'number') {
+    g = gen;
+  } else if (gen && 'num' in gen) {
+    g = gen.num;
+  } else {
+    g = 8;
+    options = gen;
+  }
+  options = options || {};
+
+  const order = g === 1 ? RBY_STAT_ORDER : STAT_ORDER;
 
   const s = [];
-  for (const stat of STAT_ORDER) {
-    if (skip && stat === 'spd') continue;
+  for (const stat of order) {
     const d = display(stat);
-    s.push(compact ? d : `${d} ${STATS.display(stat, gen)}`);
+    s.push(options.compact ? d : `${d} ${STATS.display(stat, g)}`);
   }
-  return s.join(compact ? '/' : ' / ');
+  return s.join(options.separator || (options.compact ? '/' : ' / '));
 }
 
 export function statOrder(gen?: Generation): readonly StatName[] {

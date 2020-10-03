@@ -49,8 +49,19 @@ export class Stats implements StatsTable {
     return true;
   }
 
-  static display(stats: StatsTable, compact?: boolean, gen?: Generation) {
-    return displayStats(s => `${stats[s]}`, compact, gen);
+  static display(
+    stats: StatsTable,
+    options?: {compact?: boolean; separator?: string}): string;
+  static display(
+    stats: StatsTable,
+    gen: Generation,
+    options?: {compact?: boolean; separator?: string}): string;
+  static display(
+    stats: StatsTable,
+    gen?: Generation | {compact?: boolean; separator?: string},
+    options?: {compact?: boolean; separator?: string}
+  ) {
+    return displayStats(s => `${stats[s]}`, gen, options);
   }
 
   static fromString(s: string) {
