@@ -265,7 +265,7 @@ const LIMIT = 252;
 ) {
   if (stat === 'hp' && base === 1) return 0;
 
-  let m;
+  let m = (252 + LIMIT) / 4;
 
   // The range is from (-LIMIT, 252 + LIMIT), but we need to shift everything by LIMIT to make
   // it (0, 252 + LIMIT + LIMIT) and add 4 because we want h to start out of bounds. We then
@@ -277,29 +277,30 @@ const LIMIT = 252;
 
   // minimum required
   while (l < h) {
-    m = Math.trunc((l + h) / 2);
     const v = STATS.calc(gen, stat, base, iv, m * 4 - LIMIT, level, nature);
     if (v < val) {
       l = m + 1;
     } else {
       h = m;
     }
+    m = Math.trunc((l + h) / 2);
   }
 
   const a = l * 4 - LIMIT;
   if (!minimize) return a;
 
   // maximum required
+  m = l;
   l = 0;
   h = max;
   while (l < h) {
-    m = Math.trunc((l + h) / 2);
     const v = STATS.calc(gen, stat, base, iv, m * 4 - LIMIT, level, nature);
     if (v > val) {
       h = m;
     } else {
       l = m + 1;
     }
+    m = Math.trunc((l + h) / 2);
   }
 
   const b = (h - 1) * 4 - LIMIT;
@@ -324,15 +325,17 @@ const LIMIT = 252;
 ) {
   if (stat === 'hp' && base === 1) return 31;
 
-  let [l, m, h] = [0, 0, 31 + 1];
+  let l = 0;
+  let m = 30;
+  let h = 31 + 1;
   while (l < h) {
-    m = Math.trunc((l + h) / 2);
     const v = STATS.calc(gen, stat, base, m, ev, level, nature);
     if (v > val) {
       h = m;
     } else {
       l = m + 1;
     }
+    m = Math.trunc((l + h) / 2);
   }
 
   return h - 1;
