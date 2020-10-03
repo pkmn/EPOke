@@ -5,6 +5,12 @@
 
 Library for parsing, displaying, and converting Pokémon stats, spreads, and ranges.
 
+<p align="center">
+  <br />
+  <img alt="HP Forumla" width="483" height="46" src="https://pkmn.cc/post-adv-hp-stat-calc.webp" />
+  <img alt="Stat Forumla" width="597" height="60" src="https://pkmn.cc/post-adv-stat-calc.webp" />
+</p>
+
 ## Installation
 
 ```sh

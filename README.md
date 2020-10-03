@@ -1,3 +1,5 @@
+<p align="center"><img alt="EPOké" width="364" height="148" src="https://pkmn.cc/EPOke.png" /></p>
+
 # EPOké
 
 ![Test Status](https://github.com/pkmn/EPOke/workflows/Tests/badge.svg)
@@ -5,7 +7,7 @@
 This is the top level directory housing packages that make up [`@pkmn`](https://pkmn.cc/@pkmn/)'s
 EPOké project.
 
-[EPOké](https://pkmn.cc/epoke) (named after a portmanteau of
+> [EPOké](https://pkmn.cc/epoke) (named after a portmanteau of
 [EPO](https://en.wikipedia.org/wiki/Erythropoietin) and ‘Poké’) leverages a reverse damage
 calculator ([gmd](gmd)) and additional logic to construct the *perceived* battle state based on the
 perspective of the client. EPOké is designed to be useful in many domains, exposing additional
