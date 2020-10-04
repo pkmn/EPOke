@@ -3,6 +3,7 @@
 # EPOké
 
 ![Test Status](https://github.com/pkmn/EPOke/workflows/Tests/badge.svg)
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
 This is the top level directory housing packages that make up [`@pkmn`](https://pkmn.cc/@pkmn/)'s
 EPOké project.

@@ -1,6 +1,7 @@
 # `@pkmn/spreads`
 
 ![Test Status](https://github.com/pkmn/EPOke/workflows/Tests/badge.svg)
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
 [![npm version](https://img.shields.io/npm/v/@pkmn/spreads.svg)](https://www.npmjs.com/package/@pkmn/spreads)
 
 Library for parsing, displaying, and converting Pokémon stats, spreads, and ranges.
