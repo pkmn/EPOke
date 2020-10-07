@@ -11,9 +11,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@pkmn/client": "^0.0.5",
-    "@pkmn/data": "^0.2.5",
-    "@pkmn/protocol": "^0.1.2"
+    "@pkmn/client": "file:../../ps/client",
+    "@pkmn/data": "file:../../ps/data",
+    "@pkmn/protocol": "file:../../ps/protocol"
   },
   "scripts": {
     "lint": "eslint --cache src --ext ts",

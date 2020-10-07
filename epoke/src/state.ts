@@ -1,7 +1,7 @@
-import {ID, GameType, Move, MoveCategory, TypeName} from '@pkmn/data';
+import {ID, As, GameType, Move, MoveCategory, TypeName, GenderName} from '@pkmn/data';
 
 export namespace State {
-  export type Ref<T extends string> = string;
+  export type Ref<T> = string & As<T>;
 
   export interface Battle {
     debugMode: boolean;
@@ -55,7 +55,7 @@ export namespace State {
       [id: string]: ConditionState & {
         source: Ref<'Pokemon'> | null;
         multiplier?: number;
-      }
+      };
     };
   }
 
@@ -110,7 +110,7 @@ export namespace State {
     };
   }
 
-  export type Action = MoveAction | SwitchAction | TeamAction /* | FieldAction | PokemonAction */;
+  export type Action = MoveAction | SwitchAction | TeamAction;
 
   export interface MoveAction {
     choice: 'move' | 'beforeTurnMove';
@@ -155,7 +155,8 @@ export namespace State {
   // }
 
   // interface PokemonAction {
-  //   choice: 'megaEvo' | 'shift' | 'runPrimal' | 'runSwitch' | 'event' | 'runUnnerve' | 'runDynamax';
+  //   choice:
+  //     'megaEvo' | 'shift' | 'runPrimal' | 'runSwitch' | 'event' | 'runUnnerve' | 'runDynamax';
   //   priority: number;
   //   speed: number;
   //   pokemon: Ref<'Pokemon'>;
@@ -199,7 +200,7 @@ export namespace State {
       basePower: number;
       category: MoveCategory;
       priority: number;
-      flags: {};
+      flags: Move['flags'];
       effectType: 'Move';
       isFutureMove: true;
       type: TypeName;
@@ -236,6 +237,6 @@ export namespace State {
   }
 
   export interface Pokemon {
-
+    gender?: GenderName;
   }
 }
