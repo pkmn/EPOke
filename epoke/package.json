@@ -13,7 +13,8 @@
   "dependencies": {
     "@pkmn/client": "file:../../ps/client",
     "@pkmn/data": "file:../../ps/data",
-    "@pkmn/protocol": "file:../../ps/protocol"
+    "@pkmn/protocol": "file:../../ps/protocol",
+    "@pkmn/spreads": "file:../spreads"
   },
   "scripts": {
     "lint": "eslint --cache src --ext ts",
