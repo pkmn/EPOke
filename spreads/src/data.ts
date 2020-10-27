@@ -85,7 +85,11 @@ const DISPLAY: Readonly<{ [stat: string]: Readonly<[string, string]> }> = {
 export const GEN = (gen?: Generation) =>
   typeof gen === 'number' ? gen : (gen && 'num' in gen) ? gen.num : 8;
 
+const tr = Math.floor;
+// const tr = (num: number, bits = 0) => bits ? (num >>> 0) % (2 ** bits) : num >>> 0;
+
 export const STATS = new class {
+  // BUG: These formulas don't properly account for truncation and overflow
   calc(
     gen: Generation,
     stat: StatName,
@@ -102,21 +106,19 @@ export const STATS = new class {
       nature = undefined;
     }
     if (stat === 'hp') {
-      return base === 1
-        ? base
-        : Math.floor(((base * 2 + iv + Math.floor(ev / 4)) * level) / 100) + level + 10;
+      return base === 1 ? base : tr(((2 * base + iv + tr(ev / 4)) * level) / 100) + level + 10;
+      // return base === 1 ? base : tr(tr(2 * base + iv + tr(ev / 4) + 100) * level / 100 + 10);
     } else {
-      let mod = 1;
+      const val = tr(((base * 2 + iv + tr(ev / 4)) * level) / 100) + 5;
+      // const val = tr(tr(2 * base + iv + tr(ev / 4)) * level / 100 + 5);
       if (nature !== undefined) {
-        if (nature.plus === stat) {
-          mod = 1.1;
-        } else if (nature.minus === stat) {
-          mod = 0.9;
-        }
+        if (nature.plus === stat) return tr(val * 1.1);
+        if (nature.minus === stat) return tr(val * 0.9);
+        // NOTE: We apply the Overflow Stats Clause here to avoid needing to deal with overflow
+        // if (nature.plus === stat) return tr(tr(Math.min(val, 595) * 110, 16) / 100);
+        // if (nature.minus === stat) return tr(tr(Math.min(val, 728) * 90, 16) / 100);
       }
-      return Math.floor(
-        (Math.floor(((base * 2 + iv + Math.floor(ev / 4)) * level) / 100) + 5) * mod
-      );
+      return tr(val);
     }
   }
 

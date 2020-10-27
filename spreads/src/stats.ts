@@ -1,4 +1,4 @@
-import {StatsTable, StatName, GenerationNum, NatureName} from '@pkmn/types';
+import {StatsTable, StatName, GenerationNum} from '@pkmn/types';
 
 import {StatsDisplayOptions, displayStats, getNatureFromPlusMinus} from './common';
 import {NATURES, STATS, GEN, Generation, Nature} from './data';
