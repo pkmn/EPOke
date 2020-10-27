@@ -85,11 +85,8 @@ const DISPLAY: Readonly<{ [stat: string]: Readonly<[string, string]> }> = {
 export const GEN = (gen?: Generation) =>
   typeof gen === 'number' ? gen : (gen && 'num' in gen) ? gen.num : 8;
 
-const tr = Math.floor;
-// const tr = (num: number, bits = 0) => bits ? (num >>> 0) % (2 ** bits) : num >>> 0;
-
 export const STATS = new class {
-  // BUG: These formulas don't properly account for truncation and overflow
+  // BUG: This calculation deliberately doesn't handle overflow
   calc(
     gen: Generation,
     stat: StatName,
@@ -99,6 +96,10 @@ export const STATS = new class {
     level = 100,
     nature?: Nature
   ) {
+    // NB: floor is required instead of trunc to work correctly with negative numbers!
+    const tr = Math.floor;
+    // const tr = (num: number, bits = 0) => bits ? (num >>> 0) % (2 ** bits) : num >>> 0;
+
     const g = GEN(gen);
     if (ev === undefined) ev = g < 3 ? 252 : 0;
     if (GEN(gen) < 3) {
@@ -109,14 +110,13 @@ export const STATS = new class {
       return base === 1 ? base : tr(((2 * base + iv + tr(ev / 4)) * level) / 100) + level + 10;
       // return base === 1 ? base : tr(tr(2 * base + iv + tr(ev / 4) + 100) * level / 100 + 10);
     } else {
-      const val = tr(((base * 2 + iv + tr(ev / 4)) * level) / 100) + 5;
-      // const val = tr(tr(2 * base + iv + tr(ev / 4)) * level / 100 + 5);
+      // const val = tr(((base * 2 + iv + tr(ev / 4)) * level) / 100) + 5;
+      const val = tr(tr(2 * base + iv + tr(ev / 4)) * level / 100 + 5);
       if (nature !== undefined) {
         if (nature.plus === stat) return tr(val * 1.1);
         if (nature.minus === stat) return tr(val * 0.9);
-        // NOTE: We apply the Overflow Stats Clause here to avoid needing to deal with overflow
-        // if (nature.plus === stat) return tr(tr(Math.min(val, 595) * 110, 16) / 100);
-        // if (nature.minus === stat) return tr(tr(Math.min(val, 728) * 90, 16) / 100);
+        // if (nature.plus === stat) return tr(tr((o ? val : Math.min(val, 595)) * 110, 16) / 100);
+        // if (nature.minus === stat) return tr(tr((o ? val : Math.min(val, 728)) * 90, 16) / 100);
       }
       return tr(val);
     }

@@ -85,6 +85,8 @@ EV limits are observed, but the following is considered out-of-scope:
 - The returned `Spread` will often be sub-maximal (< 508 EVs) when in  reality it is more likely
   that EVs were maxed out and IVs were sub-maximal instead. This is mostly a display issue, other
   than the impact on Hidden Power as outlined above.
+- The algorithm pretends that the [655 Stat 'Glitch'](https://www.smogon.com/forums/threads/3672135)
+  overflow scenario does not exist. This is only becomes relevant in non-standard formats.
 
 ### Browser
 
