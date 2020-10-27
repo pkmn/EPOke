@@ -85,8 +85,6 @@ const DISPLAY: Readonly<{ [stat: string]: Readonly<[string, string]> }> = {
 export const GEN = (gen?: Generation) =>
   typeof gen === 'number' ? gen : (gen && 'num' in gen) ? gen.num : 8;
 
-const tr = (num: number, bits = 0) => bits ? (num >>> 0) % (2 ** bits) : num >>> 0;
-
 export const STATS = new class {
   calc(
     gen: Generation,
@@ -103,16 +101,22 @@ export const STATS = new class {
       iv = this.toDV(iv) * 2;
       nature = undefined;
     }
-     if (stat === 'hp') {
-      return base === 1 ? base : tr(tr(2 * base + iv + tr(ev / 4) + 100) * level / 100 + 10);
+    if (stat === 'hp') {
+      return base === 1
+        ? base
+        : Math.floor(((base * 2 + iv + Math.floor(ev / 4)) * level) / 100) + level + 10;
     } else {
-      const val = tr(tr(2 * base + iv + tr(ev / 4)) * level / 100 + 5);
+      let mod = 1;
       if (nature !== undefined) {
-        // NOTE: We apply the Overflow Stats Clause here to avoid needing to deal with overflow
-        if (nature.plus === stat) return tr(tr(Math.min(val, 595) * 110, 16) / 100);
-        if (nature.minus === stat) return tr(tr(Math.min(val, 728) * 90, 16) / 100);
+        if (nature.plus === stat) {
+          mod = 1.1;
+        } else if (nature.minus === stat) {
+          mod = 0.9;
+        }
       }
-      return val;
+      return Math.floor(
+        (Math.floor(((base * 2 + iv + Math.floor(ev / 4)) * level) / 100) + 5) * mod
+      );
     }
   }
 
