@@ -1,6 +1,6 @@
 import * as client from '@pkmn/client';
-import {NatureName, StatsTable, PokemonSet, ID, HPTypeName} from '@pkmn/data';
-import {DetailedPokemon} from '@pkmn/protocol';
+import {NatureName, StatsTable, PokemonSet, ID, HPTypeName, Move, MoveName} from '@pkmn/data';
+import {DetailedPokemon, EffectName} from '@pkmn/protocol';
 import {Spread, Stats} from '@pkmn/spreads';
 
 import {Side} from './side';
@@ -75,6 +75,22 @@ export class Pokemon extends client.Pokemon {
   get moves() {
     // TODO
     return super.moves;
+  }
+
+  useMove(
+    move: {id: ID; name: string} & Partial<Move>,
+    target: Pokemon | null,
+    from?: EffectName | MoveName
+  ) {
+    super.useMove(move, target, from);
+    if (this.movesUsedWhileActive.length > 1) {
+      // TODO Choice / Gorilla Tactics negative constraint
+    }
+    const m = this.side.battle.gen.moves.get(move.id);
+    if (!m) return;
+    if (m.category === 'Status') {
+      // TODO Assault Vest negative constraint
+    }
   }
 
   toRef() {
