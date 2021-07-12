@@ -1,4 +1,4 @@
-import {StatsTable, GenerationNum, NatureName, StatName} from '@pkmn/types';
+import {StatsTable, GenerationNum, NatureName, StatID} from '@pkmn/types';
 
 import {
   displayRange,
@@ -324,8 +324,8 @@ function parseSpreadValues(s: string, type: 'iv' | 'ev' | 'dv') {
 
   if (s.trim() === '???') return {min, max};
 
-  let plus: StatName | undefined;
-  let minus: StatName | undefined;
+  let plus: StatID | undefined;
+  let minus: StatID | undefined;
 
   const compact = COMPACT.test(s);
   const split = s.split('/');

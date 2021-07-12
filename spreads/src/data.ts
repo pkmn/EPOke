@@ -1,5 +1,5 @@
 // This code is cribbed from @pkmn/data and @pkmn/dex: https://github.com/pkmn/ps
-import {StatsTable, NatureName, StatName, GenerationNum, ID} from '@pkmn/types';
+import {StatsTable, NatureName, StatID, GenerationNum, ID} from '@pkmn/types';
 
 export function toID(text: any): ID {
   if (text?.id) text = text.id;
@@ -9,8 +9,8 @@ export function toID(text: any): ID {
 
 export interface Nature {
   name: NatureName;
-  plus?: Exclude<StatName, 'hp'>;
-  minus?: Exclude<StatName, 'hp'>;
+  plus?: Exclude<StatID, 'hp'>;
+  minus?: Exclude<StatID, 'hp'>;
 }
 
 // NOTE: We are depending on ES2015 ordering guarantees
@@ -62,7 +62,7 @@ export const NATURES = new class {
 
 const STAT_NAMES = ['hp', 'atk', 'def', 'spe', 'spa', 'spd'] as const;
 
-const NAMES: Readonly<{ [name: string]: StatName }> = {
+const NAMES: Readonly<{ [name: string]: StatID }> = {
   HP: 'hp', hp: 'hp',
   Attack: 'atk', Atk: 'atk', atk: 'atk',
   Defense: 'def', Def: 'def', def: 'def',
@@ -89,7 +89,7 @@ export const STATS = new class {
   // BUG: This calculation deliberately doesn't handle overflow
   calc(
     gen: Generation,
-    stat: StatName,
+    stat: StatID,
     base: number,
     iv = 31,
     ev?: number,
@@ -122,12 +122,12 @@ export const STATS = new class {
     }
   }
 
-  get(s: string): StatName | undefined {
+  get(s: string): StatID | undefined {
     return NAMES[s];
   }
 
   display(str: string, gen?: Generation, full = false): string {
-    let s: StatName | 'spc' | undefined = NAMES[str];
+    let s: StatID | 'spc' | undefined = NAMES[str];
     if (s === undefined) return str;
     if (GEN(gen) === 1 && s === 'spa') s = 'spc';
     return DISPLAY[s][+full];
@@ -142,7 +142,7 @@ export const STATS = new class {
     );
   }
 
-  *[Symbol.iterator](): IterableIterator<StatName> {
+  *[Symbol.iterator](): IterableIterator<StatID> {
     for (const s of STAT_NAMES) {
       yield s;
     }

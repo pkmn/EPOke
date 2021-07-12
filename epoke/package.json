@@ -10,6 +10,12 @@
   "publishConfig": {
     "access": "public"
   },
+  "files": [
+    "build",
+    "!build/test",
+    "src",
+    "!src/test"
+  ],
   "dependencies": {
     "@pkmn/client": "file:../../ps/client",
     "@pkmn/data": "file:../../ps/data",
@@ -30,6 +36,9 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "testPathIgnorePatterns": ["node_modules/", "build/"]
+    "testPathIgnorePatterns": [
+      "node_modules/",
+      "build/"
+    ]
   }
 }

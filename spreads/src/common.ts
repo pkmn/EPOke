@@ -1,4 +1,4 @@
-import {GenerationNum, StatName} from '@pkmn/types';
+import {GenerationNum, StatID} from '@pkmn/types';
 import {STATS, NATURES, GEN, Generation} from './data';
 
 const STAT_ORDER = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
@@ -19,7 +19,7 @@ export interface StatsDisplayOptions {
 }
 
 export function displayStats(
-  display: (stat: StatName) => string,
+  display: (stat: StatID) => string,
   gen?: Generation | StatsDisplayOptions,
   options?: StatsDisplayOptions
 ) {
@@ -45,7 +45,7 @@ export function displayStats(
   return s.join(options.separator || (compact ? '/' : ' / '));
 }
 
-export function statOrder(gen?: Generation): readonly StatName[] {
+export function statOrder(gen?: Generation): readonly StatID[] {
   return GEN(gen) === 1 ? RBY_STAT_ORDER : STAT_ORDER;
 }
 
@@ -83,7 +83,7 @@ export function parseRange(s: string, max = Infinity) {
 
 const N = [...NATURES];
 
-export function getNatureFromPlusMinus(plus: StatName, minus: StatName) {
+export function getNatureFromPlusMinus(plus: StatID, minus: StatID) {
   if (plus === 'hp' || minus === 'hp') return undefined;
   return N[(STAT_ORDER.indexOf(plus) - 1) * 5 + (STAT_ORDER.indexOf(minus) - 1)];
 }

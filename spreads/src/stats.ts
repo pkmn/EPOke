@@ -1,4 +1,4 @@
-import {StatsTable, StatName, GenerationNum} from '@pkmn/types';
+import {StatsTable, StatID, GenerationNum} from '@pkmn/types';
 
 import {StatsDisplayOptions, displayStats, getNatureFromPlusMinus} from './common';
 import {NATURES, STATS, GEN, Generation, Nature} from './data';
@@ -72,8 +72,8 @@ export class Stats implements StatsTable {
   static toSpread(stats: StatsTable, base: StatsTable, gen?: Generation, level = 100) {
     const g = GEN(gen);
 
-    let plus: StatName = 'hp';
-    let minus: StatName = 'hp';
+    let plus: StatID = 'hp';
+    let minus: StatID = 'hp';
 
     const ivs: StatsTable = {hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31};
     // NOTE: In this method, for stats other than HP evs actually tracks the differences between the
@@ -258,10 +258,10 @@ const LIMIT = 252;
 // purely through EVs with the parameters provided) nor is it guaranteed to only return a legal
 // amount of EVs (the magnitude of EVs that would theoretically be required is important for the
 // design of the higher-level algorithm).
-// TODO: can a close form equation (or multiple) be used here instead of binary searches?
+// TODO: can a closed form equation (or multiple) be used here instead of binary searches?
 export function statToEV(
   gen: GenerationNum,
-  stat: StatName,
+  stat: StatID,
   val: number,
   base: number,
   iv: number,
@@ -322,7 +322,7 @@ export function statToEV(
 // TODO: can a close form equation be used here instead of binary search?
 export function statToIV(
   gen: Generation,
-  stat: StatName,
+  stat: StatID,
   val: number,
   base: number,
   ev: number,
@@ -351,11 +351,11 @@ const ASCENDING = (a: [string, number], b: [string, number]) => a[1] - b[1];
 const DESCENDING = (a: [string, number], b: [string, number]) => b[1] - a[1];
 
 // The (four) Natures which boost plus, in order of the weights
-function getPositiveNatures(plus: StatName, weights: StatsTable | Array<[StatName, number]>) {
+function getPositiveNatures(plus: StatID, weights: StatsTable | Array<[StatID, number]>) {
   const natures: Nature[] = [];
 
   const order = Array.isArray(weights)
-    ? weights : Object.entries(weights).sort(ASCENDING) as Array<[StatName, number]>;
+    ? weights : Object.entries(weights).sort(ASCENDING) as Array<[StatID, number]>;
   for (const [minus] of order) {
     if (minus === 'hp' || minus === plus) continue;
     natures.push(getNatureFromPlusMinus(plus, minus)!);
@@ -365,11 +365,11 @@ function getPositiveNatures(plus: StatName, weights: StatsTable | Array<[StatNam
 }
 
 // The (four) Natures which nerf minus, in order of the weights
-function getNegativeNatures(minus: StatName, weights: StatsTable | Array<[StatName, number]>) {
+function getNegativeNatures(minus: StatID, weights: StatsTable | Array<[StatID, number]>) {
   const natures: Nature[] = [];
 
   const order = Array.isArray(weights)
-    ? weights : Object.entries(weights).sort(DESCENDING) as Array<[StatName, number]>;
+    ? weights : Object.entries(weights).sort(DESCENDING) as Array<[StatID, number]>;
   for (const [plus] of order) {
     if (plus === 'hp' || plus === minus) continue;
     natures.push(getNatureFromPlusMinus(plus, minus)!);
@@ -382,8 +382,8 @@ function getNegativeNatures(minus: StatName, weights: StatsTable | Array<[StatNa
 function getNatures(weights: StatsTable, neutral = true) {
   const natures: Nature[] = neutral ? [NATURES.get('Serious')!] : [];
 
-  const positive = Object.entries(weights).sort(DESCENDING) as Array<[StatName, number]>;
-  const negative = Object.entries(weights).sort(ASCENDING) as Array<[StatName, number]>;
+  const positive = Object.entries(weights).sort(DESCENDING) as Array<[StatID, number]>;
+  const negative = Object.entries(weights).sort(ASCENDING) as Array<[StatID, number]>;
   for (const [plus] of positive) {
     if (plus === 'hp') continue;
     for (const nature of getPositiveNatures(plus, negative)) {
@@ -400,7 +400,7 @@ function getNatures(weights: StatsTable, neutral = true) {
 // don't already.
 function tradeIVsForEVs(
   gen: GenerationNum,
-  stat: StatName,
+  stat: StatID,
   val: number,
   base: number,
   iv: number,

@@ -238,5 +238,6 @@ export namespace State {
 
   export interface Pokemon {
     gender?: GenderName;
+    // TODO
   }
 }

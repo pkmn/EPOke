@@ -78,7 +78,7 @@ export class Pokemon extends client.Pokemon {
   }
 
   useMove(
-    move: {id: ID; name: string} & Partial<Move>,
+    move: Partial<Move> & client.NA,
     target: Pokemon | null,
     from?: EffectName | MoveName
   ) {

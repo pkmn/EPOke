@@ -10,6 +10,12 @@
   "publishConfig": {
     "access": "public"
   },
+  "files": [
+    "build",
+    "!build/test",
+    "src",
+    "!src/test"
+  ],
   "scripts": {
     "lint": "eslint --cache src --ext ts",
     "fix": "eslint --fix src --ext ts",
@@ -24,6 +30,9 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "testPathIgnorePatterns": ["node_modules/", "build/"]
+    "testPathIgnorePatterns": [
+      "node_modules/",
+      "build/"
+    ]
   }
 }
