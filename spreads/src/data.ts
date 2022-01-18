@@ -102,7 +102,7 @@ export const STATS = new class {
 
     const g = GEN(gen);
     if (ev === undefined) ev = g < 3 ? 252 : 0;
-    if (GEN(gen) < 3) {
+    if (g < 3) {
       iv = this.toDV(iv) * 2;
       nature = undefined;
     }

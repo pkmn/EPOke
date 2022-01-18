@@ -251,75 +251,55 @@ function finishSpread(
   return new Spread(nature?.name, ivs, evs);
 }
 
-const LIMIT = 252;
+// Special-cased ceiling and floor functions to work around floating point inconsistencies.
+const TOLERANCE = 1e-8;
+const nearInt = (x: number) => Math.abs(x - Math.round(x)) < TOLERANCE;
+const softCeil = (x: number) =>
+  Math.abs(x - Math.floor(x)) < TOLERANCE ? Math.floor(x) : Math.ceil(x);
+const softFloor = (x: number) =>
+  Math.abs(x - Math.ceil(x)) < TOLERANCE ? Math.ceil(x) : Math.floor(x);
 
-// Return the minimum number of EVs required to get as close as possible to a particular val.
-// NOTE: This method is neither guaranteed to hit a specific val (some values may be impossible
+// Returns the number of EVs closest to 0 that will produce a given stat value val without exceeding
+// it. NOTE: This method is neither guaranteed to hit a specific val (some values may be impossible
 // purely through EVs with the parameters provided) nor is it guaranteed to only return a legal
 // amount of EVs (the magnitude of EVs that would theoretically be required is important for the
 // design of the higher-level algorithm).
-// TODO: can a closed form equation (or multiple) be used here instead of binary searches?
+// These equations were derived from the cartridge stat formulas by Orion Taylor (orion#8038).
 export function statToEV(
-  gen: GenerationNum,
+  gen: Generation,
   stat: StatID,
   val: number,
   base: number,
   iv: number,
   level: number,
   nature?: Nature,
-  minimize = false,
+  maximize = false,
 ) {
   if (stat === 'hp' && base === 1) return 0;
+  const g = GEN(gen);
+  const n = g < 3 ? 1 : nature?.plus === stat ? 1.1 : nature?.minus === stat ? 0.9 : 1;
+  if (g < 3) iv = STATS.toDV(iv) * 2;
 
-  let m = (252 + LIMIT) / 4;
+  const a = stat === 'hp'
+    ? (100 / level) * (val - level - 10) - 2 * base
+    : (100 / level) * softCeil((val) / n - 5) - 2 * base;
+  const min = 4 * (softCeil(a) - iv);
+  if (!maximize) return min;
 
-  // The range is from (-LIMIT, 252 + LIMIT), but we need to shift everything by LIMIT to make
-  // it (0, 252 + LIMIT + LIMIT) and add 4 because we want h to start out of bounds. We then
-  // divide by 4 to compress the range - we expand it back when we're returning
-  const max = (252 + 4 + 2 * LIMIT) / 4;
+  const b = stat === 'hp'
+    ? (100 / level) * (val - level - 9) - 2 * base
+    : (100 / level) * softCeil((val + 1) / n - 5) - 2 * base;
+  const max = 4 * ((nearInt(b) ? softFloor(b) - 1 : softFloor(b)) - iv);
 
-  let l = 0;
-  let h = max;
-
-  // minimum required
-  while (l < h) {
-    const v = STATS.calc(gen, stat, base, iv, m * 4 - LIMIT, level, nature);
-    if (v < val) {
-      l = m + 1;
-    } else {
-      h = m;
-    }
-    m = Math.trunc((l + h) / 2);
-  }
-
-  const a = l * 4 - LIMIT;
-  if (!minimize) return a;
-
-  // maximum required
-  m = l;
-  l = 0;
-  h = max;
-  while (l < h) {
-    const v = STATS.calc(gen, stat, base, iv, m * 4 - LIMIT, level, nature);
-    if (v > val) {
-      h = m;
-    } else {
-      l = m + 1;
-    }
-    m = Math.trunc((l + h) / 2);
-  }
-
-  const b = (h - 1) * 4 - LIMIT;
-
-  if (a <= 0 && b >= 0) return 0;
-  return a >= 0 ? a : b;
+  if (min <= 0 && max >= 0) return 0;
+  return min >= 0 ? min : max;
 }
 
 // Return the maximum number of IVs required to get as close as possible to a particular val.
 // NOTE: This method is neither guaranteed to hit a specific val (some values may be impossible
 // purely through IVs with the parameters provided) nor is it guaranteed to only return a legal
 // amount of IVs.
-// TODO: can a close form equation be used here instead of binary search?
+// These equations were derived from the cartridge stat formulas by Orion Taylor (orion#8038).
 export function statToIV(
   gen: Generation,
   stat: StatID,
@@ -330,21 +310,14 @@ export function statToIV(
   nature?: Nature
 ) {
   if (stat === 'hp' && base === 1) return 31;
-
-  let l = 0;
-  let m = 30;
-  let h = 31 + 1;
-  while (l < h) {
-    const v = STATS.calc(gen, stat, base, m, ev, level, nature);
-    if (v > val) {
-      h = m;
-    } else {
-      l = m + 1;
-    }
-    m = Math.trunc((l + h) / 2);
-  }
-
-  return h - 1;
+  const g = GEN(gen);
+  const n = gen < 3 ? 1 : nature?.plus === stat ? 1.1 : nature?.minus === stat ? 0.9 : 1;
+  const m = stat === 'hp'
+    ? (100 / level) * (val - level - 9) - 2 * base
+    : (100 / level) * softCeil((val + 1) / n - 5) - 2 * base;
+  const max = Math.min(31, Math.max(0,
+    (nearInt(m) ? softFloor(m) - 1 : softFloor(m)) - softFloor(ev / 4)));
+  return g < 3 ? STATS.toIV(STATS.toDV(max)) : max;
 }
 
 const ASCENDING = (a: [string, number], b: [string, number]) => a[1] - b[1];
