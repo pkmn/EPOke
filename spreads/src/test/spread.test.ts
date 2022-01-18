@@ -46,7 +46,7 @@ describe('Spread', () => {
       'EVs: 252 Atk / 4 Def / 252 Spe'
     );
     expect(Spread.display(SPREAD2, {style: 'compact', separator: {internal: '|'}}))
-      .toEqual('Jolly 0|252|4|0-|0|252+');
+      .toBe('Jolly 0|252|4|0-|0|252+');
 
     expect(RBY.toString()).toEqual(
       '??? Nature\n' +
@@ -61,7 +61,7 @@ describe('Spread', () => {
       '??? 0/0/0/0/0/0\n' +
       'IVs: 31/7/31/30/16/31'
     );
-    expect(Spread.display(RBY, 1, {style: 'compact', separator: ' '})).toEqual(
+    expect(Spread.display(RBY, 1, {style: 'compact', separator: ' '})).toBe(
       'EVs: 0/0/0/0/0 DVs: 15/3/15/15/15'
     );
 
@@ -70,7 +70,7 @@ describe('Spread', () => {
       'EVs: ???\n' +
       'IVs: 7 Atk / 30 SpA / 16 SpD'
     );
-    expect(Spread.display(RBY2, 1, {style: 'pretty', separator: {line: '; '}})).toEqual(
+    expect(Spread.display(RBY2, 1, {style: 'pretty', separator: {line: '; '}})).toBe(
       'EVs: 0 HP / 0 Atk / 0 Def / 0 Spc / 0 Spe; DVs: 3 Atk'
     );
     expect(Spread.display(RBY2, {style: 'compact'})).toEqual(

@@ -27,16 +27,16 @@ describe('StatsRange', () => {
   });
 
   test('#toString', () => {
-    expect(StatsRange.display(RANGE)).toEqual(
+    expect(StatsRange.display(RANGE)).toBe(
       '360-375 HP / 367 Atk / 250-260 Def / 203-205 SpA / 235-239 SpD / 180-187 Spe'
     );
     expect(StatsRange.display(RANGE, {style: 'compact'}))
-      .toEqual('360-375/367/250-260/203-205/235-239/180-187');
+      .toBe('360-375/367/250-260/203-205/235-239/180-187');
 
-    expect(StatsRange.display(RANGE, {num: 1}, {style: 'pretty'})).toEqual(
+    expect(StatsRange.display(RANGE, {num: 1}, {style: 'pretty'})).toBe(
       '360-375 HP / 367 Atk / 250-260 Def / 203-205 Spc / 180-187 Spe'
     );
-    expect(StatsRange.display(RANGE, 1, {style: 'compact', separator: ' | '})).toEqual(
+    expect(StatsRange.display(RANGE, 1, {style: 'compact', separator: ' | '})).toBe(
       '360-375 | 367 | 250-260 | 203-205 | 180-187'
     );
   });

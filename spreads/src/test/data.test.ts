@@ -11,8 +11,8 @@ describe('NATURES', () => {
 
     const serious = NATURES.get('serious')!;
     expect(serious.name).toBe('Serious');
-    expect(serious.plus).not.toBeDefined();
-    expect(serious.minus).not.toBeDefined();
+    expect(serious.plus).toBeUndefined();
+    expect(serious.minus).toBeUndefined();
 
     expect(NATURES.get('foo')).toBeUndefined();
   });
@@ -43,7 +43,7 @@ describe('STATS', () => {
   });
 
   it('#get', () => {
-    expect(STATS.get('foo')).not.toBeDefined();
+    expect(STATS.get('foo')).toBeUndefined();
     expect(STATS.get('Atk')).toBe('atk');
     expect(STATS.get('Spc')).toBe('spa');
     expect(STATS.get('SpDef')).toBe('spd');
