@@ -1,6 +1,6 @@
 {
   "name": "@pkmn/spreads",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "unpkg": "build/index.umd.js",
@@ -17,7 +17,7 @@
     "!src/test"
   ],
   "dependencies": {
-    "@pkmn/types": "^2.0.0"
+    "@pkmn/types": "^2.1.0"
   },
   "scripts": {
     "lint": "eslint --cache src --ext ts",

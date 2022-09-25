@@ -36,12 +36,12 @@ describe('SpreadRange', () => {
   test('#toString', () => {
     expect(RANGE.toString()).toEqual(
       'Docile-Modest Nature\n' +
-      'EVs: 20-80 HP / 252 SpA / ??? SpD / >200 Spe\n' +
-      'IVs: <10 Atk / >20 SpD / ??? Spe'
+      'EVs: 20-80 HP / 252 SpA / ??? SpD / >199 Spe\n' +
+      'IVs: <11 Atk / >19 SpD / ??? Spe'
     );
     expect(SpreadRange.display(RANGE, {style: 'compact'})).toEqual(
-      'Docile-Modest 20-80/0/0/252/???/>200\n' +
-      'IVs: 31/<10/31/31/>20/???'
+      'Docile-Modest 20-80/0/0/252/???/>199\n' +
+      'IVs: 31/<11/31/31/>19/???'
     );
   });
 
@@ -51,12 +51,12 @@ describe('SpreadRange', () => {
     expect(SpreadRange.fromString(RANGE.toString())!.equals(comparable)).toBe(true);
     expect(SpreadRange.fromString(
       'Docile - Modest Nature\n' +
-      'IVs: >20 SpD /<10 Atk /  ??? Spe\n' +
-      'EVs: 252 SpA /20-80 HP / ??? SpD/>200 Spe\n'
+      'IVs: >19 SpD /<11 Atk /  ??? Spe\n' +
+      'EVs: 252 SpA /20-80 HP / ??? SpD/>199 Spe\n'
     )!.equals(comparable)).toBe(true);
     expect(SpreadRange.fromString(
-      'IVs:  31/<10/31 /31/>20/???\n' +
-      'Docile- Modest  20-80/ 0/0/252/???/>200\n'
+      'IVs:  31/<11/31 /31/>19/???\n' +
+      'Docile- Modest  20-80/ 0/0/252/???/>199\n'
     )!.equals(comparable)).toBe(true);
   });
 

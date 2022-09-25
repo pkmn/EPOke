@@ -58,7 +58,7 @@ The above example code will display the following:
 ```txt
 Serious-Timid Nature
 EVs: 100-172 HP / 60-148 SpA / 40-188 Spe
-IVs: >10 Def
+IVs: >9 Def
 ```
 
 [`@pkmn/gmd`](../gmd) and [`@pkmn/predictor`](../predictor) make extensive use of this package and

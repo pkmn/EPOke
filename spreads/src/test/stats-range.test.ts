@@ -97,7 +97,7 @@ describe('StatsRange', () => {
     expect(range.toSpreadRange(base)?.toString()).toEqual(
       'Serious-Timid Nature\n' +
       'EVs: 100-172 HP / 60-148 SpA / 40-188 Spe\n' +
-      'IVs: >10 Def'
+      'IVs: >9 Def'
     );
   });
 });

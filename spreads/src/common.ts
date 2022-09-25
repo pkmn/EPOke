@@ -52,8 +52,8 @@ export function statOrder(gen?: Generation): readonly StatID[] {
 export function displayRange(range: Range<number>, max = Infinity) {
   if (range.min === range.max || range.min === max) return `${range.min}`;
   if (range.min === 0 && range.max >= max) return '???';
-  if (range.max >= max) return `>${range.min}`;
-  if (range.min === 0) return `<${range.max}`;
+  if (range.max >= max) return `>${range.min - 1}`;
+  if (range.min === 0) return `<${range.max + 1}`;
   return `${range.min}-${range.max}`;
 }
 
@@ -61,13 +61,13 @@ export function parseRange(s: string, max = Infinity) {
   if (s === '???') return {min: 0, max};
 
   if (s.startsWith('>')) {
-    const min = Number(s.slice(1));
+    const min = Number(s.slice(1)) + 1;
     if (isNaN(min)) return undefined;
     return {min, max};
   }
 
   if (s.startsWith('<')) {
-    max = Number(s.slice(1));
+    max = Number(s.slice(1)) - 1;
     if (isNaN(max)) return undefined;
     return {min: 0, max};
   }
