@@ -29,7 +29,7 @@ export function displayStats(
   } else if (gen && 'num' in gen) {
     g = gen.num;
   } else {
-    g = 8;
+    g = 9;
     options = gen;
   }
   options = options || {};

@@ -27,7 +27,7 @@ describe('STATS', () => {
     const rby: StatsTable = {hp: 403, atk: 298, def: 298, spa: 298, spd: 298, spe: 298};
     const adv: StatsTable = {hp: 404, atk: 328, def: 299, spa: 269, spd: 299, spe: 299};
 
-    for (let gen = 1; gen <= 8; gen++) {
+    for (let gen = 1; gen <= 9; gen++) {
       for (const stat of STATS) {
         const s =
           STATS.calc(gen as GenerationNum, stat, 100, 31, 252, 100, NATURES.get('adamant'));
@@ -39,7 +39,7 @@ describe('STATS', () => {
     expect(STATS.calc(5, 'hp', 1, 31, 252, 100, NATURES.get('jolly')))
       .toBe(1);
     // no nature
-    expect(STATS.calc(8, 'atk', 100, 31, 252, 100)).toBe(299);
+    expect(STATS.calc(9, 'atk', 100, 31, 252, 100)).toBe(299);
   });
 
   it('#get', () => {
@@ -55,7 +55,7 @@ describe('STATS', () => {
     expect(STATS.display('Atk')).toBe('Atk');
     expect(STATS.display('Spc')).toBe('SpA');
     expect(STATS.display('SpDef')).toBe('SpD');
-    expect(STATS.display('SAtk', 8, true)).toBe('Special Attack');
+    expect(STATS.display('SAtk', 9, true)).toBe('Special Attack');
     expect(STATS.display('SAtk', 1, true)).toBe('Special');
   });
 

@@ -69,7 +69,7 @@ export class SpreadRange implements Range<SpreadTable> {
     } else if (gen && 'num' in gen) {
       g = gen.num;
     } else {
-      g = 8;
+      g = 9;
       options = gen;
     }
     options = options || {};
@@ -330,7 +330,7 @@ function parseSpreadValues(s: string, type: 'iv' | 'ev' | 'dv') {
   const compact = COMPACT.test(s);
   const split = s.split('/');
   if (compact && (split.length < 5 || split.length > 6)) return undefined;
-  const order = statOrder(split.length === 5 ? 1 : 8);
+  const order = statOrder(split.length === 5 ? 1 : 9);
   for (const [i, v] of split.entries()) {
     let [range, name] = v.trim().split(/\s+/);
     const stat = (name && STATS.get(name)) || (compact ? order[i] : undefined);

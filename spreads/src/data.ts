@@ -83,7 +83,7 @@ const DISPLAY: Readonly<{ [stat: string]: Readonly<[string, string]> }> = {
 };
 
 export const GEN = (gen?: Generation) =>
-  typeof gen === 'number' ? gen : (gen && 'num' in gen) ? gen.num : 8;
+  typeof gen === 'number' ? gen : (gen && 'num' in gen) ? gen.num : 9;
 
 export const STATS = new class {
   // BUG: This calculation deliberately doesn't handle overflow

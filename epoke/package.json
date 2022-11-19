@@ -13,10 +13,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@pkmn/client": "file:../../ps/client",
-    "@pkmn/data": "file:../../ps/data",
-    "@pkmn/protocol": "file:../../ps/protocol",
-    "@pkmn/spreads": "file:../spreads"
+    "@pkmn/client": "^0.6.0",
+    "@pkmn/data": "^0.7.0",
+    "@pkmn/protocol": "^0.6.0",
+    "@pkmn/spreads": "^0.1.0"
   },
   "scripts": {
     "lint": "eslint --cache src --ext ts",

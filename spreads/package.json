@@ -1,6 +1,6 @@
 {
   "name": "@pkmn/spreads",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "description": "Library for manipulating and displaying Pokémon stats, spreads, and ranges",
   "repository": "github:pkmn/EPOke",
   "license": "MIT",
@@ -13,7 +13,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@pkmn/types": "^2.1.0"
+    "@pkmn/types": "^3.0.0"
   },
   "scripts": {
     "lint": "eslint --cache src --ext ts",

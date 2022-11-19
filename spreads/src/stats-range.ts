@@ -99,7 +99,7 @@ export class StatsRange implements Range<StatsTable> {
     const split = s.split('/');
     if (split.length < 5 || split.length > 6) return undefined;
 
-    const order = statOrder(split.length === 5 ? 1 : 8);
+    const order = statOrder(split.length === 5 ? 1 : 9);
     for (const [i, v] of split.entries()) {
       const [range, name] = v.trim().split(/\s+/);
       const val = parseRange(range);

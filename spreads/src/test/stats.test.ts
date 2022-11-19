@@ -78,9 +78,9 @@ describe('Stats', () => {
     expect(statToEV(8, 'spa', 229, 100, 20, 73, plus)).toBe(240);
 
     const minus = data.NATURES.get('Adamant');
-    expect(statToEV(8, 'spa', 16, 100, 13, 5, minus)).toBe(188);
-    expect(statToEV(8, 'spa', 15, 100, 13, 5, minus)).toBe(108);
-    expect(statToEV(8, 'spa', 14, 100, 13, 5, minus)).toBe(28);
+    expect(statToEV(9, 'spa', 16, 100, 13, 5, minus)).toBe(188);
+    expect(statToEV(9, 'spa', 15, 100, 13, 5, minus)).toBe(108);
+    expect(statToEV(9, 'spa', 14, 100, 13, 5, minus)).toBe(28);
   });
 
   test('statToIV', () => {
@@ -93,9 +93,9 @@ describe('Stats', () => {
     expect(statToIV(8, 'atk', 49, 100, 0, 20)).toBe(24);
 
     const plus = data.NATURES.get('Modest');
-    expect(statToIV(8, 'spa', 132, 100, 0, 50, plus)).toBe(31);
-    expect(statToIV(8, 'spa', 130, 100, 0, 50, plus)).toBe(29);
-    expect(statToIV(8, 'spa', 129, 100, 0, 50, plus)).toBe(27);
+    expect(statToIV(9, 'spa', 132, 100, 0, 50, plus)).toBe(31);
+    expect(statToIV(9, 'spa', 130, 100, 0, 50, plus)).toBe(29);
+    expect(statToIV(9, 'spa', 129, 100, 0, 50, plus)).toBe(27);
 
     const minus = data.NATURES.get('Adamant');
     expect(statToIV(8, 'spa', 108, 100, 0, 50, minus)).toBe(31);
