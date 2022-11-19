@@ -1,10 +1,10 @@
 import {BoostsTable, ID, StatsTable, StatusName, TypeName} from '@pkmn/data';
 
 export type Slot = 1 | 2 | 3 | 4 | 5 | 6;
-export interface Battle extends Gen1.Battle {}
-export interface Side extends Gen1.Side {}
-export interface Pokemon extends Gen1.Pokemon {}
-export interface MoveSlot extends Gen1.MoveSlot {}
+export type Battle = Gen1.Battle;
+export type Side = Gen1.Side;
+export type Pokemon = Gen1.Pokemon;
+export type MoveSlot = Gen1.MoveSlot;
 
 export namespace Gen1 {
   export interface Battle {

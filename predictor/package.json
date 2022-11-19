@@ -1,38 +1,36 @@
 {
   "name": "@pkmn/predictor",
   "version": "0.0.1",
-  "main": "build/index.js",
-  "types": "build/index.d.ts",
-  "unpkg": "build/index.umd.js",
   "description": "Library for predicting likely instances of an opponent's Pokémon team",
   "repository": "github:pkmn/EPOke",
   "license": "MIT",
+  "sideEffects": false,
+  "main": "build/index.js",
+  "module": "build/index.mjs",
+  "types": "build/index.d.ts",
+  "files": ["build"],
   "publishConfig": {
     "access": "public"
   },
-  "files": [
-    "build",
-    "!build/test",
-    "src",
-    "!src/test"
-  ],
   "scripts": {
     "lint": "eslint --cache src --ext ts",
     "fix": "eslint --fix src --ext ts",
     "compile": "tsc -p .",
-    "bundle": "microbundle --name predictor --format umd --tsconfig bundle.json --strict",
-    "build": "npm run compile && npm run bundle",
+    "build": "npm run compile && tsup src/index.ts",
     "test": "jest",
     "prepare": "npm run build",
     "pretest": "npm run build",
     "posttest": "npm run lint"
   },
+  "tsup": {
+    "outDir": "build",
+    "format": ["cjs", "esm"],
+    "sourcemap": true,
+    "dts": true
+  },
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "testPathIgnorePatterns": [
-      "node_modules/",
-      "build/"
-    ]
+    "testPathIgnorePatterns": ["node_modules/", "build/"]
   }
 }

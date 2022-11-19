@@ -6,7 +6,7 @@ interface Unknown<T> {
   known?: T;
   override?: T;
   range?: Range<T>;
-});
+}
 
 export interface Battle {
   sides: [Side, Side];
