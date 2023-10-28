@@ -2,9 +2,9 @@ import assert from 'assert';
 
 import {GenerationNum, StatsTable} from '@pkmn/types';
 
-import {Stats} from '../stats';
-import {Spread} from '../spread';
 import * as data from '../data';
+import {Spread} from '../spread';
+import {Stats} from '../stats';
 
 class Random {
   seed: number;

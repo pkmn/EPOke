@@ -1,14 +1,11 @@
 {
   "name": "@pkmn/predictor",
   "version": "0.0.1",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
   "description": "Library for predicting likely instances of an opponent's Pokémon team",
   "repository": "github:pkmn/EPOke",
   "license": "MIT",
-  "sideEffects": false,
-  "main": "build/index.js",
-  "module": "build/index.mjs",
-  "types": "build/index.d.ts",
-  "files": ["build"],
   "publishConfig": {
     "access": "public"
   },
@@ -16,22 +13,10 @@
     "lint": "eslint --cache src --ext ts",
     "fix": "eslint --fix src --ext ts",
     "compile": "tsc -p .",
-    "build": "npm run compile && tsup src/index.ts",
-    "test": "jest",
-    "prepare": "npm run build",
-    "pretest": "npm run build",
-    "posttest": "npm run lint"
+    "build": "npm run compile",
+    "test": "vitest src"
   },
-  "tsup": {
-    "outDir": "build",
-    "format": ["cjs", "esm"],
-    "sourcemap": true,
-    "dts": true,
-    "clean": true
-  },
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "testPathIgnorePatterns": ["node_modules/", "build/"]
+  "eslintConfig": {
+    "extends": "@pkmn"
   }
 }

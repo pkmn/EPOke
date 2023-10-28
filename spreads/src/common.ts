@@ -1,5 +1,6 @@
 import {GenerationNum, StatID} from '@pkmn/types';
-import {STATS, NATURES, GEN, Generation} from './data';
+
+import {GEN, Generation, NATURES, STATS} from './data';
 
 const STAT_ORDER = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
 const RBY_STAT_ORDER = ['hp', 'atk', 'def', 'spa', 'spe'] as const;
@@ -9,7 +10,7 @@ export interface Range<T> {
   max: T;
 }
 
-export function isRange<T>(r: unknown | Range<T>): r is Range<T> {
+export function isRange<T>(r: unknown): r is Range<T> {
   return 'min' in (r as Range<T>);
 }
 

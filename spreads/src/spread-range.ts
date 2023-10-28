@@ -1,15 +1,15 @@
-import {StatsTable, GenerationNum, NatureName, StatID} from '@pkmn/types';
+import {GenerationNum, NatureName, StatID, StatsTable} from '@pkmn/types';
 
 import {
+  Range,
   displayRange,
   getNatureFromPlusMinus,
   isRange,
   parseRange,
-  Range,
   statOrder,
 } from './common';
-import {GEN, STATS, NATURES, Generation} from './data';
-import {Spread, SpreadTable, SpreadDisplayOptions} from './spread';
+import {GEN, Generation, NATURES, STATS} from './data';
+import {Spread, SpreadDisplayOptions, SpreadTable} from './spread';
 import {StatsRange} from './stats-range';
 
 // eslint-disable-next-line max-len

@@ -1,8 +1,8 @@
-import {StatsTable, NatureName} from '@pkmn/types';
+import {NatureName, StatsTable} from '@pkmn/types';
 
-import {STATS, NATURES, GEN, Generation} from './data';
-import {Stats} from './stats';
+import {GEN, Generation, NATURES, STATS} from './data';
 import {SpreadRange} from './spread-range';
+import {Stats} from './stats';
 
 export interface SpreadTable<T = number> {
   nature?: NatureName;

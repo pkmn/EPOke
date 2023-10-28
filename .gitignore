@@ -1,9 +1,27 @@
-node_modules/
-build/
+# Mac
 .DS_Store
 Thumbs.db
+.vscode
+
+# Zig
+zig-cache/
+zig-out/
+build/
+/docgen_tmp/
+
+# C
+*.o
+
+# JS
+coverage/
+node_modules/
+dist/
 *package-lock.json
+*npm-debug.log
 .eslintcache
 .tsbuildinfo
-.vscode
-*-debug.log
+.parcel-cache/
+
+# Project
+logs/
+release/

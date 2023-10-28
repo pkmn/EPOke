@@ -22,16 +22,4 @@ perspective of the client. EPOké is designed to be useful in many domains, expo
 information from replays, extending the Pokémon Showdown client tooltips/UI, or inside the engine
 of a Pokemon AI.
 
-- [`@pkmn/epoke`](epoke): a wrapper around
-  [`@pkmn/client`](https://github.com/pkmn/ps/tree/master/client) which ties together `@pkmn/gmd`,
-  `@pkmn/predictor` and `@pkmn/spreads` to produce an enhanced client representation of a battle
-- [`@pkmn/gmd`](gmd): a reverse damage calculator built on top of
-  [`@pkmn/dmg`](https://github.com/pkmn/dmg) to deduce information about a Pokémon's moveset based
-  on the damage it deals or receives in battle
-- [`@pkmn/predictor`](predictor): logic which combines usage stats information from
-  [`@pkmn/stats`](https://github.com/pkmn/stats) with minimal heuristics to predict likely instances
-  of an opponent's team
-- [`@pkmn/spreads`](spreads): a lightweight, standalone package for manipulating and displaying
-  stats, spreads, and ranges
-
 Everything in this repository is distributed under the terms of the [MIT License](LICENSE).

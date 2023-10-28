@@ -1,53 +1,25 @@
 {
   "name": "@pkmn/epoke",
   "version": "0.0.1",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
   "description": "Enhanced client representation of a Pokémon battle",
   "repository": "github:pkmn/EPOke",
   "license": "MIT",
-  "sideEffects": false,
-  "main": "build/index.js",
-  "module": "build/index.mjs",
-  "types": "build/index.d.ts",
-  "files": ["build"],
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
-    "@pkmn/client": "^0.6.0",
-    "@pkmn/data": "^0.7.0",
-    "@pkmn/protocol": "^0.6.0",
-    "@pkmn/spreads": "^0.1.0"
+    "@pkmn/spreads": "file:../spreads"
   },
   "scripts": {
     "lint": "eslint --cache src --ext ts",
     "fix": "eslint --fix src --ext ts",
     "compile": "tsc -p .",
-    "build": "npm run compile && tsup src/index.ts",
-    "test": "jest",
-    "prepare": "npm run build",
-    "pretest": "npm run build",
-    "posttest": "npm run lint"
-  },
-  "tsup": {
-    "outDir": "build",
-    "format": ["cjs", "esm"],
-    "sourcemap": true,
-    "dts": true,
-    "clean": true
-  },
-  "jest": {
-    "preset": "ts-jest",
-    "testEnvironment": "node",
-    "testPathIgnorePatterns": ["node_modules/", "build/"]
+    "build": "npm run compile",
+    "test": "vitest src"
   },
   "eslintConfig": {
-    "extends": "@pkmn",
-    "ignorePatterns": ["node_modules/", "build/"],
-    "overrides": [{
-      "files": ["src/index.ts"],
-      "rules": {
-        "@typescript-eslint/no-shadow": "off"
-      }
-    }]
+    "extends": "@pkmn"
   }
 }

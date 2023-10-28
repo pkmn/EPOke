@@ -1,18 +1,18 @@
 import {StatsTable} from '@pkmn/types';
 
 import {
+  Range,
   StatsDisplayOptions,
   displayRange,
   displayStats,
   getNatureFromPlusMinus,
   isRange,
   parseRange,
-  Range,
   statOrder,
 } from './common';
-import {STATS, Generation, GEN} from './data';
-import {Stats} from './stats';
+import {GEN, Generation, STATS} from './data';
 import {SpreadRange} from './spread-range';
+import {Stats} from './stats';
 
 export class StatsRange implements Range<StatsTable> {
   min: Stats;

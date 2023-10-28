@@ -1,4 +1,5 @@
 import {NatureName} from '@pkmn/types';
+
 import {SpreadRange} from '../spread-range';
 
 const RANGE = new SpreadRange({

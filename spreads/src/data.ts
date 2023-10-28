@@ -1,5 +1,5 @@
 // This code is cribbed from @pkmn/data and @pkmn/dex: https://github.com/pkmn/ps
-import {StatsTable, NatureName, StatID, GenerationNum, ID} from '@pkmn/types';
+import {GenerationNum, ID, NatureName, StatID, StatsTable} from '@pkmn/types';
 
 export function toID(text: any): ID {
   if (text?.id) text = text.id;

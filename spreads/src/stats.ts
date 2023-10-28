@@ -1,7 +1,7 @@
-import {StatsTable, StatID, GenerationNum} from '@pkmn/types';
+import {GenerationNum, StatID, StatsTable} from '@pkmn/types';
 
 import {StatsDisplayOptions, displayStats, getNatureFromPlusMinus} from './common';
-import {NATURES, STATS, GEN, Generation, Nature} from './data';
+import {GEN, Generation, NATURES, Nature, STATS} from './data';
 import {Spread} from './spread';
 import {StatsRange} from './stats-range';
 

@@ -1,7 +1,7 @@
 /* eslint-disable jest/prefer-to-contain */
+import {Spread} from '../spread';
 import {Stats} from '../stats';
 import {StatsRange} from '../stats-range';
-import {Spread} from '../spread';
 
 const RANGE = new StatsRange({
   min: {hp: 360, atk: 367, def: 250, spa: 203, spd: 235, spe: 180},

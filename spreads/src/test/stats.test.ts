@@ -1,6 +1,6 @@
 /* eslint-disable jest/no-conditional-expect */
-import {Stats, statToEV, statToIV} from '../stats';
 import * as data from '../data';
+import {Stats, statToEV, statToIV} from '../stats';
 
 import {run} from './runner';
 
