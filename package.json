@@ -6,10 +6,11 @@
     "@pkmn/eslint-config": "^5.3.0",
     "@types/jest": "^29.5.6",
     "@types/node": "^20.8.9",
+    "binaryen": "^116.0.0",
     "eslint": "^8.52.0",
     "subpkg": "^4.1.0",
-    "vitest": "^0.34.6",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "vitest": "^0.34.6"
   },
   "subPackages": ["epoke", "gmd", "predictor", "spreads"],
   "scripts": {
@@ -19,6 +20,7 @@
     "build": "subpkg run build",
     "bundle": "subpkg run bundle",
     "test": "subpkg run test",
-    "postinstall": "subpkg install"
+    "postinstall": "subpkg install",
+    "integration": "npm run build && npm run test && npm run lint"
   }
 }

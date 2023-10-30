@@ -10,14 +10,24 @@
     "access": "public"
   },
   "dependencies": {
+    "@pkmn/engine": "0.1.0-dev.028ab165",
     "@pkmn/spreads": "file:../spreads"
   },
   "scripts": {
-    "lint": "eslint --cache src --ext ts",
-    "fix": "eslint --fix src --ext ts",
-    "compile": "tsc -p .",
-    "build": "npm run compile",
-    "test": "vitest src"
+    "js:lint": "eslint --cache src --ext ts,",
+    "js:fix": "eslint --fix src --ext ts",
+    "js:build": "tsc -p .",
+    "js:test": "vitest src/pkg",
+    "zig:lint": "zig build lint",
+    "zig:fix": "zig fmt .",
+    "zig:build": "zig build -p build",
+    "zig:test": "zig build test --summary all",
+    "lint": "npm run zig:lint && npm run js:lint",
+    "fix": "npm run zig:fix && npm run js:fix",
+    "compile": "npm run build",
+    "build": "npm run zig:build && npm run js:build",
+    "test": "npm run zig:test && npm run js:test",
+    "test:integration": "vitest src/test"
   },
   "eslintConfig": {
     "extends": "@pkmn"
