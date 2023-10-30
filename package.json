@@ -3,7 +3,7 @@
   "repository": "github:pkmn/EPOke",
   "license": "MIT",
   "devDependencies": {
-    "@pkmn/eslint-config": "^5.3.0",
+    "@pkmn/eslint-config": "^6.0.0",
     "@types/jest": "^29.5.6",
     "@types/node": "^20.8.9",
     "binaryen": "^116.0.0",

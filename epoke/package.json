@@ -10,7 +10,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@pkmn/engine": "0.1.0-dev.028ab165",
+    "@pkmn/engine": "0.1.0-dev.12e7292c",
     "@pkmn/spreads": "file:../spreads"
   },
   "scripts": {

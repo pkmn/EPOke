@@ -264,7 +264,7 @@ const softFloor = (x: number) =>
 // purely through EVs with the parameters provided) nor is it guaranteed to only return a legal
 // amount of EVs (the magnitude of EVs that would theoretically be required is important for the
 // design of the higher-level algorithm).
-// These equations were derived from the cartridge stat formulas by Orion Taylor (orion#8038).
+// These equations were derived from the cartridge stat formulas by Orion Taylor (taylorott).
 export function statToEV(
   gen: Generation,
   stat: StatID,
@@ -299,7 +299,7 @@ export function statToEV(
 // NOTE: This method is neither guaranteed to hit a specific val (some values may be impossible
 // purely through IVs with the parameters provided) nor is it guaranteed to only return a legal
 // amount of IVs.
-// These equations were derived from the cartridge stat formulas by Orion Taylor (orion#8038).
+// These equations were derived from the cartridge stat formulas by Orion Taylor (taylorott).
 export function statToIV(
   gen: Generation,
   stat: StatID,
@@ -311,7 +311,7 @@ export function statToIV(
 ) {
   if (stat === 'hp' && base === 1) return 31;
   const g = GEN(gen);
-  const n = gen < 3 ? 1 : nature?.plus === stat ? 1.1 : nature?.minus === stat ? 0.9 : 1;
+  const n = g < 3 ? 1 : nature?.plus === stat ? 1.1 : nature?.minus === stat ? 0.9 : 1;
   const m = stat === 'hp'
     ? (100 / level) * (val - level - 9) - 2 * base
     : (100 / level) * softCeil((val + 1) / n - 5) - 2 * base;
