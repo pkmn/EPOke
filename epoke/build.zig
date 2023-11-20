@@ -22,7 +22,7 @@ pub fn build(b: *std.Build) !void {
         try std.io.getStdErr().writeAll("Cannot find node\n");
         std.process.exit(1);
     };
-    var node_headers = headers: {
+    const node_headers = headers: {
         var headers = resolve(b, &.{ node, "..", "..", "include", "node" });
         var node_h = b.pathJoin(&.{ headers, "node.h" });
         if (try exists(headers)) break :headers headers;
