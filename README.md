@@ -15,11 +15,14 @@
 This is the top level directory housing packages that make up [`@pkmn`](https://pkmn.cc/@pkmn/)'s
 EPOké project.
 
+
 > [EPOké](https://pkmn.cc/epoke) (named after a portmanteau of
-[EPO](https://en.wikipedia.org/wiki/Erythropoietin) and ‘Poké’) leverages a reverse damage
-calculator ([gmd](gmd)) and additional logic to construct the *perceived* battle state based on the
-perspective of the client. EPOké is designed to be useful in many domains, exposing additional
-information from replays, extending the Pokémon Showdown client tooltips/UI, or inside the engine
-of a Pokemon AI.
+[EPO](https://en.wikipedia.org/wiki/Erythropoietin) and ‘Poké’) [is](https://pkmn.cc/vaporware.png)
+an enhanced Pokémon battling client library which tracks not only the observed state of the
+battle, but also uses the mechanics of the game, reverse damage calculation, and usage statistics to
+infer as much as possible about the state of play (including but not limited to an opponent
+Pokémon’s spreads/items/abilities). EPOké is designed to be useful in many domains, exposing
+additional information from replays, extending the Pokémon Showdown client tooltips/UI, or inside
+the engine of a Pokemon AI.
 
 Everything in this repository is distributed under the terms of the [MIT License](LICENSE).
