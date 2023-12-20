@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+title: EPOké
+type: software
+authors:
+  - given-names: Kirk
+    family-names: Scheibelhut
+    email: pre@pkmn.cc
+    orcid: 'https://orcid.org/0009-0004-7829-4237'
+license: MIT
+url: 'https://pkmn.cc/EPOké'
+repository-code: 'https://github.com/pkmn/EPOke'
+repository-artifact: 'https://github.com/pkmn/EPOke/releases/'
+abstract: >-
+  EPOké is an enhanced Pokémon battling client library which tracks not only the
+  observed state of the battle, but also uses the mechanics of the game, reverse
+  damage calculation, and usage statistics to infer as much as possible about
+  the state of play (including but not limited to an opponent Pokémon’s
+  spreads/items/abilities). EPOké is designed to be useful in many domains,
+  exposing additional information from replays, extending the Pokémon Showdown
+  client tooltips/UI, or inside the engine of a Pokemon AI.
