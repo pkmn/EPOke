@@ -5,7 +5,7 @@ const pkmn = @import("node_modules/@pkmn/engine/build.zig");
 
 pub fn build(b: *std.Build) !void {
     const release = if (std.os.getenv("DEBUG_PKMN_ENGINE")) |_| false else true;
-    const target = std.zig.CrossTarget{};
+    const target = b.resolveTargetQuery(.{});
 
     const showdown =
         b.option(bool, "showdown", "Enable Pokémon Showdown compatibility mode") orelse true;
@@ -32,8 +32,7 @@ pub fn build(b: *std.Build) !void {
         try std.io.getStdErr().writeAll("Cannot find node headers\n");
         std.process.exit(1);
     };
-    const windows = (try std.zig.system.NativeTargetInfo.detect(target)).target.os.tag == .windows;
-    const node_import_lib = if (windows) lib: {
+    const node_import_lib = if (target.result.os.tag == .windows) lib: {
         var lib = resolve(b, &.{ node, "..", "node.lib" });
         if (try exists(lib)) break :lib lib;
         lib = resolve(b, &.{ NODE_MODULES, "lib", "node.lib" });
@@ -44,18 +43,17 @@ pub fn build(b: *std.Build) !void {
 
     const addon = b.addSharedLibrary(.{
         .name = "addon",
-        .main_pkg_path = .{ .path = "." },
-        .root_source_file = .{ .path = "src/lib/binding/node.zig" },
+        .root_source_file = .{ .path = "src/lib/node.zig" },
         .optimize = if (release) .ReleaseFast else .Debug,
         .target = target,
+        .strip = release,
     });
-    addon.addModule("pkmn", module);
+    addon.root_module.addImport("pkmn", module);
     addon.addSystemIncludePath(.{ .path = node_headers });
     addon.linkLibC();
     if (node_import_lib) |il| addon.addObjectFile(.{ .path = il });
     addon.linker_allow_shlib_undefined = true;
     if (release) {
-        addon.strip = true;
         if (b.findProgram(&.{"strip"}, &.{})) |strip| {
             if (builtin.os.tag != .macos) {
                 const sh = b.addSystemCommand(&.{ strip, "-s" });
@@ -68,27 +66,33 @@ pub fn build(b: *std.Build) !void {
         &b.addInstallFileWithDir(addon.getEmittedBin(), .lib, "addon.node").step,
     );
 
-    const wasm = b.addSharedLibrary(.{
+    const wasm = b.addExecutable(.{
         .name = "addon",
-        .main_pkg_path = .{ .path = "." },
-        .root_source_file = .{ .path = "src/lib/binding/wasm.zig" },
+        .root_source_file = .{ .path = "src/lib/wasm.zig" },
         .optimize = if (release) .ReleaseSmall else .Debug,
-        .target = .{ .cpu_arch = .wasm32, .os_tag = .freestanding },
+        .target = b.resolveTargetQuery(.{ .cpu_arch = .wasm32, .os_tag = .freestanding }),
+        .strip = release,
     });
-    wasm.addModule("pkmn", module);
+    wasm.root_module.addImport("pkmn", module);
+    wasm.root_module.export_symbol_names = &[_][]const u8{};
+    wasm.entry = .disabled;
     wasm.stack_size = std.wasm.page_size;
-    wasm.rdynamic = true;
-    if (release) {
-        wasm.strip = true;
+
+    const installed = if (release) installed: {
         if (b.findProgram(&.{"wasm-opt"}, &.{BIN})) |opt| {
             const sh = b.addSystemCommand(&.{ opt, "-O4" });
             sh.addArtifactArg(wasm);
             sh.addArg("-o");
-            sh.addFileSourceArg(.{ .path = "build/lib/addon.wasm" });
+            sh.addFileArg(.{ .path = "build/lib/addon.wasm" });
             b.getInstallStep().dependOn(&sh.step);
-        } else |_| {}
+            break :installed true;
+        } else |_| break :installed false;
+    } else false;
+    if (!installed) {
+        b.getInstallStep().dependOn(&b.addInstallArtifact(wasm, .{
+            .dest_dir = .{ .override = std.Build.InstallDir{ .lib = {} } },
+        }).step);
     }
-    b.installArtifact(wasm);
 
     const test_file = b.option([]const u8, "test-file", "Input file for test") orelse
         "src/lib/test.zig";
@@ -97,13 +101,12 @@ pub fn build(b: *std.Build) !void {
 
     const tests = b.addTest(.{
         .name = std.fs.path.basename(std.fs.path.dirname(test_file).?),
-        .main_pkg_path = .{ .path = "." },
         .root_source_file = .{ .path = test_file },
         .optimize = if (release) .ReleaseSafe else .Debug,
         .target = target,
         .filter = test_filter,
+        .single_threaded = true,
     });
-    tests.single_threaded = true;
 
     const lint = b.addSystemCommand(&.{"ziglint"});
 
