@@ -55,7 +55,7 @@ export const NATURES = new class {
 
   *[Symbol.iterator]() {
     for (const nature in DATA) {
-      yield this.get(nature)!;
+      yield this.get(nature);
     }
   }
 };

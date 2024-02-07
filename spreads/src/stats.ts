@@ -353,7 +353,7 @@ function getNegativeNatures(minus: StatID, weights: StatsTable | Array<[StatID, 
 
 // All Natures in sorted in order of weights, optionally including a neutral Nature to begin with
 function getNatures(weights: StatsTable, neutral = true) {
-  const natures: Nature[] = neutral ? [NATURES.get('Serious')!] : [];
+  const natures: Nature[] = neutral ? [NATURES.get('Serious')] : [];
 
   const positive = Object.entries(weights).sort(DESCENDING) as Array<[StatID, number]>;
   const negative = Object.entries(weights).sort(ASCENDING) as Array<[StatID, number]>;

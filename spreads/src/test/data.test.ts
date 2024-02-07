@@ -4,12 +4,12 @@ import {NATURES, STATS} from '../data';
 
 describe('NATURES', () => {
   it('#get', () => {
-    const adamant = NATURES.get('adamant')!;
+    const adamant = NATURES.get('adamant');
     expect(adamant.name).toBe('Adamant');
     expect(adamant.plus).toBe('atk');
     expect(adamant.minus).toBe('spa');
 
-    const serious = NATURES.get('serious')!;
+    const serious = NATURES.get('serious');
     expect(serious.name).toBe('Serious');
     expect(serious.plus).toBeUndefined();
     expect(serious.minus).toBeUndefined();
